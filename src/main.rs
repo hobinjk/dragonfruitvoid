@@ -5,10 +5,26 @@ use bevy::{
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
     window::CursorMoved,
 };
+use std::time::Duration;
 use std::ops::{Add, Mul, Sub};
 
 #[derive(Component)]
 struct Name(String);
+
+#[derive(Component)]
+struct TextHp;
+
+#[derive(Component)]
+struct TextCooldownDodge;
+
+#[derive(Component)]
+struct TextCooldownBlink;
+
+#[derive(Component)]
+struct TextCooldownPortal;
+
+#[derive(Component)]
+struct TextCooldownPull;
 
 #[derive(Component)]
 struct MobOrb;
@@ -57,6 +73,8 @@ const LAYER_CURSOR: f32 = LAYER_PLAYER - 5.;
 const LAYER_MOB: f32 = 20.;
 const LAYER_TARGET: f32 = 10.;
 const LAYER_MAP: f32 = 0.;
+const LAYER_UI: f32 = 1.;
+const LAYER_TEXT: f32 = 2.;
 
 const WIDTH: f32 = 1024.;
 const HEIGHT: f32 = 1024.;
@@ -91,6 +109,11 @@ fn setup(mut commands: Commands, mut game: ResMut<Game>, asset_server: Res<Asset
     game.player.blink_cooldown = Timer::from_seconds(16., false);
     game.player.portal_cooldown = Timer::from_seconds(60., false);
     game.player.pull_cooldown = Timer::from_seconds(20., false);
+
+    game.player.dodge_cooldown.tick(Duration::from_secs_f32(1000.));
+    game.player.blink_cooldown.tick(Duration::from_secs_f32(1000.));
+    game.player.portal_cooldown.tick(Duration::from_secs_f32(1000.));
+    game.player.pull_cooldown.tick(Duration::from_secs_f32(1000.));
 
     game.player.entity = Some(
         commands.spawn_bundle(SpriteBundle {
@@ -171,6 +194,59 @@ fn setup(mut commands: Commands, mut game: ResMut<Game>, asset_server: Res<Asset
         transform: Transform::from_xyz(240., -240., LAYER_TARGET),
         ..default()
     }).insert(OrbTarget(2));
+
+    let text_style = TextStyle {
+        font: asset_server.load("trebuchet_ms.ttf"),
+        font_size: 64.,
+        color: Color::rgb(0.1, 0.7, 0.1),
+    };
+
+    commands.spawn_bundle(Text2dBundle {
+        text: Text::from_section("hp", text_style.clone())
+            .with_alignment(TextAlignment::CENTER),
+        transform: Transform::from_xyz(0., -HEIGHT / 2. + 55., LAYER_TEXT),
+        ..default()
+    }).insert(TextHp);
+
+    commands.spawn_bundle(MaterialMesh2dBundle {
+        mesh: meshes.add(shape::Circle::new(50.).into()).into(),
+        material: materials.add(ColorMaterial::from(Color::rgb(0.6, 0.1, 0.1))),
+        transform: Transform::from_xyz(0., -HEIGHT / 2. + 55., LAYER_UI),
+        ..default()
+    });
+
+    commands.spawn_bundle(Text2dBundle {
+        text: Text::from_section("0", 
+            TextStyle {
+                font: asset_server.load("trebuchet_ms.ttf"),
+                font_size: 80.,
+                color: Color::rgb(0.7, 0.7, 0.1),
+            })
+            .with_alignment(TextAlignment::CENTER),
+        transform: Transform::from_xyz(0., -HEIGHT / 2. + 155., LAYER_TEXT),
+        ..default()
+    }).insert(TextCooldownDodge);
+
+    commands.spawn_bundle(Text2dBundle {
+        text: Text::from_section("hp", text_style.clone())
+            .with_alignment(TextAlignment::CENTER),
+        transform: Transform::from_xyz(-128., -HEIGHT / 2. + 55., LAYER_TEXT),
+        ..default()
+    }).insert(TextCooldownPull);
+
+    commands.spawn_bundle(Text2dBundle {
+        text: Text::from_section("hp", text_style.clone())
+            .with_alignment(TextAlignment::CENTER),
+        transform: Transform::from_xyz(128., -HEIGHT / 2. + 55., LAYER_TEXT),
+        ..default()
+    }).insert(TextCooldownBlink);
+
+    commands.spawn_bundle(Text2dBundle {
+        text: Text::from_section("hp", text_style.clone())
+            .with_alignment(TextAlignment::CENTER),
+        transform: Transform::from_xyz(256., -HEIGHT / 2. + 55., LAYER_TEXT),
+        ..default()
+    }).insert(TextCooldownPortal);
 }
 
 
@@ -377,7 +453,7 @@ fn handle_spellcasts_system(
 
     if game.player.dodge_cooldown.finished() &&
         keyboard_input.pressed(KeyCode::V) {
-        let dodge_range = 100.0;
+        let dodge_range = 300. * GAME_TO_PX;
         let dodge_speed = dodge_range / 0.75;
         let diff = cursor_loc.sub(player_loc).clamp_length(dodge_range, dodge_range);
         let target = player_loc.add(diff);
@@ -391,7 +467,7 @@ fn handle_spellcasts_system(
         game.player.dodge_cooldown.reset();
     }
 
-    if game.player.dodge_cooldown.finished() &&
+    if game.player.blink_cooldown.finished() &&
         keyboard_input.pressed(KeyCode::E) {
         let blink_range = 1200.0 * GAME_TO_PX;
         let blink_speed = blink_range / 0.1;
@@ -406,14 +482,14 @@ fn handle_spellcasts_system(
             speed: blink_speed,
         });
 
-        game.player.dodge_cooldown.reset();
+        game.player.blink_cooldown.reset();
     }
 
     if game.player.pull_cooldown.finished() &&
         keyboard_input.pressed(KeyCode::Key4) {
         let pull_loc = cursor_loc;
         let pull_range = 600.0 * GAME_TO_PX;
-        let pull_speed = pull_range / 0.1;
+        let pull_speed = pull_range / 0.3;
 
         for (entity_crab, transform_crab, _) in &crabs {
             let crab_loc = transform_crab.translation;
@@ -430,10 +506,43 @@ fn handle_spellcasts_system(
             });
         }
 
-        game.player.dodge_cooldown.reset();
+        game.player.pull_cooldown.reset();
     }
 }
 
+fn set_cooldown_text(timer: &Timer, text: &mut Text) {
+    let dur = timer.duration().as_secs_f32();
+    let elapsed = timer.elapsed_secs();
+    let left = dur - elapsed;
+
+    text.sections[0].value = format!("{left:.1}");
+    if left < 0.001 {
+        text.sections[0].style.color.set_a(0.0);
+    } else {
+        text.sections[0].style.color.set_a(1.0);
+    }
+}
+
+fn text_system(game: Res<Game>,
+               mut set: ParamSet<(
+                  Query<&mut Text, With<TextHp>>,
+                  Query<&mut Text, With<TextCooldownDodge>>,
+                  Query<&mut Text, With<TextCooldownPull>>,
+                  Query<&mut Text, With<TextCooldownPortal>>,
+                  Query<&mut Text, With<TextCooldownBlink>>,
+               )>
+               ) {
+
+    for mut text in set.p0().iter_mut() {
+        let hp = game.player.hp;
+        text.sections[0].value = format!("{hp:.0}");
+    }
+
+    set_cooldown_text(&game.player.dodge_cooldown, &mut set.p1().get_single_mut().unwrap());
+    set_cooldown_text(&game.player.pull_cooldown, &mut set.p2().get_single_mut().unwrap());
+    set_cooldown_text(&game.player.portal_cooldown, &mut set.p3().get_single_mut().unwrap());
+    set_cooldown_text(&game.player.blink_cooldown, &mut set.p4().get_single_mut().unwrap());
+}
 
 fn main() {
     App::new()
@@ -462,6 +571,7 @@ fn main() {
         .add_system(collisions_system)
         .add_system(collisions_orb_targets_system)
         .add_system(game_orb_target_progression_system)
+        .add_system(text_system)
         .add_system(bevy::window::close_on_esc)
         .run();
 }
