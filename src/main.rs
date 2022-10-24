@@ -11,20 +11,19 @@ use std::ops::{Add, Mul, Sub};
 #[derive(Component)]
 struct Name(String);
 
-#[derive(Component)]
-struct TextHp;
+enum TextValue {
+    Hp,
+    CooldownDodge,
+    CooldownBlink,
+    CooldownPortal,
+    CooldownPull,
+}
 
 #[derive(Component)]
-struct TextCooldownDodge;
-
-#[derive(Component)]
-struct TextCooldownBlink;
-
-#[derive(Component)]
-struct TextCooldownPortal;
-
-#[derive(Component)]
-struct TextCooldownPull;
+struct TextDisplay {
+    value: TextValue,
+    sprite: Option<Entity>,
+}
 
 #[derive(Component)]
 struct MobOrb;
@@ -206,7 +205,10 @@ fn setup(mut commands: Commands, mut game: ResMut<Game>, asset_server: Res<Asset
             .with_alignment(TextAlignment::CENTER),
         transform: Transform::from_xyz(0., -HEIGHT / 2. + 55., LAYER_TEXT),
         ..default()
-    }).insert(TextHp);
+    }).insert(TextDisplay {
+        value: TextValue::Hp,
+        sprite: None,
+    });
 
     commands.spawn_bundle(MaterialMesh2dBundle {
         mesh: meshes.add(shape::Circle::new(50.).into()).into(),
@@ -225,28 +227,58 @@ fn setup(mut commands: Commands, mut game: ResMut<Game>, asset_server: Res<Asset
             .with_alignment(TextAlignment::CENTER),
         transform: Transform::from_xyz(0., -HEIGHT / 2. + 155., LAYER_TEXT),
         ..default()
-    }).insert(TextCooldownDodge);
+    }).insert(TextDisplay {
+        value: TextValue::CooldownDodge,
+        sprite: None,
+    });
+
+    let sprite_pull = commands.spawn_bundle(SpriteBundle {
+        texture: asset_server.load("pull.png"),
+        transform: Transform::from_xyz(-128., -HEIGHT / 2. + 55., LAYER_UI),
+        ..default()
+    }).id();
 
     commands.spawn_bundle(Text2dBundle {
         text: Text::from_section("hp", text_style.clone())
             .with_alignment(TextAlignment::CENTER),
         transform: Transform::from_xyz(-128., -HEIGHT / 2. + 55., LAYER_TEXT),
         ..default()
-    }).insert(TextCooldownPull);
+    }).insert(TextDisplay {
+        value: TextValue::CooldownPull,
+        sprite: Some(sprite_pull),
+    });
+
+    let sprite_blink = commands.spawn_bundle(SpriteBundle {
+        texture: asset_server.load("blink.png"),
+        transform: Transform::from_xyz(128., -HEIGHT / 2. + 55., LAYER_UI),
+        ..default()
+    }).id();
 
     commands.spawn_bundle(Text2dBundle {
         text: Text::from_section("hp", text_style.clone())
             .with_alignment(TextAlignment::CENTER),
         transform: Transform::from_xyz(128., -HEIGHT / 2. + 55., LAYER_TEXT),
         ..default()
-    }).insert(TextCooldownBlink);
+    }).insert(TextDisplay {
+        value: TextValue::CooldownBlink,
+        sprite: Some(sprite_blink),
+    });
+
+    let sprite_portal = commands.spawn_bundle(SpriteBundle {
+        texture: asset_server.load("portal.png"),
+        transform: Transform::from_xyz(256., -HEIGHT / 2. + 55., LAYER_UI),
+        ..default()
+    }).id();
 
     commands.spawn_bundle(Text2dBundle {
         text: Text::from_section("hp", text_style.clone())
             .with_alignment(TextAlignment::CENTER),
         transform: Transform::from_xyz(256., -HEIGHT / 2. + 55., LAYER_TEXT),
         ..default()
-    }).insert(TextCooldownPortal);
+    }).insert(TextDisplay {
+        value: TextValue::CooldownPortal,
+        sprite: Some(sprite_portal),
+    });
 }
 
 
@@ -510,38 +542,61 @@ fn handle_spellcasts_system(
     }
 }
 
-fn set_cooldown_text(timer: &Timer, text: &mut Text) {
+fn set_cooldown_text_display(timer: &Timer, text: &mut Text, text_display: &TextDisplay, sprites: &mut Query<&mut Sprite>) {
     let dur = timer.duration().as_secs_f32();
     let elapsed = timer.elapsed_secs();
     let left = dur - elapsed;
 
-    text.sections[0].value = format!("{left:.1}");
+    if left < 5. {
+        text.sections[0].value = format!("{left:.1}");
+    } else {
+        text.sections[0].value = format!("{left:.0}");
+    }
+
     if left < 0.001 {
         text.sections[0].style.color.set_a(0.0);
     } else {
         text.sections[0].style.color.set_a(1.0);
     }
+
+    if let Some(sprite_handle) = text_display.sprite {
+        let color = if left < 0.001 {
+            Color::rgba(1.0, 1.0, 1.0, 1.0)
+        } else {
+            Color::rgba(0.1, 0.1, 0.1, 0.7)
+        };
+        sprites.get_mut(sprite_handle).unwrap().color = color;
+    }
 }
 
 fn text_system(game: Res<Game>,
-               mut set: ParamSet<(
-                  Query<&mut Text, With<TextHp>>,
-                  Query<&mut Text, With<TextCooldownDodge>>,
-                  Query<&mut Text, With<TextCooldownPull>>,
-                  Query<&mut Text, With<TextCooldownPortal>>,
-                  Query<&mut Text, With<TextCooldownBlink>>,
-               )>
-               ) {
+               mut text_displays: Query<(&mut Text, &TextDisplay)>,
+               mut sprites: Query<&mut Sprite>) {
 
-    for mut text in set.p0().iter_mut() {
-        let hp = game.player.hp;
-        text.sections[0].value = format!("{hp:.0}");
+    for (mut text, text_display) in &mut text_displays {
+        match text_display.value {
+            TextValue::Hp => {
+                let hp = game.player.hp;
+                text.sections[0].value = format!("{hp:.0}");
+            },
+            TextValue::CooldownBlink => {
+                set_cooldown_text_display(&game.player.blink_cooldown, &mut text, &text_display, &mut sprites);
+            },
+            TextValue::CooldownDodge => {
+                set_cooldown_text_display(&game.player.dodge_cooldown, &mut text, &text_display, &mut sprites);
+            },
+            TextValue::CooldownPortal => {
+                set_cooldown_text_display(&game.player.portal_cooldown, &mut text, &text_display, &mut sprites);
+            },
+            TextValue::CooldownPull => {
+                set_cooldown_text_display(&game.player.pull_cooldown, &mut text, &text_display, &mut sprites);
+            }
+        }
     }
 
-    set_cooldown_text(&game.player.dodge_cooldown, &mut set.p1().get_single_mut().unwrap());
-    set_cooldown_text(&game.player.pull_cooldown, &mut set.p2().get_single_mut().unwrap());
-    set_cooldown_text(&game.player.portal_cooldown, &mut set.p3().get_single_mut().unwrap());
-    set_cooldown_text(&game.player.blink_cooldown, &mut set.p4().get_single_mut().unwrap());
+    // set_cooldown_text(&game.player.pull_cooldown, &mut set.p2().get_single_mut().unwrap());
+    // set_cooldown_text(&game.player.portal_cooldown, &mut set.p3().get_single_mut().unwrap());
+    // set_cooldown_text(&game.player.blink_cooldown, &mut set.p4().get_single_mut().unwrap());
 }
 
 fn main() {
