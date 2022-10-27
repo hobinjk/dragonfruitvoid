@@ -4,6 +4,7 @@ use bevy::{
     sprite::{MaterialMesh2dBundle, Mesh2dHandle, collide_aabb},
     window::CursorMoved,
 };
+use std::collections::HashSet;
 use std::time::Duration;
 use std::ops::{Add, Mul, Sub};
 
@@ -31,12 +32,30 @@ struct MobOrb;
 struct MobCrab;
 
 #[derive(Component)]
-struct VoidZone(f32);
+struct VoidZone;
+
+// 312 - 60 / 2 @ 56 (14 ticks)
 
 const VOID_ZONE_GROWTH_DURATION_SECS: f32 = 4.;
 const VOID_ZONE_START_RADIUS: f32 = 30.;
-const VOID_ZONE_GROWTH_AMOUNT: f32 = 10.;
+const VOID_ZONE_GROWTH_AMOUNT: f32 = 252. / 14.;
 const VOID_ZONE_CRAB_SPAWN_DURATION_SECS: f32 = 10.;
+
+const BOSS_RADIUS: f32 = 420. * GAME_TO_PX;
+
+const PUDDLE_RADIUS: f32 = 450. * GAME_TO_PX;
+const PUDDLE_DAMAGE: f32 = 20.;
+
+#[derive(Component)]
+struct Puddle {
+    visibility_start: Timer,
+    drop: Timer,
+}
+
+#[derive(Component)]
+struct Soup {
+    damage: f32,
+}
 
 #[derive(Component)]
 struct OrbTarget(i32);
@@ -57,6 +76,27 @@ struct Velocity(Vec3);
 struct PlayerTag;
 
 #[derive(Component)]
+struct Hp(i32);
+
+#[derive(Component)]
+struct HasHit(HashSet<Entity>);
+
+#[derive(Component)]
+struct Enemy;
+
+#[derive(Component)]
+struct Boss {
+    name: String,
+    max_hp: i32,
+}
+
+#[derive(Component)]
+struct BossHealthbar;
+
+#[derive(Component)]
+struct CollisionRadius(f32);
+
+#[derive(Component)]
 struct EffectForcedMarch {
     target: Vec3,
     speed: f32,
@@ -66,9 +106,22 @@ struct EffectForcedMarch {
 enum GameState {
     StartMenu,
     PurificationOne,
+    Jormag,
+    // Primordus,
+    // Kralkatorrik,
+    // PurificationTwo,
+    // Mordremoth,
+    // Zhaitan,
+    // PurificationThree,
+    // SooWonOne,
+    // PurificationFour,
+    // SooWonTwo,
     Failure,
     Success,
 }
+
+#[derive(Component)]
+struct MenuContainer;
 
 #[derive(Component)]
 struct ButtonNextState(GameState);
@@ -76,9 +129,11 @@ struct ButtonNextState(GameState);
 const CRAB_SIZE: f32 = 30.;
 const CRAB_SPEED: f32 = 15.;
 const BULLET_SIZE: f32 = 10.;
-const ORB_RADIUS: f32 = 50.;
+const BULLET_DAMAGE: i32 = 1;
+const ORB_RADIUS: f32 = 70.;
 const ORB_TARGET_RADIUS: f32 = 70.;
 const ORB_VELOCITY_DECAY: f32 = 0.5;
+const GREEN_RADIUS: f32 = 60.;
 
 const LAYER_PLAYER: f32 = 100.;
 const LAYER_CURSOR: f32 = LAYER_PLAYER - 5.;
@@ -96,10 +151,14 @@ const GAME_TO_PX: f32 = 1. / PX_TO_GAME;
 
 const MAP_RADIUS: f32 = WIDTH / 2.;
 
+struct GreenSpawn {
+    start: f32,
+    positions: [Vec3; 3]
+}
 
 #[derive(Default)]
 struct Player {
-    hp: i32,
+    hp: f32,
     shoot_cooldown: Timer,
     dodge_cooldown: Timer,
     blink_cooldown: Timer,
@@ -115,43 +174,185 @@ struct Game {
     void_zone_growth: Timer,
     void_zone_crab_spawn: Timer,
 }
-struct MenuData {
-    button_entity: Entity,
+
+#[derive(Component)]
+struct StackGreen {
+    visibility_start: Timer,
+    detonation: Timer,
 }
+#[derive(Component)]
+struct StackGreenIndicator;
+
+const GREEN_SPAWNS_JORMAG: [GreenSpawn; 2] = [
+    GreenSpawn {
+        start: 15.,
+        positions: [
+            Vec3::new(269., 3., 0.),
+            Vec3::new(-270., 0., 0.),
+            Vec3::new(-78., 240., 0.),
+        ],
+    },
+    GreenSpawn {
+        start: 55.,
+        positions: [
+            Vec3::new(312., 3., 0.),
+            Vec3::new(-303., 1., 0.),
+            Vec3::new(-78., 299., 0.),
+        ],
+    }
+];
+
+const _GREEN_SPAWNS_PRIMORDUS: [GreenSpawn; 2] = [
+    GreenSpawn {
+        start: 23.,
+        positions: [
+            Vec3::new(269., -111., 0.),
+            Vec3::new(-274., -113., 0.),
+            Vec3::new(-62., -290., 0.),
+        ],
+    },
+    GreenSpawn {
+        start: 77.,
+        positions: [
+            Vec3::new(365., -153., 0.),
+            Vec3::new(-364., -155., 0.),
+            Vec3::new(-82., -387., 0.),
+        ],
+    }
+];
+
+const _GREEN_SPAWNS_ZHAITAN: [GreenSpawn; 3] = [
+    GreenSpawn {
+        start: 0., // actually -5., not entirely sure what to do here
+        positions: [
+            Vec3::new(158., -110., 0.),
+            Vec3::new(-158., -114., 0.),
+            Vec3::new(1., 258., 0.),
+        ],
+    },
+    GreenSpawn {
+        start: 28.,
+        positions: [
+            Vec3::new(197., -131., 0.),
+            Vec3::new(-201., -131., 0.),
+            Vec3::new(1., 258., 0.),
+        ],
+    },
+    GreenSpawn {
+        start: 60.,
+        positions: [
+            Vec3::new(308., -179., 0.),
+            Vec3::new(-308., -189., 0.),
+            Vec3::new(2., 387., 0.),
+        ],
+    }
+];
+
+const _GREEN_SPAWNS_SOOWONONE: [GreenSpawn; 2] = [
+    GreenSpawn {
+        start: 5.,
+        positions: [
+            Vec3::new(-131., 75., 0.),
+            Vec3::new(-47., 351., 0.),
+            Vec3::new(-199., -64., 0.),
+        ],
+    },
+    GreenSpawn {
+        start: 50.,
+        positions: [
+            Vec3::new(-268., 174., 0.),
+            Vec3::new(-47., 351., 0.),
+            Vec3::new(-290., -101., 0.),
+        ],
+    }
+    // there's another at 90 :(
+];
+
+const _GREEN_SPAWNS_SOOWONTWO: [GreenSpawn; 2] = [
+    GreenSpawn {
+        start: 12.,
+        positions: [
+            Vec3::new(-131., 75., 0.),
+            Vec3::new(-47., 351., 0.),
+            Vec3::new(-199., -64., 0.),
+        ],
+    },
+    GreenSpawn {
+        start: 58.,
+        positions: [
+            Vec3::new(-268., 174., 0.),
+            Vec3::new(-47., 351., 0.),
+            Vec3::new(-290., -101., 0.),
+        ],
+    }
+    // there's another around 102
+];
 
 const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
 const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
 
 fn setup_menu_system(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let button_entity = commands
-        .spawn_bundle(ButtonBundle {
-            style: Style {
-                size: Size::new(Val::Px(350.0), Val::Px(65.0)),
-                // center button
-                margin: UiRect::all(Val::Auto),
-                // horizontally center child text
-                justify_content: JustifyContent::Center,
-                // vertically center child text
-                align_items: AlignItems::Center,
-                ..default()
-            },
+    let button_size = Size::new(Val::Px(350.0), Val::Px(65.0));
+    let button_margin = UiRect::all(Val::Px(10.));
+
+    let button_style = Style {
+        size: button_size,
+        // center button
+        margin: button_margin,
+        // horizontally center child text
+        justify_content: JustifyContent::Center,
+        // vertically center child text
+        align_items: AlignItems::Center,
+        ..default()
+    };
+
+    let text_style = TextStyle {
+        font: asset_server.load("trebuchet_ms.ttf"),
+        font_size: 40.0,
+        color: Color::rgb(0.9, 0.9, 0.9),
+    };
+
+    commands.spawn_bundle(NodeBundle {
+        style: Style {
+            size: Size::new(Val::Px(WIDTH), Val::Px(HEIGHT)),
+            flex_direction: FlexDirection::ColumnReverse,
+            // horizontally center children
+            justify_content: JustifyContent::Center,
+            // vertically center children
+            align_items: AlignItems::Center,
+            ..default()
+        },
+        ..default()
+    })
+    .with_children(|container| {
+        container.spawn_bundle(ButtonBundle {
+            style: button_style.clone(),
             color: NORMAL_BUTTON.into(),
             ..default()
         })
         .with_children(|parent| {
             parent.spawn_bundle(TextBundle::from_section(
                 "Purification One",
-                TextStyle {
-                    font: asset_server.load("trebuchet_ms.ttf"),
-                    font_size: 40.0,
-                    color: Color::rgb(0.9, 0.9, 0.9),
-                },
+                text_style.clone(),
             ));
         })
-        .insert(ButtonNextState(GameState::PurificationOne))
-        .id();
-    commands.insert_resource(MenuData { button_entity });
+        .insert(ButtonNextState(GameState::PurificationOne));
+
+        container.spawn_bundle(ButtonBundle {
+            style: button_style.clone(),
+            color: NORMAL_BUTTON.into(),
+            ..default()
+        })
+        .with_children(|parent| {
+            parent.spawn_bundle(TextBundle::from_section(
+                "Jormag",
+                text_style.clone(),
+            ));
+        })
+        .insert(ButtonNextState(GameState::Jormag));
+    })
+    .insert(MenuContainer);
 }
 
 fn update_menu_system(
@@ -177,8 +378,10 @@ fn update_menu_system(
     }
 }
 
-fn cleanup_menu_system(mut commands: Commands, menu_data: Res<MenuData>) {
-    commands.entity(menu_data.button_entity).despawn_recursive();
+fn cleanup_menu_system(mut commands: Commands, containers: Query<(Entity, &MenuContainer)>) {
+    for (entity, _) in &containers {
+        commands.entity(entity).despawn_recursive();
+    }
 }
 
 fn setup_success_system(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -253,26 +456,12 @@ fn setup(mut commands: Commands) {
     commands.spawn_bundle(Camera2dBundle::default());
 }
 
-fn setup_purification_one(
+fn setup_phase(
     mut commands: Commands, asset_server: Res<AssetServer>,
+    mut game: ResMut<Game>,
     mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
     ) {
-
-    let mut game = Game {
-        player: Player {
-            ..default()
-        },
-        cursor: None,
-        orb_target: 0,
-        void_zone_growth: Timer::from_seconds(VOID_ZONE_GROWTH_DURATION_SECS, true),
-        void_zone_crab_spawn: Timer::from_seconds(VOID_ZONE_CRAB_SPAWN_DURATION_SECS, true),
-    };
-
-    game.orb_target = 0;
-    game.void_zone_growth.reset();
-    game.void_zone_crab_spawn.reset();
-
-    game.player.hp = 100;
+    game.player.hp = 100.;
     game.player.shoot_cooldown = Timer::from_seconds(0.2, false);
     game.player.dodge_cooldown = Timer::from_seconds(10., false);
     game.player.blink_cooldown = Timer::from_seconds(16., false);
@@ -291,7 +480,7 @@ fn setup_purification_one(
                 custom_size: Some(Vec2::new(20., 20.)),
                 ..default()
             },
-            transform: Transform::from_xyz(50., 300., LAYER_PLAYER),
+            transform: Transform::from_xyz(0., 200., LAYER_PLAYER),
             ..default()
         }).insert(PlayerTag).id()
     );
@@ -308,75 +497,11 @@ fn setup_purification_one(
         }).insert(CursorMark).id()
     );
 
-    commands.insert_resource(game);
-
     commands.spawn_bundle(SpriteBundle {
         texture: asset_server.load("map.png"),
         transform: Transform::from_xyz(0., 0., LAYER_MAP),
         ..default()
     });
-
-    let crab_positions = vec![
-        Vec3::new(-350., 200., LAYER_MOB),
-        Vec3::new(-312.5, 237.5, LAYER_MOB),
-        Vec3::new(-275., 275., LAYER_MOB),
-        Vec3::new(-237.5, 312.5, LAYER_MOB),
-        Vec3::new(-200., 350., LAYER_MOB),
-    ];
-
-    for crab_pos in crab_positions {
-        spawn_crab(&mut commands, crab_pos);
-    }
-
-    commands.spawn_bundle(MaterialMesh2dBundle {
-        mesh: meshes.add(shape::Circle::new(ORB_RADIUS).into()).into(),
-        material: materials.add(ColorMaterial::from(Color::rgb(0.9, 1.0, 1.0))),
-        transform: Transform::from_xyz(0., 0., LAYER_MOB),
-        ..default()
-    }).insert(MobOrb).insert(Velocity(Vec3::new(0., 0., 0.)));
-
-    let orb_target_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(ORB_TARGET_RADIUS).into()).into();
-    let orb_target_material = ColorMaterial::from(Color::rgb(0.5, 0.5, 0.5));
-
-    commands.spawn_bundle(MaterialMesh2dBundle {
-        mesh: orb_target_mesh.clone(),
-        material: materials.add(orb_target_material.clone()),
-        transform: Transform::from_xyz(-240., 240., LAYER_TARGET),
-        ..default()
-    }).insert(OrbTarget(0));
-
-    commands.spawn_bundle(MaterialMesh2dBundle {
-        mesh: orb_target_mesh.clone(),
-        material: materials.add(orb_target_material.clone()),
-        transform: Transform::from_xyz(-240., -240., LAYER_TARGET),
-        ..default()
-    }).insert(OrbTarget(1));
-
-    commands.spawn_bundle(MaterialMesh2dBundle {
-        mesh: orb_target_mesh.clone(),
-        material: materials.add(orb_target_material.clone()),
-        transform: Transform::from_xyz(240., -240., LAYER_TARGET),
-        ..default()
-    }).insert(OrbTarget(2));
-
-    let void_zone_positions = [
-        Vec3::new(-WIDTH / 2. + 100., 0., LAYER_VOID),
-        Vec3::new(WIDTH / 2. - 100., 0., LAYER_VOID),
-        Vec3::new(0., -HEIGHT / 2. + 100., LAYER_VOID),
-        Vec3::new(0., HEIGHT / 2. - 100., LAYER_VOID),
-    ];
-
-    let void_zone_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(VOID_ZONE_START_RADIUS).into()).into();
-    let void_zone_material = ColorMaterial::from(Color::rgba(0.0, 0.0, 0.0, 0.9));
-
-    for pos in void_zone_positions {
-        commands.spawn_bundle(MaterialMesh2dBundle {
-            mesh: void_zone_mesh.clone(),
-            material: materials.add(void_zone_material.clone()),
-            transform: Transform::from_translation(pos),
-            ..default()
-        }).insert(VoidZone(VOID_ZONE_START_RADIUS));
-    }
 
     let text_style = TextStyle {
         font: asset_server.load("trebuchet_ms.ttf"),
@@ -493,6 +618,272 @@ fn setup_purification_one(
     });
 }
 
+fn setup_purification_one(
+    mut commands: Commands, mut game: ResMut<Game>,
+    mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
+    ) {
+
+    game.orb_target = 0;
+
+    let crab_positions = vec![
+        Vec3::new(-350., 200., LAYER_MOB),
+        Vec3::new(-312.5, 237.5, LAYER_MOB),
+        Vec3::new(-275., 275., LAYER_MOB),
+        Vec3::new(-237.5, 312.5, LAYER_MOB),
+        Vec3::new(-200., 350., LAYER_MOB),
+    ];
+
+    for crab_pos in crab_positions {
+        spawn_crab(&mut commands, crab_pos);
+    }
+
+    commands.spawn_bundle(MaterialMesh2dBundle {
+        mesh: meshes.add(shape::Circle::new(ORB_RADIUS).into()).into(),
+        material: materials.add(ColorMaterial::from(Color::rgb(0.9, 1.0, 1.0))),
+        transform: Transform::from_xyz(0., 0., LAYER_MOB),
+        ..default()
+    }).insert(MobOrb).insert(Velocity(Vec3::new(0., 0., 0.)));
+
+    let orb_target_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(ORB_TARGET_RADIUS).into()).into();
+    let orb_target_material = ColorMaterial::from(Color::rgb(0.5, 0.5, 0.5));
+
+    commands.spawn_bundle(MaterialMesh2dBundle {
+        mesh: orb_target_mesh.clone(),
+        material: materials.add(orb_target_material.clone()),
+        transform: Transform::from_xyz(-240., 240., LAYER_TARGET),
+        ..default()
+    }).insert(OrbTarget(0));
+
+    commands.spawn_bundle(MaterialMesh2dBundle {
+        mesh: orb_target_mesh.clone(),
+        material: materials.add(orb_target_material.clone()),
+        transform: Transform::from_xyz(-240., -240., LAYER_TARGET),
+        ..default()
+    }).insert(OrbTarget(1));
+
+    commands.spawn_bundle(MaterialMesh2dBundle {
+        mesh: orb_target_mesh.clone(),
+        material: materials.add(orb_target_material.clone()),
+        transform: Transform::from_xyz(240., -240., LAYER_TARGET),
+        ..default()
+    }).insert(OrbTarget(2));
+
+    let void_zone_offset = 420.;
+    let void_zone_positions = [
+        Vec3::new(-void_zone_offset, 0., LAYER_VOID),
+        Vec3::new(void_zone_offset, 0., LAYER_VOID),
+        Vec3::new(0., -void_zone_offset, LAYER_VOID),
+        Vec3::new(0., void_zone_offset, LAYER_VOID),
+    ];
+
+    let void_zone_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(VOID_ZONE_START_RADIUS).into()).into();
+    let void_zone_material = ColorMaterial::from(Color::rgba(0.0, 0.0, 0.0, 0.9));
+
+    for pos in void_zone_positions {
+        commands.spawn_bundle(MaterialMesh2dBundle {
+            mesh: void_zone_mesh.clone(),
+            material: materials.add(void_zone_material.clone()),
+            transform: Transform::from_translation(pos),
+            ..default()
+        })
+        .insert(VoidZone)
+        .insert(CollisionRadius(VOID_ZONE_START_RADIUS))
+        .insert(Soup { damage: 25. });
+    }
+}
+
+fn setup_jormag(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
+    ) {
+
+    let green_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(GREEN_RADIUS).into()).into();
+    let green_bright_material = ColorMaterial::from(Color::rgb(0., 1.0, 0.));
+    let green_dull_material = ColorMaterial::from(Color::rgba(0., 0.7, 0., 0.5));
+
+    for green_spawn in GREEN_SPAWNS_JORMAG {
+        commands.spawn_bundle(SpriteBundle {
+            transform: Transform::from_xyz(0., 0., LAYER_TARGET),
+            visibility: Visibility { is_visible: false },
+            ..default()
+        }).with_children(|parent| {
+            for position in green_spawn.positions {
+                // let mut position = position_absolute.sub(Vec3::new(WIDTH / 2., HEIGHT / 2., 0.));
+                // position.x *= -1.;
+                // position.y *= -1.;
+                parent.spawn_bundle(MaterialMesh2dBundle {
+                    mesh: green_mesh.clone(),
+                    transform: Transform::from_translation(position),
+                    material: materials.add(green_dull_material.clone()),
+                    ..default()
+                });
+
+                let position_above = position.add(Vec3::new(0., 0., 0.1));
+                parent.spawn_bundle(MaterialMesh2dBundle {
+                    mesh: green_mesh.clone(),
+                    transform: Transform::from_translation(position_above).with_scale(Vec3::ZERO),
+                    material: materials.add(green_bright_material.clone()),
+                    ..default()
+                }).insert(StackGreenIndicator);
+            }
+        }).insert(StackGreen {
+            visibility_start: Timer::from_seconds(green_spawn.start, false),
+            detonation: Timer::from_seconds(5., false),
+        });
+    }
+
+    commands.spawn_bundle(MaterialMesh2dBundle {
+        mesh: meshes.add(shape::Circle::new(BOSS_RADIUS).into()).into(),
+        material: materials.add(ColorMaterial::from(Color::rgba(1.0, 0.0, 0.0, 0.5))),
+        transform: Transform::from_xyz(0., HEIGHT / 2. + 20., LAYER_MOB),
+        ..default()
+    }).insert(Boss {
+        name: "Jormag".to_string(),
+        max_hp: 100,
+    }).insert(Enemy)
+    .insert(Hp(100))
+    .insert(CollisionRadius(BOSS_RADIUS));
+
+    commands.spawn_bundle(SpriteBundle {
+        sprite: Sprite {
+            color: Color::rgb(1., 0., 0.),
+            custom_size: Some(Vec2::new(200., 64.)),
+            ..default()
+        },
+        transform: Transform::from_xyz(-WIDTH / 4., HEIGHT / 2. - 92., LAYER_UI),
+        ..default()
+    }).insert(BossHealthbar);
+
+    let void_zone_positions = [
+        Vec3::new(0., 0., LAYER_VOID),
+    ];
+
+    let void_zone_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(VOID_ZONE_START_RADIUS).into()).into();
+    let void_zone_material = ColorMaterial::from(Color::rgba(0.0, 0.0, 0.0, 0.9));
+
+    for pos in void_zone_positions {
+        commands.spawn_bundle(MaterialMesh2dBundle {
+            mesh: void_zone_mesh.clone(),
+            material: materials.add(void_zone_material.clone()),
+            transform: Transform::from_translation(pos),
+            ..default()
+        }).insert(VoidZone)
+        .insert(CollisionRadius(VOID_ZONE_START_RADIUS))
+        .insert(Soup { damage: 25. });
+    }
+
+    let puddle_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(PUDDLE_RADIUS).into()).into();
+    let puddle_material = ColorMaterial::from(Color::rgba(0.5, 0.0, 0.0, 0.3));
+
+    let puddle_starts: [f32; 3] = [5., 45., 85.];
+    for puddle_start in puddle_starts {
+        commands.spawn_bundle(MaterialMesh2dBundle {
+            mesh: puddle_mesh.clone(),
+            material: materials.add(puddle_material.clone()),
+            visibility: Visibility { is_visible: false },
+            transform: Transform::from_xyz(0., 0., 0.,),
+            ..default()
+        }).insert(Puddle {
+            visibility_start: Timer::from_seconds(puddle_start, false),
+            drop: Timer::from_seconds(6., false),
+        })
+        .insert(CollisionRadius(PUDDLE_RADIUS))
+        .insert(Soup { damage: 0. });
+    }
+}
+
+fn greens_system(time: Res<Time>,
+                 mut greens: Query<(&mut StackGreen, &mut Visibility, &Children)>,
+                 mut indicators: Query<(&StackGreenIndicator, &mut Transform), Without<StackGreen>>,
+                 ) {
+    for (mut green, mut visibility, children) in &mut greens {
+        let mut visible = true;
+        if !green.visibility_start.finished() {
+            green.visibility_start.tick(time.delta());
+            visible = false;
+        } else {
+            green.detonation.tick(time.delta());
+        }
+
+        if green.detonation.finished() {
+            visible = false;
+        }
+
+        visibility.is_visible = visible;
+
+        if !visible {
+            continue;
+        }
+
+        let det_scale = green.detonation.percent_left();
+
+        for &child in children.iter() {
+            if let Ok((_, mut transform_indicator)) = indicators.get_mut(child) {
+                transform_indicator.scale = Vec3::splat(det_scale);
+            }
+        }
+    }
+}
+
+fn greens_detonation_system(mut game: ResMut<Game>,
+                 players: Query<&Transform, With<PlayerTag>>,
+                 greens: Query<(&StackGreen, &Children)>,
+                 indicators: Query<(&StackGreenIndicator, &Transform)>,
+                 ) {
+    for (green, children) in &greens {
+        if green.detonation.just_finished() {
+            let transform_player = players.single();
+            let mut any_collide = false;
+
+            for &child in children.iter() {
+                if let Ok((_, transform_indicator)) = indicators.get(child) {
+                    any_collide = any_collide || collide(transform_player.translation, 0., transform_indicator.translation, GREEN_RADIUS);
+                }
+                if any_collide {
+                    break;
+                }
+            }
+
+            if !any_collide {
+                game.player.hp = 0.;
+            }
+        }
+    }
+}
+
+fn puddles_system(time: Res<Time>,
+    players: Query<&Transform, (With<PlayerTag>, Without<Puddle>)>,
+    mut puddles: Query<(&mut Puddle, &mut Soup, &mut Transform, &mut Visibility, &Handle<ColorMaterial>)>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    ) {
+    for (mut puddle, mut soup, mut transform, mut visibility, material) in &mut puddles {
+        if puddle.drop.finished() {
+            continue;
+        }
+
+        if !puddle.visibility_start.finished() {
+            puddle.visibility_start.tick(time.delta());
+        } else {
+            puddle.drop.tick(time.delta());
+
+            if puddle.drop.percent() < 4. / 6. {
+                let transform_player = players.single();
+                transform.translation = transform_player.translation;
+            }
+        }
+
+        if puddle.visibility_start.just_finished() {
+            visibility.is_visible = true;
+        }
+
+        if puddle.drop.just_finished() {
+            soup.damage = PUDDLE_DAMAGE;
+            materials.get_mut(material).unwrap().color.set_a(0.9);
+        } else if puddle.drop.percent() > 4. / 6. {
+            materials.get_mut(material).unwrap().color.set_a(0.7);
+        }
+    }
+}
 
 fn move_crabs_system(time: Res<Time>,
               mut crabs: Query<&mut Transform, (With<MobCrab>, Without<EffectForcedMarch>)>,
@@ -507,20 +898,24 @@ fn move_crabs_system(time: Res<Time>,
 
 fn move_player_system(time: Res<Time>, keyboard_input: Res<Input<KeyCode>>,
                mut transforms: Query<&mut Transform, (With<PlayerTag>, Without<EffectForcedMarch>)>) {
-    let speed = 50.0 * time.delta_seconds();
+    // Much slower than actual movement
+    let speed = 250.0 * GAME_TO_PX * time.delta_seconds();
     for mut transform in &mut transforms {
+        let mut movement = Vec3::ZERO;
         if keyboard_input.pressed(KeyCode::Up) || keyboard_input.pressed(KeyCode::W) {
-            transform.translation.y += speed;
+            movement.y += speed;
         }
         if keyboard_input.pressed(KeyCode::Down) || keyboard_input.pressed(KeyCode::S) {
-            transform.translation.y -= speed;
+            movement.y -= speed;
         }
         if keyboard_input.pressed(KeyCode::Left) || keyboard_input.pressed(KeyCode::A) {
-            transform.translation.x -= speed;
+            movement.x -= speed;
         }
         if keyboard_input.pressed(KeyCode::Right) || keyboard_input.pressed(KeyCode::D) {
-            transform.translation.x += speed;
+            movement.x += speed;
         }
+        movement.clamp_length(0., speed);
+        transform.translation = transform.translation.add(movement);
     }
 }
 
@@ -555,13 +950,10 @@ fn collide(pos_a: Vec3, radius_a: f32, pos_b: Vec3, radius_b: f32) -> bool {
     return diff.length_squared() < (radius_a + radius_b) * (radius_a + radius_b);
 }
 
-fn collisions_system(
-    mut game: ResMut<Game>,
+fn collisions_bullets_crabs_system(
     mut commands: Commands,
-    players: Query<&Transform, (With<PlayerTag>, Without<MobOrb>)>,
-    bullets: Query<(Entity, &Transform), (With<Bullet>, Without<MobOrb>)>,
+    bullets: Query<(Entity, &Transform), With<Bullet>>,
     crabs: Query<(Entity, &Transform), With<MobCrab>>,
-    mut orbs: Query<(&Transform, &mut Velocity), (With<MobOrb>, Without<Bullet>)>,
     ) {
     for (entity_bullet, transform_bullet) in &bullets {
         let bullet_pos = transform_bullet.translation;
@@ -580,8 +972,14 @@ fn collisions_system(
             commands.entity(entity_bullet).despawn_recursive();
         }
     }
+}
 
-
+fn collisions_bullets_orbs_system(
+    mut commands: Commands,
+    players: Query<&Transform, With<PlayerTag>>,
+    bullets: Query<(Entity, &Transform), (With<Bullet>, Without<MobOrb>)>,
+    mut orbs: Query<(&Transform, &mut Velocity), (With<MobOrb>, Without<Bullet>)>,
+    ) {
     for (entity_bullet, transform_bullet) in &bullets {
         let bullet_pos = transform_bullet.translation;
         for (transform_orb, mut velocity_orb) in &mut orbs {
@@ -597,13 +995,41 @@ fn collisions_system(
             }
         }
     }
+}
 
-    for (transform_orb, _) in &orbs {
+fn collisions_bullets_enemies_system(
+    mut bullets: Query<(&Transform, &mut HasHit), (With<Bullet>, Without<Enemy>)>,
+    mut enemies: Query<(Entity, &Transform, &CollisionRadius, &mut Hp), (With<Enemy>, Without<Bullet>)>,
+    ) {
+    for (transform_bullet, mut has_hit) in &mut bullets {
+        let bullet_pos = transform_bullet.translation;
+        for (entity_enemy, transform_enemy, radius_enemy, mut hp) in &mut enemies {
+            if has_hit.0.contains(&entity_enemy) {
+                continue;
+            }
+
+            let enemy_pos = transform_enemy.translation;
+            if !collide(bullet_pos, BULLET_SIZE / 2., enemy_pos, radius_enemy.0) {
+                continue;
+            }
+
+            has_hit.0.insert(entity_enemy);
+            hp.0 -= BULLET_DAMAGE;
+        }
+    }
+}
+
+fn collisions_crabs_orbs_system(
+    mut game: ResMut<Game>,
+    crabs: Query<&Transform, With<MobCrab>>,
+    orbs: Query<&Transform, With<MobOrb>>,
+    ) {
+    for transform_orb in &orbs {
         let orb_pos = transform_orb.translation;
-        for (_, transform_crab) in &crabs {
+        for transform_crab in &crabs {
             let crab_pos = transform_crab.translation;
             if collide(orb_pos, ORB_RADIUS, crab_pos, CRAB_SIZE / 2.) {
-                game.player.hp = 0;
+                game.player.hp = 0.;
             }
         }
     }
@@ -639,19 +1065,39 @@ fn collisions_orb_targets_system(
     }
 }
 
-fn collisions_edge_system(
+fn collisions_players_edge_system(
     mut game: ResMut<Game>,
-    orbs: Query<(&MobOrb, &Transform)>,
     players: Query<&Transform, (With<PlayerTag>, Without<MobOrb>)>,
     ) {
     let transform_player = players.single();
     if !collide(transform_player.translation, 0., Vec3::ZERO, MAP_RADIUS) {
-        game.player.hp = 0;
+        game.player.hp = 0.;
     }
+}
 
+fn collisions_players_soups_system(
+    time: Res<Time>,
+    mut game: ResMut<Game>,
+    players: Query<&Transform, With<PlayerTag>>,
+    soups: Query<(&Soup, &Transform, &CollisionRadius)>,
+    ) {
+
+    let player_pos = players.single().translation;
+    for (soup, transform_soup, radius) in &soups {
+        if !collide(player_pos, 0., transform_soup.translation, radius.0) {
+            continue;
+        }
+        game.player.hp -= soup.damage * time.delta_seconds();
+    }
+}
+
+fn collisions_orbs_edge_system(
+    mut game: ResMut<Game>,
+    orbs: Query<(&MobOrb, &Transform)>,
+    ) {
     for (_, transform_orb) in &orbs {
         if !collide(transform_orb.translation, 0., Vec3::ZERO, MAP_RADIUS - ORB_RADIUS) {
-            game.player.hp = 0;
+            game.player.hp = 0.;
         }
     }
 }
@@ -669,6 +1115,43 @@ fn game_orb_target_progression_system(
         }
     }
 }
+
+fn enemies_hp_check_system(
+    mut commands: Commands,
+    enemies: Query<(Entity, &Hp), With<Enemy>>,
+    ) {
+    for (entity_enemy, hp) in &enemies {
+        if hp.0 <= 0 {
+            commands.entity(entity_enemy).despawn_recursive();
+        }
+    }
+}
+
+fn boss_existence_check_system(
+    bosses: Query<&Boss>,
+    mut state: ResMut<State<GameState>>,
+    ) {
+    if let Ok(_) = bosses.get_single() {
+        return;
+    }
+    state.set(GameState::Success).unwrap();
+}
+
+fn boss_healthbar_system(
+    bosses: Query<(&Boss, &Hp)>,
+    mut boss_healthbars: Query<&mut Transform, With<BossHealthbar>>,
+) {
+    if let Err(_) = bosses.get_single() {
+        return;
+    }
+
+    let (boss, boss_hp) = bosses.single();
+    for mut transform in &mut boss_healthbars {
+        let remaining = (boss_hp.0 as f32) / (boss.max_hp as f32);
+        transform.scale.x = remaining;
+    }
+}
+
 
 fn handle_mouse_events_system(
     mouse_button_input: Res<Input<MouseButton>>,
@@ -708,7 +1191,8 @@ fn handle_mouse_events_system(
             transform: Transform::from_translation(player_loc),
             ..default()
         }).insert(Velocity(vel))
-          .insert(Bullet);
+          .insert(Bullet)
+          .insert(HasHit(HashSet::new()));
         game.player.shoot_cooldown.reset();
     }
 
@@ -871,18 +1355,19 @@ fn void_zone_crab_system(
     }
 }
 
-fn void_zone_growth_system(time: Res<Time>,
-                        mut game: ResMut<Game>,
-                    mut void_zones: Query<(&mut VoidZone, &mut Transform)>
-                    ) {
+fn void_zone_growth_system(
+    time: Res<Time>,
+    mut game: ResMut<Game>,
+    mut void_zones: Query<(&mut CollisionRadius, &mut Transform), With<VoidZone>>
+    ) {
     game.void_zone_growth.tick(time.delta());
 
     let growing = game.void_zone_growth.just_finished();
 
-    for (mut void_zone, mut transform) in &mut void_zones {
+    for (mut collision_radius, mut transform) in &mut void_zones {
         if growing {
-            void_zone.0 += VOID_ZONE_GROWTH_AMOUNT;
-            let new_scale = void_zone.0 / VOID_ZONE_START_RADIUS;
+            collision_radius.0 += VOID_ZONE_GROWTH_AMOUNT;
+            let new_scale = collision_radius.0 / VOID_ZONE_START_RADIUS;
             transform.scale.x = new_scale;
             transform.scale.y = new_scale;
         }
@@ -892,12 +1377,22 @@ fn void_zone_growth_system(time: Res<Time>,
 fn player_hp_check_system(game: ResMut<Game>,
                           mut state: ResMut<State<GameState>>,
                           ) {
-    if game.player.hp <= 0 {
+    if game.player.hp <= 0.1 {
         state.set(GameState::Failure).unwrap();
     }
 }
 
 fn main() {
+    let game = Game {
+        player: Player {
+            ..default()
+        },
+        cursor: None,
+        orb_target: -1,
+        void_zone_growth: Timer::from_seconds(VOID_ZONE_GROWTH_DURATION_SECS, true),
+        void_zone_crab_spawn: Timer::from_seconds(VOID_ZONE_CRAB_SPAWN_DURATION_SECS, true),
+    };
+
     App::new()
         .insert_resource(WindowDescriptor {
             width: WIDTH,
@@ -908,13 +1403,20 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_state(GameState::StartMenu)
 
+        .insert_resource(game)
+
         .add_startup_system(setup)
 
         .add_system_set(SystemSet::on_enter(GameState::StartMenu).with_system(setup_menu_system))
         .add_system_set(SystemSet::on_update(GameState::StartMenu).with_system(update_menu_system))
         .add_system_set(SystemSet::on_exit(GameState::StartMenu).with_system(cleanup_menu_system))
 
-        .add_system_set(SystemSet::on_enter(GameState::PurificationOne).with_system(setup_purification_one))
+        .add_system_set(SystemSet::on_enter(GameState::Success).with_system(setup_success_system))
+        .add_system_set(SystemSet::on_enter(GameState::Failure).with_system(setup_failure_system))
+
+        .add_system_set(SystemSet::on_enter(GameState::PurificationOne)
+                        .with_system(setup_phase)
+                        .with_system(setup_purification_one.after(setup_phase)))
         .add_system_set(SystemSet::on_update(GameState::PurificationOne)
             .with_system(handle_mouse_events_system)
             .with_system(handle_spellcasts_system)
@@ -922,19 +1424,39 @@ fn main() {
             .with_system(move_player_system)
             .with_system(move_crabs_system)
             .with_system(effect_forced_march_system)
-            .with_system(collisions_system)
+            .with_system(collisions_crabs_orbs_system)
+            .with_system(collisions_bullets_crabs_system)
+            .with_system(collisions_bullets_orbs_system)
             .with_system(collisions_orb_targets_system)
-            .with_system(collisions_edge_system)
+            .with_system(collisions_orbs_edge_system)
+            .with_system(collisions_players_edge_system)
             .with_system(game_orb_target_progression_system)
             .with_system(text_system)
             .with_system(void_zone_growth_system)
             .with_system(void_zone_crab_system)
             .with_system(player_hp_check_system))
 
-        .add_system_set(SystemSet::on_enter(GameState::Success).with_system(setup_success_system))
+        .add_system_set(SystemSet::on_enter(GameState::Jormag)
+                        .with_system(setup_phase)
+                        .with_system(setup_jormag.after(setup_phase)))
+        .add_system_set(SystemSet::on_update(GameState::Jormag)
+            .with_system(handle_mouse_events_system)
+            .with_system(handle_spellcasts_system)
+            .with_system(velocities_system)
+            .with_system(move_player_system)
+            .with_system(effect_forced_march_system)
+            .with_system(collisions_players_edge_system)
+            .with_system(collisions_bullets_enemies_system)
+            .with_system(collisions_players_soups_system)
+            .with_system(text_system)
+            .with_system(greens_system)
+            .with_system(greens_detonation_system)
+            .with_system(enemies_hp_check_system)
+            .with_system(boss_existence_check_system)
+            .with_system(boss_healthbar_system)
+            .with_system(void_zone_growth_system)
+            .with_system(player_hp_check_system)
+            .with_system(puddles_system))
 
-        .add_system_set(SystemSet::on_enter(GameState::Failure).with_system(setup_failure_system))
-
-        .add_system(bevy::window::close_on_esc)
         .run();
 }
