@@ -1,7 +1,7 @@
 use bevy::{
     prelude::*,
     render::color::Color,
-    sprite::{MaterialMesh2dBundle, Mesh2dHandle, collide_aabb},
+    sprite::{Anchor, MaterialMesh2dBundle, Mesh2dHandle, collide_aabb},
     window::CursorMoved,
 };
 use std::collections::HashSet;
@@ -76,7 +76,7 @@ struct Velocity(Vec3);
 struct PlayerTag;
 
 #[derive(Component)]
-struct Hp(i32);
+struct Hp(f32);
 
 #[derive(Component)]
 struct HasHit(HashSet<Entity>);
@@ -86,12 +86,14 @@ struct Enemy;
 
 #[derive(Component)]
 struct Boss {
-    name: String,
-    max_hp: i32,
+    max_hp: f32,
 }
 
 #[derive(Component)]
 struct BossHealthbar;
+
+#[derive(Component)]
+struct BossHealthbarText;
 
 #[derive(Component)]
 struct CollisionRadius(f32);
@@ -115,7 +117,7 @@ enum GameState {
     // PurificationThree,
     // SooWonOne,
     // PurificationFour,
-    // SooWonTwo,
+    SooWonTwo,
     Failure,
     Success,
 }
@@ -129,7 +131,7 @@ struct ButtonNextState(GameState);
 const CRAB_SIZE: f32 = 30.;
 const CRAB_SPEED: f32 = 15.;
 const BULLET_SIZE: f32 = 10.;
-const BULLET_DAMAGE: i32 = 1;
+const BULLET_DAMAGE: f32 = 1.;
 const ORB_RADIUS: f32 = 70.;
 const ORB_TARGET_RADIUS: f32 = 70.;
 const ORB_VELOCITY_DECAY: f32 = 0.5;
@@ -146,7 +148,9 @@ const LAYER_TEXT: f32 = 2.;
 
 const WIDTH: f32 = 1024.;
 const HEIGHT: f32 = 1024.;
-const PX_TO_GAME: f32 = 2849. / WIDTH;
+const GAME_WIDTH: f32 = 2849.;
+const GAME_RADIUS: f32 = GAME_WIDTH / 2.;
+const PX_TO_GAME: f32 = GAME_WIDTH / WIDTH;
 const GAME_TO_PX: f32 = 1. / PX_TO_GAME;
 
 const MAP_RADIUS: f32 = WIDTH / 2.;
@@ -194,6 +198,7 @@ struct StackGreen {
     visibility_start: Timer,
     detonation: Timer,
 }
+
 #[derive(Component)]
 struct StackGreenIndicator;
 
@@ -220,6 +225,16 @@ struct AoeDesc {
     material_base: Handle<ColorMaterial>,
     material_detonation: Handle<ColorMaterial>,
 }
+
+#[derive(Component)]
+struct Wave {
+    visibility_start: Timer,
+    growth: Timer,
+}
+
+const WAVE_MAX_RADIUS: f32 = WIDTH;
+const WAVE_VELOCITY: f32 = GAME_RADIUS / 3.2 * GAME_TO_PX;
+const WAVE_GROWTH_DURATION: f32 = WAVE_MAX_RADIUS / WAVE_VELOCITY;
 
 const GREEN_SPAWNS_JORMAG: [GreenSpawn; 2] = [
     GreenSpawn {
@@ -306,7 +321,7 @@ const _GREEN_SPAWNS_SOOWONONE: [GreenSpawn; 2] = [
     // there's another at 90 :(
 ];
 
-const _GREEN_SPAWNS_SOOWONTWO: [GreenSpawn; 2] = [
+const GREEN_SPAWNS_SOOWONTWO: [GreenSpawn; 2] = [
     GreenSpawn {
         start: 12.,
         positions: [
@@ -832,6 +847,7 @@ fn setup_greens(
 
 fn setup_jormag(
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
     ) {
     commands.spawn_bundle(MaterialMesh2dBundle {
@@ -840,10 +856,9 @@ fn setup_jormag(
         transform: Transform::from_xyz(0., HEIGHT / 2. + 20., LAYER_MOB),
         ..default()
     }).insert(Boss {
-        name: "Jormag".to_string(),
-        max_hp: 100,
+        max_hp: 100.,
     }).insert(Enemy)
-    .insert(Hp(100))
+    .insert(Hp(100.))
     .insert(CollisionRadius(BOSS_RADIUS));
 
     setup_greens(
@@ -856,12 +871,39 @@ fn setup_jormag(
     commands.spawn_bundle(SpriteBundle {
         sprite: Sprite {
             color: Color::rgb(1., 0., 0.),
-            custom_size: Some(Vec2::new(200., 64.)),
+            custom_size: Some(Vec2::new(256., 32.)),
+            anchor: Anchor::CenterLeft,
             ..default()
         },
-        transform: Transform::from_xyz(-WIDTH / 4., HEIGHT / 2. - 92., LAYER_UI),
+        transform: Transform::from_xyz(-WIDTH / 2. + 20., -HEIGHT / 2. + 128. + 24., LAYER_UI),
         ..default()
     }).insert(BossHealthbar);
+
+    commands.spawn_bundle(Text2dBundle {
+        text: Text::from_section(
+            "100",
+            TextStyle {
+                font: asset_server.load("trebuchet_ms.ttf"),
+                font_size: 16.,
+                color: Color::rgb(1.0, 1.0, 1.0),
+            },
+        ).with_alignment(TextAlignment::CENTER),
+        transform: Transform::from_xyz(-WIDTH / 2. + 20. + 128., -HEIGHT / 2. + 128. + 24., LAYER_TEXT),
+        ..default()
+    }).insert(BossHealthbarText);
+
+    commands.spawn_bundle(Text2dBundle {
+        text: Text::from_section(
+            "Jormag",
+            TextStyle {
+                font: asset_server.load("trebuchet_ms.ttf"),
+                font_size: 32.,
+                color: Color::rgb(0.0, 0.8, 0.8),
+            },
+        ).with_alignment(TextAlignment::BOTTOM_LEFT),
+        transform: Transform::from_xyz(-WIDTH / 2. + 20., -HEIGHT / 2. + 128. + 8. + 32. + 8., LAYER_TEXT),
+        ..default()
+    });
 
     let void_zone_positions = [
         Vec3::new(0., 0., LAYER_VOID),
@@ -1301,7 +1343,7 @@ fn enemies_hp_check_system(
     enemies: Query<(Entity, &Hp), With<Enemy>>,
     ) {
     for (entity_enemy, hp) in &enemies {
-        if hp.0 <= 0 {
+        if hp.0 <= 0. {
             commands.entity(entity_enemy).despawn_recursive();
         }
     }
@@ -1320,18 +1362,22 @@ fn boss_existence_check_system(
 fn boss_healthbar_system(
     bosses: Query<(&Boss, &Hp)>,
     mut boss_healthbars: Query<&mut Transform, With<BossHealthbar>>,
-) {
+    mut texts: Query<&mut Text, With<BossHealthbarText>>,
+    ) {
     if let Err(_) = bosses.get_single() {
         return;
     }
 
     let (boss, boss_hp) = bosses.single();
+    let remaining = boss_hp.0 / boss.max_hp;
     for mut transform in &mut boss_healthbars {
-        let remaining = (boss_hp.0 as f32) / (boss.max_hp as f32);
         transform.scale.x = remaining;
     }
+    for mut text in &mut texts {
+        let left = remaining * 100.;
+        text.sections[0].value = format!("{left:.0}");
+    }
 }
-
 
 fn handle_mouse_events_system(
     mouse_button_input: Res<Input<MouseButton>>,
