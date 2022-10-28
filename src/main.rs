@@ -151,6 +151,7 @@ const GAME_TO_PX: f32 = 1. / PX_TO_GAME;
 
 const MAP_RADIUS: f32 = WIDTH / 2.;
 
+#[derive(Copy, Clone)]
 struct GreenSpawn {
     start: f32,
     positions: [Vec3; 3]
@@ -169,11 +170,24 @@ struct Player {
 
 struct Game {
     player: Player,
-    cursor: Option<Entity>,
     orb_target: i32,
-    void_zone_growth: Timer,
-    void_zone_crab_spawn: Timer,
 }
+
+#[derive(Component)]
+struct VoidZoneGrowth(Timer);
+
+#[derive(Component)]
+struct VoidZoneCrabSpawn(Timer);
+
+#[derive(Component)]
+struct SpreadAoeSpawn {
+    timers: Vec<Timer>,
+    aoe_desc: AoeDesc,
+}
+
+const SPREAD_DAMAGE: f32 = 10.;
+const SPREAD_DETONATION: f32 = 5.;
+const SPREAD_RADIUS: f32 = 240. * GAME_TO_PX;
 
 #[derive(Component)]
 struct StackGreen {
@@ -182,6 +196,30 @@ struct StackGreen {
 }
 #[derive(Component)]
 struct StackGreenIndicator;
+
+const AOE_BASE_COLOR: Color = Color::rgba(0.9, 0.9, 0., 0.4);
+const AOE_DETONATION_COLOR: Color = Color::rgba(0.7, 0., 0., 0.7);
+
+#[derive(Component)]
+struct Aoe {
+    detonation: Timer,
+    damage: f32,
+}
+
+#[derive(Component)]
+struct AoeFollow {
+    target: Entity,
+}
+
+#[derive(Component)]
+struct AoeIndicator;
+
+struct AoeDesc {
+    mesh: Mesh2dHandle,
+    radius: f32,
+    material_base: Handle<ColorMaterial>,
+    material_detonation: Handle<ColorMaterial>,
+}
 
 const GREEN_SPAWNS_JORMAG: [GreenSpawn; 2] = [
     GreenSpawn {
@@ -440,13 +478,14 @@ fn setup_failure_system(mut commands: Commands, asset_server: Res<AssetServer>) 
         });
 }
 
-fn spawn_crab(commands: &mut Commands, crab_pos: Vec3) {
+fn spawn_crab(commands: &mut Commands, asset_server: &Res<AssetServer>, crab_pos: Vec3) {
     commands.spawn_bundle(SpriteBundle {
         sprite: Sprite {
-            color: Color::rgb(0.0, 0.0, 0.0),
-            custom_size: Some(Vec2::new(CRAB_SIZE, CRAB_SIZE)),
+            // color: Color::rgb(0.0, 0.0, 0.0),
+            custom_size: Some(Vec2::new(CRAB_SIZE, CRAB_SIZE * 80. / 120.)),
             ..default()
         },
+        texture: asset_server.load("crab.png"),
         transform: Transform::from_translation(crab_pos),
         ..default()
     }).insert(MobCrab);
@@ -476,26 +515,28 @@ fn setup_phase(
     game.player.entity = Some(
         commands.spawn_bundle(SpriteBundle {
             sprite: Sprite {
-                color: Color::rgb(0.3, 0., 0.3),
-                custom_size: Some(Vec2::new(20., 20.)),
+                custom_size: Some(Vec2::new(40., 40.)),
                 ..default()
             },
+            texture: asset_server.load("virt.png"),
             transform: Transform::from_xyz(0., 200., LAYER_PLAYER),
             ..default()
         }).insert(PlayerTag).id()
     );
 
-    game.cursor = Some(
-        commands.spawn_bundle(SpriteBundle {
-            sprite: Sprite {
-                color: Color::rgb(0.9, 0., 0.),
-                custom_size: Some(Vec2::new(4., 4.)),
-                ..default()
-            },
-            transform: Transform::from_xyz(0., 0., LAYER_CURSOR),
+    commands.spawn()
+        .insert(VoidZoneGrowth(Timer::from_seconds(VOID_ZONE_GROWTH_DURATION_SECS, true)))
+        .insert(VoidZoneCrabSpawn(Timer::from_seconds(VOID_ZONE_CRAB_SPAWN_DURATION_SECS, true)));
+
+    commands.spawn_bundle(SpriteBundle {
+        sprite: Sprite {
+            color: Color::rgb(0.9, 0., 0.),
+            custom_size: Some(Vec2::new(4., 4.)),
             ..default()
-        }).insert(CursorMark).id()
-    );
+        },
+        transform: Transform::from_xyz(0., 0., LAYER_CURSOR),
+        ..default()
+    }).insert(CursorMark);
 
     commands.spawn_bundle(SpriteBundle {
         texture: asset_server.load("map.png"),
@@ -619,7 +660,7 @@ fn setup_phase(
 }
 
 fn setup_purification_one(
-    mut commands: Commands, mut game: ResMut<Game>,
+    mut commands: Commands, asset_server: Res<AssetServer>, mut game: ResMut<Game>,
     mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
     ) {
 
@@ -634,7 +675,7 @@ fn setup_purification_one(
     ];
 
     for crab_pos in crab_positions {
-        spawn_crab(&mut commands, crab_pos);
+        spawn_crab(&mut commands, &asset_server, crab_pos);
     }
 
     commands.spawn_bundle(MaterialMesh2dBundle {
@@ -692,16 +733,72 @@ fn setup_purification_one(
     }
 }
 
-fn setup_jormag(
+fn spread_aoe_spawn_system(
+    time: ResMut<Time>,
+    players: Query<Entity, With<PlayerTag>>,
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
+    mut spread_aoe_spawns: Query<&mut SpreadAoeSpawn>,
+    ) {
+    for mut spread_aoe_spawn in &mut spread_aoe_spawns {
+        let mut do_spawn = false;
+        for timer in &mut spread_aoe_spawn.timers {
+            timer.tick(time.delta());
+
+            if timer.just_finished() {
+                do_spawn = true;
+            }
+        }
+
+        if do_spawn {
+            spawn_aoe(&mut commands, &spread_aoe_spawn.aoe_desc, Vec3::ZERO, Aoe {
+                detonation: Timer::from_seconds(SPREAD_DETONATION, false),
+                damage: SPREAD_DAMAGE,
+            }, Some(AoeFollow { target: players.single() }));
+        }
+    }
+}
+
+fn spawn_aoe(
+    commands: &mut Commands,
+    aoe_desc: &AoeDesc,
+    position: Vec3, aoe: Aoe, aoe_follow: Option<AoeFollow>) -> Entity {
+    let id = commands.spawn_bundle(MaterialMesh2dBundle {
+        transform: Transform::from_translation(position),
+        mesh: aoe_desc.mesh.clone(),
+        material: aoe_desc.material_base.clone(),
+        ..default()
+    }).with_children(|parent| {
+        let position_above = Vec3::new(0., 0., 0.1);
+        parent.spawn_bundle(MaterialMesh2dBundle {
+            mesh: aoe_desc.mesh.clone(),
+            transform: Transform::from_translation(position_above).with_scale(Vec3::ZERO),
+            material: aoe_desc.material_detonation.clone(),
+            ..default()
+        }).insert(AoeIndicator);
+    })
+    .insert(aoe)
+    .insert(CollisionRadius(aoe_desc.radius))
+    .id();
+
+    if let Some(aoe_follow) = aoe_follow {
+        commands.entity(id).insert(aoe_follow);
+    }
+
+    id
+}
+
+fn setup_greens(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<ColorMaterial>>,
+    green_spawns: Vec<GreenSpawn>,
     ) {
 
     let green_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(GREEN_RADIUS).into()).into();
     let green_bright_material = ColorMaterial::from(Color::rgb(0., 1.0, 0.));
     let green_dull_material = ColorMaterial::from(Color::rgba(0., 0.7, 0., 0.5));
 
-    for green_spawn in GREEN_SPAWNS_JORMAG {
+    for green_spawn in &green_spawns {
         commands.spawn_bundle(SpriteBundle {
             transform: Transform::from_xyz(0., 0., LAYER_TARGET),
             visibility: Visibility { is_visible: false },
@@ -731,7 +828,12 @@ fn setup_jormag(
             detonation: Timer::from_seconds(5., false),
         });
     }
+}
 
+fn setup_jormag(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
+    ) {
     commands.spawn_bundle(MaterialMesh2dBundle {
         mesh: meshes.add(shape::Circle::new(BOSS_RADIUS).into()).into(),
         material: materials.add(ColorMaterial::from(Color::rgba(1.0, 0.0, 0.0, 0.5))),
@@ -743,6 +845,13 @@ fn setup_jormag(
     }).insert(Enemy)
     .insert(Hp(100))
     .insert(CollisionRadius(BOSS_RADIUS));
+
+    setup_greens(
+        &mut commands,
+        &mut meshes,
+        &mut materials,
+        GREEN_SPAWNS_JORMAG.to_vec()
+    );
 
     commands.spawn_bundle(SpriteBundle {
         sprite: Sprite {
@@ -790,6 +899,23 @@ fn setup_jormag(
         .insert(CollisionRadius(PUDDLE_RADIUS))
         .insert(Soup { damage: 0. });
     }
+
+    let spread_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(SPREAD_RADIUS).into()).into();
+    let spread_material_base = materials.add(ColorMaterial::from(AOE_BASE_COLOR));
+    let spread_material_detonation = materials.add(ColorMaterial::from(AOE_DETONATION_COLOR));
+    commands.spawn()
+        .insert(SpreadAoeSpawn {
+            timers: vec![
+                Timer::from_seconds(28., false),
+                Timer::from_seconds(68., false),
+            ],
+            aoe_desc: AoeDesc {
+                mesh: spread_mesh,
+                material_base: spread_material_base,
+                material_detonation: spread_material_detonation,
+                radius: SPREAD_RADIUS,
+            }
+        });
 }
 
 fn greens_system(time: Res<Time>,
@@ -847,6 +973,60 @@ fn greens_detonation_system(mut game: ResMut<Game>,
             if !any_collide {
                 game.player.hp = 0.;
             }
+        }
+    }
+}
+
+fn aoes_system(
+    time: Res<Time>,
+    mut aoes: Query<(&mut Aoe, &Children)>,
+    mut indicators: Query<(&AoeIndicator, &mut Transform)>,
+    ) {
+
+    for (mut aoe, children) in &mut aoes {
+        aoe.detonation.tick(time.delta());
+
+        let det_scale = aoe.detonation.percent();
+
+        for &child in children.iter() {
+            if let Ok((_, mut transform_indicator)) = indicators.get_mut(child) {
+                transform_indicator.scale = Vec3::splat(det_scale);
+            }
+        }
+    }
+}
+
+fn aoes_detonation_system(
+    mut commands: Commands,
+    mut game: ResMut<Game>,
+    players: Query<&Transform, With<PlayerTag>>,
+    aoes: Query<(Entity, &Aoe, &Transform, &CollisionRadius)>,
+    ) {
+
+    for (entity_aoe, aoe, transform, radius) in &aoes {
+        if !aoe.detonation.just_finished() {
+            continue;
+        }
+
+        let transform_player = players.single();
+        let player_pos = transform_player.translation;
+        let hit = collide(transform.translation, radius.0, player_pos, 0.);
+
+        if hit {
+            game.player.hp -= aoe.damage;
+        }
+        commands.entity(entity_aoe).despawn_recursive();
+    }
+}
+
+fn aoes_follow_system(
+    transforms: Query<&Transform, Without<Aoe>>,
+    mut aoes: Query<(&AoeFollow, &mut Transform), With<Aoe>>,
+    ) {
+    for (follow, mut transform) in &mut aoes {
+        if let Ok(transform_target) = transforms.get(follow.target) {
+            transform.translation.x = transform_target.translation.x;
+            transform.translation.y = transform_target.translation.y;
         }
     }
 }
@@ -1158,12 +1338,13 @@ fn handle_mouse_events_system(
     keyboard_input: Res<Input<KeyCode>>,
     mut commands: Commands,
     mut cursor_moved_events: EventReader<CursorMoved>,
-    mut transforms: Query<&mut Transform>,
+    players: Query<&Transform, (With<PlayerTag>, Without<CursorMark>)>,
+    mut cursors: Query<&mut Transform, With<CursorMark>>,
     mut game: ResMut<Game>,
     time: Res<Time>) {
 
     let player_loc = {
-        let transform = transforms.get_mut(game.player.entity.unwrap()).unwrap();
+        let transform = players.single();
         transform.translation
     };
 
@@ -1176,7 +1357,7 @@ fn handle_mouse_events_system(
     if game.player.shoot_cooldown.finished() &&
        (mouse_button_input.pressed(MouseButton::Left) || 
         keyboard_input.pressed(KeyCode::Key1)) {
-        let cursor = transforms.get_mut(game.cursor.unwrap()).unwrap();
+        let cursor = cursors.single();
         let mut vel = cursor.translation.sub(player_loc);
         vel.z = 0.;
         let bullet_speed = 200.0;
@@ -1184,7 +1365,7 @@ fn handle_mouse_events_system(
 
         commands.spawn_bundle(SpriteBundle {
             sprite: Sprite {
-                color: Color::rgb(1., 0.7, 0.),
+                color: Color::rgb(0.89, 0.39, 0.95),
                 custom_size: Some(Vec2::new(BULLET_SIZE, BULLET_SIZE)),
                 ..default()
             },
@@ -1197,7 +1378,7 @@ fn handle_mouse_events_system(
     }
 
     for event in cursor_moved_events.iter() {
-        let mut cursor = transforms.get_mut(game.cursor.unwrap()).unwrap();
+        let mut cursor = cursors.single_mut();
         // info!("{:?}", event);
         // let mut cursor_transform = cursors.single_mut();
         cursor.translation.x = event.position.x - WIDTH / 2.;
@@ -1208,16 +1389,17 @@ fn handle_mouse_events_system(
 fn handle_spellcasts_system(
     keyboard_input: Res<Input<KeyCode>>,
     mut commands: Commands,
-    transforms: Query<&Transform>,
+    players: Query<&Transform, (With<PlayerTag>, Without<CursorMark>)>,
+    cursors: Query<&Transform, With<CursorMark>>,
     crabs: Query<(Entity, &Transform, &MobCrab)>,
     mut game: ResMut<Game>) {
 
     let player_loc = {
-        let transform = transforms.get(game.player.entity.unwrap()).unwrap();
+        let transform = players.single();
         transform.translation
     };
 
-    let cursor_loc = transforms.get(game.cursor.unwrap()).unwrap().translation;
+    let cursor_loc = cursors.single().translation;
 
     if game.player.dodge_cooldown.finished() &&
         keyboard_input.pressed(KeyCode::V) {
@@ -1338,12 +1520,14 @@ fn text_system(game: Res<Game>,
 fn void_zone_crab_system(
     time: Res<Time>,
     mut commands: Commands,
-    mut game: ResMut<Game>,
+    asset_server: Res<AssetServer>,
+    mut void_zone_crab_spawns: Query<&mut VoidZoneCrabSpawn>,
     void_zones: Query<(&VoidZone, &Transform)>
     ) {
-    game.void_zone_crab_spawn.tick(time.delta());
+    let void_zone_crab_spawn = &mut void_zone_crab_spawns.single_mut().0;
+    void_zone_crab_spawn.tick(time.delta());
 
-    if !game.void_zone_crab_spawn.just_finished() {
+    if !void_zone_crab_spawn.just_finished() {
         return;
     }
 
@@ -1351,18 +1535,20 @@ fn void_zone_crab_system(
         let mut pos = transform.translation.clone();
         pos.z = LAYER_MOB;
 
-        spawn_crab(&mut commands, pos);
+        spawn_crab(&mut commands, &asset_server, pos);
     }
 }
 
 fn void_zone_growth_system(
     time: Res<Time>,
-    mut game: ResMut<Game>,
+    mut void_zone_growths: Query<&mut VoidZoneGrowth>,
     mut void_zones: Query<(&mut CollisionRadius, &mut Transform), With<VoidZone>>
     ) {
-    game.void_zone_growth.tick(time.delta());
+    let void_zone_growth = &mut void_zone_growths.single_mut().0;
 
-    let growing = game.void_zone_growth.just_finished();
+    void_zone_growth.tick(time.delta());
+
+    let growing = void_zone_growth.just_finished();
 
     for (mut collision_radius, mut transform) in &mut void_zones {
         if growing {
@@ -1387,10 +1573,7 @@ fn main() {
         player: Player {
             ..default()
         },
-        cursor: None,
         orb_target: -1,
-        void_zone_growth: Timer::from_seconds(VOID_ZONE_GROWTH_DURATION_SECS, true),
-        void_zone_crab_spawn: Timer::from_seconds(VOID_ZONE_CRAB_SPAWN_DURATION_SECS, true),
     };
 
     App::new()
@@ -1451,6 +1634,10 @@ fn main() {
             .with_system(text_system)
             .with_system(greens_system)
             .with_system(greens_detonation_system)
+            .with_system(spread_aoe_spawn_system)
+            .with_system(aoes_system)
+            .with_system(aoes_detonation_system)
+            .with_system(aoes_follow_system)
             .with_system(enemies_hp_check_system)
             .with_system(boss_existence_check_system)
             .with_system(boss_healthbar_system)
