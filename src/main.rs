@@ -1230,7 +1230,7 @@ fn setup_soowontwo(
         &mut commands,
         &mut meshes,
         &mut materials,
-        vec![0., 22., 62., 107.]
+        vec![22., 62., 107.]
     );
     /*
     commands.spawn_bundle(FancySomething {
