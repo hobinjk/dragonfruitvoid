@@ -57,6 +57,20 @@ const PUDDLE_DAMAGE: f32 = 20.;
 const ROTATING_SOUP_RADIUS: f32 = 40.;
 const ROTATING_SOUP_DTHETA: f32 = 0.2;
 
+const SWIPE_CHONK_RADIUS: f32 = 650. * GAME_TO_PX;
+const SWIPE_CENTER: Vec3 = Vec3::new(-428. * GAME_TO_PX, 1061. * GAME_TO_PX, LAYER_WAVE);
+// not quiiite correct-looking
+// const SWIPE_START_THETA: f32 = PI + 0.2;
+// const SWIPE_END_THETA: f32 = 2. * PI - 0.973;
+const SWIPE_START_THETA: f32 = PI + 0.05;
+const SWIPE_END_THETA: f32 = 2. * PI - 0.8;
+const SWIPE_BALL_RADIUS: f32 = 120. * GAME_TO_PX;
+const SWIPE_BALL_OFFSET: f32 = SWIPE_CHONK_RADIUS + SWIPE_BALL_RADIUS * 2.;
+const SWIPE_BALL_BOUNCE_COUNT: i32 = 4;
+const SWIPE_BALL_COUNT: usize = 8;
+const SWIPE_DETONATION: f32 = 2.;
+const SWIPE_DAMAGE: f32 = 40.;
+
 #[derive(Component)]
 struct Puddle {
     visibility_start: Timer,
@@ -142,7 +156,8 @@ struct ButtonNextState(GameState);
 const CRAB_SIZE: f32 = 30.;
 const CRAB_SPEED: f32 = 15.;
 const BULLET_SIZE: f32 = 10.;
-const BULLET_DAMAGE: f32 = 1.;
+const BULLET_DAMAGE: f32 = 0.3;
+const BULLET_COOLDOWN: f32 = 0.2;
 const ORB_RADIUS: f32 = 70.;
 const ORB_TARGET_RADIUS: f32 = 70.;
 const ORB_VELOCITY_DECAY: f32 = 0.5;
@@ -222,6 +237,7 @@ const AOE_DETONATION_COLOR: Color = Color::rgba(0.7, 0., 0., 0.7);
 
 #[derive(Component)]
 struct Aoe {
+    visibility_start: Option<Timer>,
     detonation: Timer,
     damage: f32,
 }
@@ -555,7 +571,7 @@ fn setup_phase(
     mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
     ) {
     game.player.hp = 100.;
-    game.player.shoot_cooldown = Timer::from_seconds(0.2, false);
+    game.player.shoot_cooldown = Timer::from_seconds(BULLET_COOLDOWN, false);
     game.player.dodge_cooldown = Timer::from_seconds(10., false);
     game.player.blink_cooldown = Timer::from_seconds(16., false);
     game.player.portal_cooldown = Timer::from_seconds(60., false);
@@ -808,7 +824,8 @@ fn spread_aoe_spawn_system(
         }
 
         if do_spawn {
-            spawn_aoe(&mut commands, &spread_aoe_spawn.aoe_desc, Vec3::ZERO, Aoe {
+            spawn_aoe(&mut commands, &spread_aoe_spawn.aoe_desc, Vec3::new(0., 0., LAYER_WAVE), Aoe {
+                visibility_start: None,
                 detonation: Timer::from_seconds(SPREAD_DETONATION, false),
                 damage: SPREAD_DAMAGE,
             }, Some(AoeFollow { target: players.single() }));
@@ -885,6 +902,63 @@ fn setup_greens(
             visibility_start: Timer::from_seconds(green_spawn.start, false),
             detonation: Timer::from_seconds(5., false),
         });
+    }
+}
+
+fn setup_claw_swipes(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<ColorMaterial>>,
+    claw_swipe_starts: Vec<f32>,
+    ) {
+    let chonk_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(SWIPE_CHONK_RADIUS).into()).into();
+    let ball_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(SWIPE_BALL_RADIUS).into()).into();
+    let material_base = materials.add(ColorMaterial::from(AOE_BASE_COLOR));
+    let material_detonation = materials.add(ColorMaterial::from(AOE_DETONATION_COLOR));
+
+    let aoe_desc_chonk = AoeDesc {
+        mesh: chonk_mesh,
+        radius: SWIPE_CHONK_RADIUS,
+        material_base: material_base.clone(),
+        material_detonation: material_detonation.clone(),
+    };
+
+    let aoe_desc = AoeDesc {
+        mesh: ball_mesh,
+        radius: SWIPE_BALL_RADIUS,
+        material_base,
+        material_detonation,
+    };
+
+    for claw_swipe_start in claw_swipe_starts {
+        let chonk_start = Timer::from_seconds(claw_swipe_start, false);
+        let chonk_pos = SWIPE_CENTER;
+        spawn_aoe(commands, &aoe_desc_chonk, chonk_pos, Aoe {
+            visibility_start: Some(chonk_start),
+            detonation: Timer::from_seconds(SWIPE_DETONATION, false),
+            damage: SWIPE_DAMAGE,
+        }, None);
+
+        for bounce in 0..SWIPE_BALL_BOUNCE_COUNT {
+            let offset = SWIPE_BALL_OFFSET + (bounce as f32) * SWIPE_BALL_RADIUS * 3.;
+            for ball_i in 0..SWIPE_BALL_COUNT {
+                let percent = (ball_i as f32) / (SWIPE_BALL_COUNT as f32 - 1.);
+                let theta = percent * (SWIPE_END_THETA - SWIPE_START_THETA) + SWIPE_START_THETA;
+                let pos = Vec3::new(
+                    offset * -theta.cos(),
+                    offset * theta.sin(),
+                    LAYER_WAVE,
+                ).add(chonk_pos);
+
+                let timer = Timer::from_seconds(claw_swipe_start + 0.6 * (bounce as f32 + 1.), false);
+
+                spawn_aoe(commands, &aoe_desc, pos, Aoe {
+                    visibility_start: Some(timer),
+                    detonation: Timer::from_seconds(SWIPE_DETONATION, false),
+                    damage: SWIPE_DAMAGE,
+                }, None);
+            }
+        }
     }
 }
 
@@ -1131,8 +1205,11 @@ fn setup_soowontwo(
 
     for i in 1..=5 {
         let radius = (i as f32) / 5. * (HEIGHT / 2. - 20.);
-        let theta = i as f32;
-        let dtheta = (7. - (i as f32)) / 5. * ROTATING_SOUP_DTHETA;
+        let theta = i as f32 * 6. * PI / 5.;
+        let mut dtheta = (7. - (i as f32)) / 5. * ROTATING_SOUP_DTHETA;
+        if i % 2 == 0 {
+            dtheta = -dtheta;
+        }
 
         commands.spawn_bundle(MaterialMesh2dBundle {
             mesh: rotating_soup_mesh.clone(),
@@ -1149,21 +1226,27 @@ fn setup_soowontwo(
         .insert(Soup { damage: 5. });
     }
 
+    setup_claw_swipes(
+        &mut commands,
+        &mut meshes,
+        &mut materials,
+        vec![0., 22., 62., 107.]
+    );
     /*
     commands.spawn_bundle(FancySomething {
-    }).insert(TailSwipe {
+    }).insert(ClawSwipe {
         visibility_start: Timer::from_seconds(22., false),
         detonation: Timer::from_seconds(2., false),
     });
 
     commands.spawn_bundle(FancySomething {
-    }).insert(TailSwipe {
+    }).insert(ClawSwipe {
         visibility_start: Timer::from_seconds(62., false),
         detonation: Timer::from_seconds(2., false),
     });
 
     commands.spawn_bundle(FancySomething {
-    }).insert(TailSwipe {
+    }).insert(ClawSwipe {
         visibility_start: Timer::from_seconds(107., false),
         detonation: Timer::from_seconds(2., false),
     });
@@ -1231,11 +1314,29 @@ fn greens_detonation_system(mut game: ResMut<Game>,
 
 fn aoes_system(
     time: Res<Time>,
-    mut aoes: Query<(&mut Aoe, &Children)>,
+    mut aoes: Query<(&mut Aoe, &mut Visibility, &Children)>,
     mut indicators: Query<(&AoeIndicator, &mut Transform)>,
     ) {
 
-    for (mut aoe, children) in &mut aoes {
+    for (mut aoe, mut visibility, children) in &mut aoes {
+        let mut visible = false;
+        match &mut aoe.visibility_start {
+            Some(timer) => {
+                timer.tick(time.delta());
+                if timer.finished() {
+                    visible = true;
+                }
+            },
+            None => {
+                visible = true;
+            }
+        }
+        visibility.is_visible = visible;
+
+        if !visible {
+            continue;
+        }
+
         aoe.detonation.tick(time.delta());
 
         let det_scale = aoe.detonation.percent();
@@ -1768,6 +1869,7 @@ fn handle_spellcasts_system(
             speed: blink_speed,
         });
 
+        game.player.invuln = Timer::from_seconds(0.1, false);
         game.player.blink_cooldown.reset();
     }
 
