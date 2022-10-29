@@ -4,6 +4,7 @@ use bevy::{
     sprite::{Anchor, MaterialMesh2dBundle, Mesh2dHandle, collide_aabb},
     window::CursorMoved,
 };
+use core::f32::consts::PI;
 use std::collections::HashSet;
 use std::time::Duration;
 use std::ops::{Add, Mul, Sub};
@@ -34,6 +35,13 @@ struct MobCrab;
 #[derive(Component)]
 struct VoidZone;
 
+#[derive(Component)]
+struct RotatingSoup {
+    radius: f32,
+    theta: f32,
+    dtheta: f32,
+}
+
 // 312 - 60 / 2 @ 56 (14 ticks)
 
 const VOID_ZONE_GROWTH_DURATION_SECS: f32 = 4.;
@@ -45,6 +53,9 @@ const BOSS_RADIUS: f32 = 420. * GAME_TO_PX;
 
 const PUDDLE_RADIUS: f32 = 450. * GAME_TO_PX;
 const PUDDLE_DAMAGE: f32 = 20.;
+
+const ROTATING_SOUP_RADIUS: f32 = 40.;
+const ROTATING_SOUP_DTHETA: f32 = 0.2;
 
 #[derive(Component)]
 struct Puddle {
@@ -140,7 +151,9 @@ const GREEN_RADIUS: f32 = 60.;
 const LAYER_PLAYER: f32 = 100.;
 const LAYER_CURSOR: f32 = LAYER_PLAYER - 5.;
 const LAYER_MOB: f32 = 20.;
+const LAYER_WAVE: f32 = 15.;
 const LAYER_TARGET: f32 = 10.;
+const LAYER_ROTATING_SOUP: f32 = 11.;
 const LAYER_MAP: f32 = 0.;
 const LAYER_VOID: f32 = 0.5;
 const LAYER_UI: f32 = 1.;
@@ -169,6 +182,8 @@ struct Player {
     blink_cooldown: Timer,
     portal_cooldown: Timer,
     pull_cooldown: Timer,
+    invuln: Timer,
+    jump: Timer,
     entity: Option<Entity>,
 }
 
@@ -232,9 +247,19 @@ struct Wave {
     growth: Timer,
 }
 
-const WAVE_MAX_RADIUS: f32 = WIDTH;
+impl Default for Wave {
+    fn default() -> Wave {
+        Wave {
+            visibility_start: Timer::from_seconds(0., false),
+            growth: Timer::from_seconds(WAVE_GROWTH_DURATION, false),
+        }
+    }
+}
+
+const WAVE_MAX_RADIUS: f32 = WIDTH / 2.;
 const WAVE_VELOCITY: f32 = GAME_RADIUS / 3.2 * GAME_TO_PX;
 const WAVE_GROWTH_DURATION: f32 = WAVE_MAX_RADIUS / WAVE_VELOCITY;
+const WAVE_DAMAGE: f32 = 75.;
 
 const GREEN_SPAWNS_JORMAG: [GreenSpawn; 2] = [
     GreenSpawn {
@@ -404,6 +429,20 @@ fn setup_menu_system(mut commands: Commands, asset_server: Res<AssetServer>) {
             ));
         })
         .insert(ButtonNextState(GameState::Jormag));
+
+        container.spawn_bundle(ButtonBundle {
+            style: button_style.clone(),
+            color: NORMAL_BUTTON.into(),
+            ..default()
+        })
+        .with_children(|parent| {
+            parent.spawn_bundle(TextBundle::from_section(
+                "Soo-Won Two",
+                text_style.clone(),
+            ));
+        })
+        .insert(ButtonNextState(GameState::SooWonTwo));
+
     })
     .insert(MenuContainer);
 }
@@ -521,11 +560,15 @@ fn setup_phase(
     game.player.blink_cooldown = Timer::from_seconds(16., false);
     game.player.portal_cooldown = Timer::from_seconds(60., false);
     game.player.pull_cooldown = Timer::from_seconds(20., false);
+    game.player.invuln = Timer::from_seconds(0.75, false);
+    game.player.jump = Timer::from_seconds(0.75, false);
 
     game.player.dodge_cooldown.tick(Duration::from_secs_f32(1000.));
     game.player.blink_cooldown.tick(Duration::from_secs_f32(1000.));
     game.player.portal_cooldown.tick(Duration::from_secs_f32(1000.));
     game.player.pull_cooldown.tick(Duration::from_secs_f32(1000.));
+    game.player.invuln.tick(Duration::from_secs_f32(1000.));
+    game.player.jump.tick(Duration::from_secs_f32(1000.));
 
     game.player.entity = Some(
         commands.spawn_bundle(SpriteBundle {
@@ -845,10 +888,15 @@ fn setup_greens(
     }
 }
 
-fn setup_jormag(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
+fn setup_boss_phase(
+    commands: &mut Commands,
+    asset_server: &Res<AssetServer>,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<ColorMaterial>>,
+    boss_name: String,
+    green_spawns: Vec<GreenSpawn>,
+    puddle_starts: Vec<f32>,
+    spread_starts: Vec<f32>,
     ) {
     commands.spawn_bundle(MaterialMesh2dBundle {
         mesh: meshes.add(shape::Circle::new(BOSS_RADIUS).into()).into(),
@@ -862,10 +910,10 @@ fn setup_jormag(
     .insert(CollisionRadius(BOSS_RADIUS));
 
     setup_greens(
-        &mut commands,
-        &mut meshes,
-        &mut materials,
-        GREEN_SPAWNS_JORMAG.to_vec()
+        commands,
+        meshes,
+        materials,
+        green_spawns.to_vec()
     );
 
     commands.spawn_bundle(SpriteBundle {
@@ -894,7 +942,7 @@ fn setup_jormag(
 
     commands.spawn_bundle(Text2dBundle {
         text: Text::from_section(
-            "Jormag",
+            boss_name,
             TextStyle {
                 font: asset_server.load("trebuchet_ms.ttf"),
                 font_size: 32.,
@@ -926,7 +974,6 @@ fn setup_jormag(
     let puddle_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(PUDDLE_RADIUS).into()).into();
     let puddle_material = ColorMaterial::from(Color::rgba(0.5, 0.0, 0.0, 0.3));
 
-    let puddle_starts: [f32; 3] = [5., 45., 85.];
     for puddle_start in puddle_starts {
         commands.spawn_bundle(MaterialMesh2dBundle {
             mesh: puddle_mesh.clone(),
@@ -947,10 +994,9 @@ fn setup_jormag(
     let spread_material_detonation = materials.add(ColorMaterial::from(AOE_DETONATION_COLOR));
     commands.spawn()
         .insert(SpreadAoeSpawn {
-            timers: vec![
-                Timer::from_seconds(28., false),
-                Timer::from_seconds(68., false),
-            ],
+            timers: spread_starts.iter().map(|start| {
+                Timer::from_seconds(*start, false)
+            }).collect(),
             aoe_desc: AoeDesc {
                 mesh: spread_mesh,
                 material_base: spread_material_base,
@@ -958,6 +1004,170 @@ fn setup_jormag(
                 radius: SPREAD_RADIUS,
             }
         });
+}
+
+fn setup_jormag(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
+    ) {
+
+    let puddle_starts: Vec<f32> = vec![5., 45., 85.];
+    let spread_starts: Vec<f32> = vec![28., 68.];
+
+    setup_boss_phase(
+        &mut commands,
+        &asset_server,
+        &mut meshes,
+        &mut materials,
+        "Jormag".to_string(),
+        GREEN_SPAWNS_JORMAG.to_vec(),
+        puddle_starts,
+        spread_starts,
+    );
+
+    // TODO roving frost beam things properly
+
+    let rotating_soup_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(70.).into()).into();
+    let rotating_soup_material = materials.add(ColorMaterial::from(Color::rgba(0.0, 0.0, 0.0, 0.3)));
+
+    for i in 0..4 {
+        let radius = 0.;
+        let theta = i as f32 * PI / 2.;
+        let dtheta = 0.5;
+
+        commands.spawn_bundle(MaterialMesh2dBundle {
+            mesh: rotating_soup_mesh.clone(),
+            material: rotating_soup_material.clone(),
+            transform: Transform::from_xyz(0., radius, LAYER_ROTATING_SOUP),
+            ..default()
+        })
+        .insert(RotatingSoup {
+            radius,
+            theta,
+            dtheta,
+        })
+        .insert(CollisionRadius(70.))
+        .insert(Soup { damage: 5. });
+    }
+
+}
+
+fn setup_soowontwo(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
+    ) {
+
+    let puddle_starts: Vec<f32> = vec![11., 32., 57., 77., 103.];
+    let spread_starts: Vec<f32> = vec![21., 67.];
+
+    setup_boss_phase(
+        &mut commands,
+        &asset_server,
+        &mut meshes,
+        &mut materials,
+        "Soo-Won 2".to_string(),
+        GREEN_SPAWNS_SOOWONTWO.to_vec(),
+        puddle_starts,
+        spread_starts,
+    );
+
+    let wave_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(WAVE_MAX_RADIUS).into()).into();
+    let wave_material = materials.add(ColorMaterial::from(Color::rgba(0.0, 1.0, 1.0, 0.4)));
+
+    commands.spawn_bundle(MaterialMesh2dBundle {
+        mesh: wave_mesh.clone(),
+        material: wave_material.clone(),
+        transform: Transform::from_xyz(-140., 300., LAYER_WAVE).with_scale(Vec3::ZERO),
+        ..default()
+    }).insert(Wave {
+        visibility_start: Timer::from_seconds(13.5, false),
+        ..default()
+    });
+
+    commands.spawn_bundle(MaterialMesh2dBundle {
+        mesh: wave_mesh.clone(),
+        material: wave_material.clone(),
+        transform: Transform::from_xyz(0., 0., LAYER_WAVE).with_scale(Vec3::ZERO),
+        ..default()
+    }).insert(Wave {
+        visibility_start: Timer::from_seconds(38.5, false),
+        ..default()
+    });
+
+    commands.spawn_bundle(MaterialMesh2dBundle {
+        mesh: wave_mesh.clone(),
+        material: wave_material.clone(),
+        transform: Transform::from_xyz(-140., 300., LAYER_WAVE).with_scale(Vec3::ZERO),
+        ..default()
+    }).insert(Wave {
+        visibility_start: Timer::from_seconds(54., false),
+        ..default()
+    });
+
+    commands.spawn_bundle(MaterialMesh2dBundle {
+        mesh: wave_mesh.clone(),
+        material: wave_material.clone(),
+        transform: Transform::from_xyz(0., 0., LAYER_WAVE).with_scale(Vec3::ZERO),
+        ..default()
+    }).insert(Wave {
+        visibility_start: Timer::from_seconds(79., false),
+        ..default()
+    });
+
+    commands.spawn_bundle(MaterialMesh2dBundle {
+        mesh: wave_mesh.clone(),
+        material: wave_material.clone(),
+        transform: Transform::from_xyz(-140., 300., LAYER_WAVE).with_scale(Vec3::ZERO),
+        ..default()
+    }).insert(Wave {
+        visibility_start: Timer::from_seconds(99.5, false),
+        ..default()
+    });
+
+    let rotating_soup_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(ROTATING_SOUP_RADIUS).into()).into();
+    let rotating_soup_material = materials.add(ColorMaterial::from(Color::rgba(0.0, 0.0, 0.0, 0.3)));
+
+    for i in 1..=5 {
+        let radius = (i as f32) / 5. * (HEIGHT / 2. - 20.);
+        let theta = i as f32;
+        let dtheta = (7. - (i as f32)) / 5. * ROTATING_SOUP_DTHETA;
+
+        commands.spawn_bundle(MaterialMesh2dBundle {
+            mesh: rotating_soup_mesh.clone(),
+            material: rotating_soup_material.clone(),
+            transform: Transform::from_xyz(0., radius, LAYER_ROTATING_SOUP),
+            ..default()
+        })
+        .insert(RotatingSoup {
+            radius,
+            theta,
+            dtheta,
+        })
+        .insert(CollisionRadius(ROTATING_SOUP_RADIUS))
+        .insert(Soup { damage: 5. });
+    }
+
+    /*
+    commands.spawn_bundle(FancySomething {
+    }).insert(TailSwipe {
+        visibility_start: Timer::from_seconds(22., false),
+        detonation: Timer::from_seconds(2., false),
+    });
+
+    commands.spawn_bundle(FancySomething {
+    }).insert(TailSwipe {
+        visibility_start: Timer::from_seconds(62., false),
+        detonation: Timer::from_seconds(2., false),
+    });
+
+    commands.spawn_bundle(FancySomething {
+    }).insert(TailSwipe {
+        visibility_start: Timer::from_seconds(107., false),
+        detonation: Timer::from_seconds(2., false),
+    });
+    */
 }
 
 fn greens_system(time: Res<Time>,
@@ -1107,6 +1317,33 @@ fn puddles_system(time: Res<Time>,
     }
 }
 
+fn waves_system(
+    time: Res<Time>,
+    mut waves: Query<(&mut Wave, &mut Visibility, &mut Transform)>,
+    ) {
+    for (mut wave, mut visibility, mut transform) in &mut waves {
+        let mut visible = true;
+        if !wave.visibility_start.finished() {
+            wave.visibility_start.tick(time.delta());
+            visible = false;
+        } else {
+            wave.growth.tick(time.delta());
+        }
+
+        if wave.growth.finished() {
+            visible = false;
+        }
+
+        visibility.is_visible = visible;
+
+        if !visible {
+            continue;
+        }
+
+        transform.scale = Vec3::splat(wave.growth.percent());
+    }
+}
+
 fn move_crabs_system(time: Res<Time>,
               mut crabs: Query<&mut Transform, (With<MobCrab>, Without<EffectForcedMarch>)>,
               orb: Query<(&MobOrb, &Transform), Without<MobCrab>>) {
@@ -1163,6 +1400,28 @@ fn velocities_system(
     ) {
     for (mut transform, velocity) in &mut tra_vels {
         transform.translation = transform.translation.add(velocity.0.mul(time.delta_seconds()));
+    }
+}
+
+fn move_rotating_soup_system(
+    time: Res<Time>,
+    mut soups: Query<(&mut Transform, &mut RotatingSoup)>
+    ) {
+    for (mut transform, mut soup) in &mut soups {
+        soup.theta += soup.dtheta * time.delta_seconds();
+        transform.translation.x = soup.theta.cos() * soup.radius;
+        transform.translation.y = soup.theta.sin() * soup.radius;
+    }
+}
+
+fn jormag_soup_beam_system(
+    time: Res<Time>,
+    mut soups: Query<&mut RotatingSoup>
+    ) {
+
+    for mut soup in &mut soups {
+        let radius = (WIDTH / 2. - 70.) * ((time.seconds_since_startup() as f32 / 8.).cos() + 1.) / 2. + 35.;
+        soup.radius = radius;
     }
 }
 
@@ -1313,6 +1572,34 @@ fn collisions_players_soups_system(
     }
 }
 
+fn collisions_players_waves_system(
+    mut game: ResMut<Game>,
+    players: Query<&Transform, With<PlayerTag>>,
+    waves: Query<(&Wave, &Visibility, &Transform)>,
+    ) {
+    for (_, visibility, transform) in &waves {
+        if !visibility.is_visible {
+            continue;
+        }
+
+        let r_outer = transform.scale.x * WAVE_MAX_RADIUS;
+        let r_inner = r_outer - 20.;
+
+        let player_pos = players.single().translation;
+        // Safe because we're in the "eye" of the wave
+        if collide(player_pos, 0., transform.translation, r_inner) {
+            continue;
+        }
+        if collide(player_pos, 0., transform.translation, r_outer) {
+            if game.player.invuln.finished() && game.player.jump.finished() {
+                game.player.hp -= WAVE_DAMAGE;
+                // Brief invuln from being knocked
+                game.player.invuln = Timer::from_seconds(1., false);
+            }
+        }
+    }
+}
+
 fn collisions_orbs_edge_system(
     mut game: ResMut<Game>,
     orbs: Query<(&MobOrb, &Transform)>,
@@ -1399,6 +1686,8 @@ fn handle_mouse_events_system(
     game.player.pull_cooldown.tick(time.delta());
     game.player.blink_cooldown.tick(time.delta());
     game.player.portal_cooldown.tick(time.delta());
+    game.player.invuln.tick(time.delta());
+    game.player.jump.tick(time.delta());
 
     if game.player.shoot_cooldown.finished() &&
        (mouse_button_input.pressed(MouseButton::Left) || 
@@ -1460,6 +1749,7 @@ fn handle_spellcasts_system(
             speed: dodge_speed,
         });
 
+        game.player.invuln = Timer::from_seconds(0.75, false);
         game.player.dodge_cooldown.reset();
     }
 
@@ -1673,6 +1963,8 @@ fn main() {
             .with_system(handle_spellcasts_system)
             .with_system(velocities_system)
             .with_system(move_player_system)
+            .with_system(move_rotating_soup_system)
+            .with_system(jormag_soup_beam_system)
             .with_system(effect_forced_march_system)
             .with_system(collisions_players_edge_system)
             .with_system(collisions_bullets_enemies_system)
@@ -1684,6 +1976,35 @@ fn main() {
             .with_system(aoes_system)
             .with_system(aoes_detonation_system)
             .with_system(aoes_follow_system)
+            .with_system(enemies_hp_check_system)
+            .with_system(boss_existence_check_system)
+            .with_system(boss_healthbar_system)
+            .with_system(void_zone_growth_system)
+            .with_system(player_hp_check_system)
+            .with_system(puddles_system))
+
+        .add_system_set(SystemSet::on_enter(GameState::SooWonTwo)
+                        .with_system(setup_phase)
+                        .with_system(setup_soowontwo.after(setup_phase)))
+        .add_system_set(SystemSet::on_update(GameState::SooWonTwo)
+            .with_system(handle_mouse_events_system)
+            .with_system(handle_spellcasts_system)
+            .with_system(velocities_system)
+            .with_system(move_player_system)
+            .with_system(move_rotating_soup_system)
+            .with_system(effect_forced_march_system)
+            .with_system(collisions_players_edge_system)
+            .with_system(collisions_bullets_enemies_system)
+            .with_system(collisions_players_soups_system)
+            .with_system(collisions_players_waves_system)
+            .with_system(text_system)
+            .with_system(greens_system)
+            .with_system(greens_detonation_system)
+            .with_system(spread_aoe_spawn_system)
+            .with_system(aoes_system)
+            .with_system(aoes_detonation_system)
+            .with_system(aoes_follow_system)
+            .with_system(waves_system)
             .with_system(enemies_hp_check_system)
             .with_system(boss_existence_check_system)
             .with_system(boss_healthbar_system)
