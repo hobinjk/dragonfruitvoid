@@ -33,6 +33,23 @@ struct MobOrb;
 struct MobCrab;
 
 #[derive(Component)]
+struct MobGoliath {
+    shoot_cooldown: Timer,
+}
+
+#[derive(Component)]
+struct MobWyvern {
+    shoot_cooldown: Timer,
+    shockwave_cooldown: Timer,
+}
+
+#[derive(Component)]
+struct EnemyBullet {
+    damage: f32,
+    knockback: f32,
+}
+
+#[derive(Component)]
 struct VoidZone;
 
 #[derive(Component)]
@@ -50,6 +67,7 @@ const VOID_ZONE_GROWTH_AMOUNT: f32 = 252. / 14.;
 const VOID_ZONE_CRAB_SPAWN_DURATION_SECS: f32 = 10.;
 
 const BOSS_RADIUS: f32 = 420. * GAME_TO_PX;
+const BIGBOY_RADIUS: f32 = 180. * GAME_TO_PX;
 
 const PUDDLE_RADIUS: f32 = 450. * GAME_TO_PX;
 const PUDDLE_DAMAGE: f32 = 20.;
@@ -158,10 +176,10 @@ const CRAB_SPEED: f32 = 15.;
 const BULLET_SIZE: f32 = 10.;
 const BULLET_DAMAGE: f32 = 0.3;
 const BULLET_COOLDOWN: f32 = 0.2;
-const ORB_RADIUS: f32 = 70.;
-const ORB_TARGET_RADIUS: f32 = 70.;
+const ORB_RADIUS: f32 = 190. * GAME_TO_PX;
+const ORB_TARGET_RADIUS: f32 = 190. * GAME_TO_PX;
 const ORB_VELOCITY_DECAY: f32 = 0.5;
-const GREEN_RADIUS: f32 = 60.;
+const GREEN_RADIUS: f32 = 160. * GAME_TO_PX;
 
 const LAYER_PLAYER: f32 = 100.;
 const LAYER_CURSOR: f32 = LAYER_PLAYER - 5.;
@@ -1147,12 +1165,15 @@ fn setup_soowontwo(
         spread_starts,
     );
 
-    let wave_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(WAVE_MAX_RADIUS).into()).into();
-    let wave_material = materials.add(ColorMaterial::from(Color::rgba(0.0, 1.0, 1.0, 0.4)));
+    let wave_sprite = Sprite {
+        custom_size: Some(Vec2::new(WAVE_MAX_RADIUS * 2., WAVE_MAX_RADIUS * 2.)),
+        ..default()
+    };
+    let wave_texture = asset_server.load("wave.png");
 
-    commands.spawn_bundle(MaterialMesh2dBundle {
-        mesh: wave_mesh.clone(),
-        material: wave_material.clone(),
+    commands.spawn_bundle(SpriteBundle {
+        sprite: wave_sprite.clone(),
+        texture: wave_texture.clone(),
         transform: Transform::from_xyz(-140., 300., LAYER_WAVE).with_scale(Vec3::ZERO),
         ..default()
     }).insert(Wave {
@@ -1160,9 +1181,9 @@ fn setup_soowontwo(
         ..default()
     });
 
-    commands.spawn_bundle(MaterialMesh2dBundle {
-        mesh: wave_mesh.clone(),
-        material: wave_material.clone(),
+    commands.spawn_bundle(SpriteBundle {
+        sprite: wave_sprite.clone(),
+        texture: wave_texture.clone(),
         transform: Transform::from_xyz(0., 0., LAYER_WAVE).with_scale(Vec3::ZERO),
         ..default()
     }).insert(Wave {
@@ -1170,9 +1191,9 @@ fn setup_soowontwo(
         ..default()
     });
 
-    commands.spawn_bundle(MaterialMesh2dBundle {
-        mesh: wave_mesh.clone(),
-        material: wave_material.clone(),
+    commands.spawn_bundle(SpriteBundle {
+        sprite: wave_sprite.clone(),
+        texture: wave_texture.clone(),
         transform: Transform::from_xyz(-140., 300., LAYER_WAVE).with_scale(Vec3::ZERO),
         ..default()
     }).insert(Wave {
@@ -1180,9 +1201,9 @@ fn setup_soowontwo(
         ..default()
     });
 
-    commands.spawn_bundle(MaterialMesh2dBundle {
-        mesh: wave_mesh.clone(),
-        material: wave_material.clone(),
+    commands.spawn_bundle(SpriteBundle {
+        sprite: wave_sprite.clone(),
+        texture: wave_texture.clone(),
         transform: Transform::from_xyz(0., 0., LAYER_WAVE).with_scale(Vec3::ZERO),
         ..default()
     }).insert(Wave {
@@ -1190,9 +1211,9 @@ fn setup_soowontwo(
         ..default()
     });
 
-    commands.spawn_bundle(MaterialMesh2dBundle {
-        mesh: wave_mesh.clone(),
-        material: wave_material.clone(),
+    commands.spawn_bundle(SpriteBundle {
+        sprite: wave_sprite.clone(),
+        texture: wave_texture.clone(),
         transform: Transform::from_xyz(-140., 300., LAYER_WAVE).with_scale(Vec3::ZERO),
         ..default()
     }).insert(Wave {
@@ -1232,25 +1253,39 @@ fn setup_soowontwo(
         &mut materials,
         vec![22., 62., 107.]
     );
-    /*
-    commands.spawn_bundle(FancySomething {
-    }).insert(ClawSwipe {
-        visibility_start: Timer::from_seconds(22., false),
-        detonation: Timer::from_seconds(2., false),
-    });
 
-    commands.spawn_bundle(FancySomething {
-    }).insert(ClawSwipe {
-        visibility_start: Timer::from_seconds(62., false),
-        detonation: Timer::from_seconds(2., false),
-    });
+    commands.spawn_bundle(SpriteBundle {
+        sprite: Sprite {
+            custom_size: Some(Vec2::new(BIGBOY_RADIUS * 2., BIGBOY_RADIUS * 2.)),
+            ..default()
+        },
+        texture: asset_server.load("wyvern.png"),
+        transform: Transform::from_xyz(400., 0., LAYER_MOB),
+        ..default()
+    })
+    .insert(MobWyvern {
+        shoot_cooldown: Timer::from_seconds(2., true),
+        shockwave_cooldown: Timer::from_seconds(15., true),
+    })
+    .insert(Enemy)
+    .insert(Hp(20.))
+    .insert(CollisionRadius(BIGBOY_RADIUS));
 
-    commands.spawn_bundle(FancySomething {
-    }).insert(ClawSwipe {
-        visibility_start: Timer::from_seconds(107., false),
-        detonation: Timer::from_seconds(2., false),
-    });
-    */
+    commands.spawn_bundle(SpriteBundle {
+        sprite: Sprite {
+            custom_size: Some(Vec2::new(BIGBOY_RADIUS * 2., BIGBOY_RADIUS * 2.)),
+            ..default()
+        },
+        texture: asset_server.load("goliath.png"),
+        transform: Transform::from_xyz(300., 0., LAYER_MOB),
+        ..default()
+    })
+    .insert(MobGoliath {
+        shoot_cooldown: Timer::from_seconds(5., true),
+    })
+    .insert(Enemy)
+    .insert(Hp(20.))
+    .insert(CollisionRadius(BIGBOY_RADIUS));
 }
 
 fn greens_system(time: Res<Time>,
