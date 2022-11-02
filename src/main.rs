@@ -41,6 +41,7 @@ struct MobGoliath {
 struct MobWyvern {
     shoot_cooldown: Timer,
     shockwave_cooldown: Timer,
+    charge_cooldown: Timer,
 }
 
 #[derive(Component)]
@@ -59,6 +60,18 @@ struct RotatingSoup {
     dtheta: f32,
 }
 
+struct DamageFlashEvent {
+    entity: Entity,
+}
+
+#[derive(Component)]
+struct TintUntint {
+    color: Color,
+    tint_color: Color,
+    untint_timer: Timer,
+    tint_timer: Timer,
+}
+
 // 312 - 60 / 2 @ 56 (14 ticks)
 
 const VOID_ZONE_GROWTH_DURATION_SECS: f32 = 4.;
@@ -67,7 +80,16 @@ const VOID_ZONE_GROWTH_AMOUNT: f32 = 252. / 14.;
 const VOID_ZONE_CRAB_SPAWN_DURATION_SECS: f32 = 10.;
 
 const BOSS_RADIUS: f32 = 420. * GAME_TO_PX;
-const BIGBOY_RADIUS: f32 = 180. * GAME_TO_PX;
+const BIGBOY_RADIUS: f32 = 120. * GAME_TO_PX;
+
+const GOLIATH_MOVE_SPEED: f32 = 20.;
+const GOLIATH_BULLET_SPEED: f32 = 50.;
+const GOLIATH_BULLET_DAMAGE: f32 = 20.;
+const GOLIATH_BULLET_KNOCKBACK: f32 = 120. * GAME_TO_PX;
+
+const WYVERN_CHARGE_RANGE: f32 = 1200. * GAME_TO_PX;
+const WYVERN_BULLET_SPEED: f32 = 200.;
+const WYVERN_BULLET_DAMAGE: f32 = 10.;
 
 const PUDDLE_RADIUS: f32 = 450. * GAME_TO_PX;
 const PUDDLE_DAMAGE: f32 = 20.;
@@ -180,6 +202,7 @@ const ORB_RADIUS: f32 = 190. * GAME_TO_PX;
 const ORB_TARGET_RADIUS: f32 = 190. * GAME_TO_PX;
 const ORB_VELOCITY_DECAY: f32 = 0.5;
 const GREEN_RADIUS: f32 = 160. * GAME_TO_PX;
+const PLAYER_REGEN: f32 = 1.;
 
 const LAYER_PLAYER: f32 = 100.;
 const LAYER_CURSOR: f32 = LAYER_PLAYER - 5.;
@@ -1264,8 +1287,9 @@ fn setup_soowontwo(
         ..default()
     })
     .insert(MobWyvern {
-        shoot_cooldown: Timer::from_seconds(2., true),
-        shockwave_cooldown: Timer::from_seconds(15., true),
+        shoot_cooldown: Timer::from_seconds(1., true),
+        shockwave_cooldown: Timer::from_seconds(18., true),
+        charge_cooldown: Timer::from_seconds(11., true),
     })
     .insert(Enemy)
     .insert(Hp(20.))
@@ -1285,6 +1309,7 @@ fn setup_soowontwo(
     })
     .insert(Enemy)
     .insert(Hp(20.))
+    .insert(Velocity(Vec3::ZERO))
     .insert(CollisionRadius(BIGBOY_RADIUS));
 }
 
@@ -1387,7 +1412,8 @@ fn aoes_system(
 fn aoes_detonation_system(
     mut commands: Commands,
     mut game: ResMut<Game>,
-    players: Query<&Transform, With<PlayerTag>>,
+    mut damage_flash_events: EventWriter<DamageFlashEvent>,
+    players: Query<(Entity, &Transform), With<PlayerTag>>,
     aoes: Query<(Entity, &Aoe, &Transform, &CollisionRadius)>,
     ) {
 
@@ -1396,12 +1422,15 @@ fn aoes_detonation_system(
             continue;
         }
 
-        let transform_player = players.single();
+        let (entity_player, transform_player) = players.single();
         let player_pos = transform_player.translation;
         let hit = collide(transform.translation, radius.0, player_pos, 0.);
 
         if hit {
             game.player.hp -= aoe.damage;
+            damage_flash_events.send(DamageFlashEvent {
+                entity: entity_player,
+            });
         }
         commands.entity(entity_aoe).despawn_recursive();
     }
@@ -1480,6 +1509,125 @@ fn waves_system(
     }
 }
 
+fn goliath_system(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut goliaths: Query<(&mut MobGoliath, &Transform, &mut Velocity), Without<EffectForcedMarch>>,
+    players: Query<&Transform, With<PlayerTag>>,
+    ) {
+    let player = players.single();
+    for (mut goliath, transform, mut velocity) in &mut goliaths {
+        let mut vel = player.translation.sub(transform.translation);
+        vel.z = 0.;
+        vel = vel.clamp_length(0., GOLIATH_MOVE_SPEED);
+        velocity.0 = vel;
+
+        let bullet_radius = BULLET_SIZE * 4.;
+        let bullet_speed = GOLIATH_BULLET_SPEED;
+        vel = vel.clamp_length(bullet_speed, bullet_speed);
+
+        goliath.shoot_cooldown.tick(time.delta());
+        if goliath.shoot_cooldown.finished() {
+            goliath.shoot_cooldown.reset();
+
+            commands.spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    color: Color::rgb(0.4, 0., 0.4),
+                    custom_size: Some(Vec2::new(bullet_radius * 2., bullet_radius * 2.)),
+                    ..default()
+                },
+                transform: Transform::from_translation(transform.translation),
+                ..default()
+            })
+            .insert(Velocity(vel))
+            .insert(EnemyBullet {
+                damage: GOLIATH_BULLET_DAMAGE,
+                knockback: GOLIATH_BULLET_KNOCKBACK,
+            })
+            .insert(CollisionRadius(bullet_radius));
+        }
+    }
+}
+
+fn wyvern_system(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut wyverns: Query<(Entity, &mut MobWyvern, &Transform), Without<EffectForcedMarch>>,
+    players: Query<&Transform, With<PlayerTag>>,
+    ) {
+    let player = players.single();
+    for (entity, mut wyvern, transform) in &mut wyverns {
+        let mut vel = player.translation.sub(transform.translation);
+        vel.z = 0.;
+        let bullet_speed = WYVERN_BULLET_SPEED;
+        vel = vel.clamp_length(bullet_speed, bullet_speed);
+
+
+        wyvern.shoot_cooldown.tick(time.delta());
+        if wyvern.shoot_cooldown.finished() {
+            wyvern.shoot_cooldown.reset();
+
+            commands.spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    color: Color::rgb(1.0, 0., 0.),
+                    custom_size: Some(Vec2::new(BULLET_SIZE, BULLET_SIZE)),
+                    ..default()
+                },
+                transform: Transform::from_translation(transform.translation),
+                ..default()
+            })
+            .insert(Velocity(vel))
+            .insert(EnemyBullet {
+                damage: WYVERN_BULLET_DAMAGE,
+                knockback: 0.,
+            })
+            .insert(CollisionRadius(BULLET_SIZE / 2.));
+        }
+
+        wyvern.shockwave_cooldown.tick(time.delta());
+        if wyvern.shockwave_cooldown.finished() {
+            wyvern.shockwave_cooldown.reset();
+
+            for bullet_i in 0..16 {
+                let theta = (bullet_i as f32) / 16. * 2. * PI;
+                let vel = Vec3::new(theta.cos() * WYVERN_BULLET_SPEED, theta.sin() * WYVERN_BULLET_SPEED, 0.);
+                let bullet_radius = BULLET_SIZE / 3.;
+
+                commands.spawn_bundle(SpriteBundle {
+                    sprite: Sprite {
+                        color: Color::rgb(0.8, 0., 0.4),
+                        custom_size: Some(Vec2::new(bullet_radius * 2., bullet_radius * 2.)),
+                        ..default()
+                    },
+                    transform: Transform::from_translation(transform.translation),
+                    ..default()
+                })
+                .insert(Velocity(vel))
+                .insert(EnemyBullet {
+                    damage: WYVERN_BULLET_DAMAGE,
+                    knockback: 80. * GAME_TO_PX,
+                })
+                .insert(CollisionRadius(bullet_radius));
+            }
+
+        }
+
+        wyvern.charge_cooldown.tick(time.delta());
+        if wyvern.charge_cooldown.finished() {
+            wyvern.charge_cooldown.reset();
+            let speed = WYVERN_CHARGE_RANGE / 0.75;
+            let diff = player.translation.sub(transform.translation).clamp_length(0., WYVERN_CHARGE_RANGE);
+            let target = transform.translation.add(diff);
+
+            commands.entity(entity).insert(EffectForcedMarch {
+                target,
+                speed,
+            });
+        }
+    }
+}
+
+
 fn move_crabs_system(time: Res<Time>,
               mut crabs: Query<&mut Transform, (With<MobCrab>, Without<EffectForcedMarch>)>,
               orb: Query<(&MobOrb, &Transform), Without<MobCrab>>) {
@@ -1532,10 +1680,64 @@ fn effect_forced_march_system(time: Res<Time>, mut commands: Commands, mut pulle
 
 fn velocities_system(
     time: Res<Time>,
-    mut tra_vels: Query<(&mut Transform, &Velocity)>
+    mut commands: Commands,
+    mut tra_vels: Query<(Entity, &mut Transform, &Velocity)>
     ) {
-    for (mut transform, velocity) in &mut tra_vels {
+    for (entity, mut transform, velocity) in &mut tra_vels {
         transform.translation = transform.translation.add(velocity.0.mul(time.delta_seconds()));
+
+        let pos = transform.translation;
+
+        if pos.x < -WIDTH ||
+           pos.x > WIDTH ||
+           pos.y < -HEIGHT ||
+           pos.y > HEIGHT {
+            commands.entity(entity).despawn_recursive();
+        }
+    }
+}
+
+fn damage_flash_system(
+    mut events: EventReader<DamageFlashEvent>,
+    mut commands: Commands,
+    mut sprites: Query<&mut Sprite, Without<TintUntint>>,
+    ) {
+    let mut touched = HashSet::new();
+
+    for event in events.iter() {
+        if touched.contains(&event.entity) {
+            continue;
+        }
+        if let Ok(sprite) = sprites.get_mut(event.entity) {
+            let prev_color = sprite.color.clone();
+            touched.insert(event.entity);
+            commands.entity(event.entity).insert(TintUntint {
+                color: prev_color,
+                tint_color: Color::rgba(1.0, 0., 0., 0.7),
+                tint_timer: Timer::from_seconds(0.2, false),
+                untint_timer: Timer::from_seconds(0.5, false),
+            });
+        }
+    }
+}
+
+fn tint_untint_system(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut sprites: Query<(Entity, &mut TintUntint, &mut Sprite)>,
+    ) {
+    for (entity, mut tut, mut sprite) in &mut sprites {
+        tut.tint_timer.tick(time.delta());
+        tut.untint_timer.tick(time.delta());
+        if !tut.tint_timer.finished() {
+            sprite.color = tut.tint_color;
+        } else {
+            sprite.color = tut.color;
+        }
+        if tut.untint_timer.finished() {
+            sprite.color = tut.color;
+            commands.entity(entity).remove::<TintUntint>();
+        }
     }
 }
 
@@ -1615,6 +1817,7 @@ fn collisions_bullets_orbs_system(
 }
 
 fn collisions_bullets_enemies_system(
+    mut damage_flash_events: EventWriter<DamageFlashEvent>,
     mut bullets: Query<(&Transform, &mut HasHit), (With<Bullet>, Without<Enemy>)>,
     mut enemies: Query<(Entity, &Transform, &CollisionRadius, &mut Hp), (With<Enemy>, Without<Bullet>)>,
     ) {
@@ -1632,6 +1835,9 @@ fn collisions_bullets_enemies_system(
 
             has_hit.0.insert(entity_enemy);
             hp.0 -= BULLET_DAMAGE;
+            damage_flash_events.send(DamageFlashEvent {
+                entity: entity_enemy,
+            });
         }
     }
 }
@@ -1695,24 +1901,39 @@ fn collisions_players_edge_system(
 fn collisions_players_soups_system(
     time: Res<Time>,
     mut game: ResMut<Game>,
-    players: Query<&Transform, With<PlayerTag>>,
+    mut damage_flash_events: EventWriter<DamageFlashEvent>,
+    players: Query<(Entity, &Transform), With<PlayerTag>>,
     soups: Query<(&Soup, &Transform, &CollisionRadius)>,
     ) {
 
-    let player_pos = players.single().translation;
+    let (entity_player, transform_player) = players.single();
+    let player_pos = transform_player.translation;
     for (soup, transform_soup, radius) in &soups {
         if !collide(player_pos, 0., transform_soup.translation, radius.0) {
             continue;
         }
         game.player.hp -= soup.damage * time.delta_seconds();
+        if soup.damage > 0.1 {
+            damage_flash_events.send(DamageFlashEvent {
+                entity: entity_player,
+            });
+        }
     }
 }
 
 fn collisions_players_waves_system(
     mut game: ResMut<Game>,
-    players: Query<&Transform, With<PlayerTag>>,
+    mut damage_flash_events: EventWriter<DamageFlashEvent>,
+    players: Query<(Entity, &Transform), (With<PlayerTag>, Without<EffectForcedMarch>)>,
     waves: Query<(&Wave, &Visibility, &Transform)>,
     ) {
+    if players.is_empty() {
+        return;
+    }
+
+    let (entity_player, transform_player) = players.single();
+    let player_pos = transform_player.translation;
+
     for (_, visibility, transform) in &waves {
         if !visibility.is_visible {
             continue;
@@ -1721,7 +1942,6 @@ fn collisions_players_waves_system(
         let r_outer = transform.scale.x * WAVE_MAX_RADIUS;
         let r_inner = r_outer - 20.;
 
-        let player_pos = players.single().translation;
         // Safe because we're in the "eye" of the wave
         if collide(player_pos, 0., transform.translation, r_inner) {
             continue;
@@ -1729,7 +1949,10 @@ fn collisions_players_waves_system(
         if collide(player_pos, 0., transform.translation, r_outer) {
             if game.player.invuln.finished() && game.player.jump.finished() {
                 game.player.hp -= WAVE_DAMAGE;
-                // Brief invuln from being knocked
+                damage_flash_events.send(DamageFlashEvent {
+                    entity: entity_player,
+                });
+                // Brief invuln from being knocked (not actually knocked because Reasons)
                 game.player.invuln = Timer::from_seconds(1., false);
             }
         }
@@ -1747,6 +1970,43 @@ fn collisions_orbs_edge_system(
     }
 }
 
+fn collisions_players_enemy_bullets_system(
+    mut game: ResMut<Game>,
+    mut damage_flash_events: EventWriter<DamageFlashEvent>,
+    mut commands: Commands,
+    players: Query<(Entity, &Transform), With<PlayerTag>>,
+    bullets: Query<(Entity, &EnemyBullet, &Transform, &Velocity, &CollisionRadius)>,
+    ) {
+
+    for (entity_bullet, bullet, transform_bullet, velocity, radius) in &bullets {
+        let (entity_player, transform_player) = players.single();
+        let player_pos = transform_player.translation;
+
+        if !collide(player_pos, 0., transform_bullet.translation, radius.0) {
+            continue;
+        }
+
+        if game.player.invuln.finished() {
+            game.player.hp -= bullet.damage;
+            damage_flash_events.send(DamageFlashEvent {
+                entity: entity_player,
+            });
+
+            if bullet.knockback.abs() > 0.1 {
+                let target = player_pos.add(velocity.0.clamp_length(bullet.knockback, bullet.knockback));
+                let speed = bullet.knockback / 0.2;
+                commands.entity(entity_player).insert(EffectForcedMarch {
+                    target,
+                    speed,
+                });
+            }
+            // Brief invuln from being damaged
+            game.player.invuln = Timer::from_seconds(0.1, false);
+        }
+
+        commands.entity(entity_bullet).despawn_recursive();
+    }
+}
 fn game_orb_target_progression_system(
     game: ResMut<Game>,
     mut materials: ResMut<Assets<ColorMaterial>>,
@@ -1824,9 +2084,13 @@ fn handle_mouse_events_system(
     game.player.portal_cooldown.tick(time.delta());
     game.player.invuln.tick(time.delta());
     game.player.jump.tick(time.delta());
+    game.player.hp += time.delta_seconds() * PLAYER_REGEN;
+    if game.player.hp > 100. {
+        game.player.hp = 100.;
+    }
 
     if game.player.shoot_cooldown.finished() &&
-       (mouse_button_input.pressed(MouseButton::Left) || 
+       (mouse_button_input.pressed(MouseButton::Left) ||
         keyboard_input.pressed(KeyCode::Key1)) {
         let cursor = cursors.single();
         let mut vel = cursor.translation.sub(player_loc);
@@ -1963,7 +2227,6 @@ fn set_cooldown_text_display(timer: &Timer, text: &mut Text, text_display: &Text
 fn text_system(game: Res<Game>,
                mut text_displays: Query<(&mut Text, &TextDisplay)>,
                mut sprites: Query<&mut Sprite>) {
-
     for (mut text, text_display) in &mut text_displays {
         match text_display.value {
             TextValue::Hp => {
@@ -1984,10 +2247,6 @@ fn text_system(game: Res<Game>,
             }
         }
     }
-
-    // set_cooldown_text(&game.player.pull_cooldown, &mut set.p2().get_single_mut().unwrap());
-    // set_cooldown_text(&game.player.portal_cooldown, &mut set.p3().get_single_mut().unwrap());
-    // set_cooldown_text(&game.player.blink_cooldown, &mut set.p4().get_single_mut().unwrap());
 }
 
 fn void_zone_crab_system(
@@ -2059,6 +2318,8 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_state(GameState::StartMenu)
 
+        .add_event::<DamageFlashEvent>()
+
         .insert_resource(game)
 
         .add_startup_system(setup)
@@ -2088,6 +2349,8 @@ fn main() {
             .with_system(collisions_players_edge_system)
             .with_system(game_orb_target_progression_system)
             .with_system(text_system)
+            .with_system(damage_flash_system)
+            .with_system(tint_untint_system.after(damage_flash_system))
             .with_system(void_zone_growth_system)
             .with_system(void_zone_crab_system)
             .with_system(player_hp_check_system))
@@ -2106,6 +2369,7 @@ fn main() {
             .with_system(collisions_players_edge_system)
             .with_system(collisions_bullets_enemies_system)
             .with_system(collisions_players_soups_system)
+            .with_system(collisions_players_enemy_bullets_system)
             .with_system(text_system)
             .with_system(greens_system)
             .with_system(greens_detonation_system)
@@ -2114,6 +2378,8 @@ fn main() {
             .with_system(aoes_detonation_system)
             .with_system(aoes_follow_system)
             .with_system(enemies_hp_check_system)
+            .with_system(damage_flash_system)
+            .with_system(tint_untint_system.after(damage_flash_system))
             .with_system(boss_existence_check_system)
             .with_system(boss_healthbar_system)
             .with_system(void_zone_growth_system)
@@ -2134,6 +2400,7 @@ fn main() {
             .with_system(collisions_bullets_enemies_system)
             .with_system(collisions_players_soups_system)
             .with_system(collisions_players_waves_system)
+            .with_system(collisions_players_enemy_bullets_system)
             .with_system(text_system)
             .with_system(greens_system)
             .with_system(greens_detonation_system)
@@ -2143,6 +2410,10 @@ fn main() {
             .with_system(aoes_follow_system)
             .with_system(waves_system)
             .with_system(enemies_hp_check_system)
+            .with_system(goliath_system)
+            .with_system(wyvern_system)
+            .with_system(damage_flash_system)
+            .with_system(tint_untint_system.after(damage_flash_system))
             .with_system(boss_existence_check_system)
             .with_system(boss_healthbar_system)
             .with_system(void_zone_growth_system)
