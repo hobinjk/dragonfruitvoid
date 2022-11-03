@@ -18,6 +18,7 @@ enum TextValue {
     CooldownBlink,
     CooldownPortal,
     CooldownPull,
+    StatusJump,
 }
 
 #[derive(Component)]
@@ -238,6 +239,7 @@ struct Player {
     blink_cooldown: Timer,
     portal_cooldown: Timer,
     pull_cooldown: Timer,
+    jump_cooldown: Timer,
     invuln: Timer,
     jump: Timer,
     entity: Option<Entity>,
@@ -616,6 +618,7 @@ fn setup_phase(
     game.player.dodge_cooldown = Timer::from_seconds(10., false);
     game.player.blink_cooldown = Timer::from_seconds(16., false);
     game.player.portal_cooldown = Timer::from_seconds(60., false);
+    game.player.jump_cooldown = Timer::from_seconds(0.6, false);
     game.player.pull_cooldown = Timer::from_seconds(20., false);
     game.player.invuln = Timer::from_seconds(0.75, false);
     game.player.jump = Timer::from_seconds(0.75, false);
@@ -701,6 +704,21 @@ fn setup_phase(
         ..default()
     }).insert(TextDisplay {
         value: TextValue::CooldownDodge,
+        sprite: None,
+    });
+
+    commands.spawn_bundle(Text2dBundle {
+        text: Text::from_section("0",
+            TextStyle {
+                font: asset_server.load("trebuchet_ms.ttf"),
+                font_size: 80.,
+                color: Color::rgb(0.1, 0.7, 0.7),
+            })
+            .with_alignment(TextAlignment::CENTER_RIGHT),
+        transform: Transform::from_xyz(-90., -HEIGHT / 2. + 155., LAYER_TEXT),
+        ..default()
+    }).insert(TextDisplay {
+        value: TextValue::StatusJump,
         sprite: None,
     });
 
@@ -2082,6 +2100,7 @@ fn handle_mouse_events_system(
     game.player.pull_cooldown.tick(time.delta());
     game.player.blink_cooldown.tick(time.delta());
     game.player.portal_cooldown.tick(time.delta());
+    game.player.jump_cooldown.tick(time.delta());
     game.player.invuln.tick(time.delta());
     game.player.jump.tick(time.delta());
     game.player.hp += time.delta_seconds() * PLAYER_REGEN;
@@ -2135,6 +2154,13 @@ fn handle_spellcasts_system(
     };
 
     let cursor_loc = cursors.single().translation;
+
+    if game.player.jump_cooldown.finished() &&
+        keyboard_input.pressed(KeyCode::Space) {
+
+        game.player.jump = Timer::from_seconds(0.5, false);
+        game.player.jump_cooldown.reset();
+    }
 
     if game.player.dodge_cooldown.finished() &&
         keyboard_input.pressed(KeyCode::V) {
@@ -2238,6 +2264,9 @@ fn text_system(game: Res<Game>,
             },
             TextValue::CooldownDodge => {
                 set_cooldown_text_display(&game.player.dodge_cooldown, &mut text, &text_display, &mut sprites);
+            },
+            TextValue::StatusJump => {
+                set_cooldown_text_display(&game.player.jump, &mut text, &text_display, &mut sprites);
             },
             TextValue::CooldownPortal => {
                 set_cooldown_text_display(&game.player.portal_cooldown, &mut text, &text_display, &mut sprites);
