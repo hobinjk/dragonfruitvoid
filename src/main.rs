@@ -92,6 +92,8 @@ const WYVERN_CHARGE_RANGE: f32 = 1200. * GAME_TO_PX;
 const WYVERN_BULLET_SPEED: f32 = 200.;
 const WYVERN_BULLET_DAMAGE: f32 = 10.;
 
+const PLAYER_RADIUS: f32 = 20.;
+
 const PUDDLE_RADIUS: f32 = 450. * GAME_TO_PX;
 const PUDDLE_DAMAGE: f32 = 20.;
 
@@ -633,7 +635,7 @@ fn setup_phase(
     game.player.entity = Some(
         commands.spawn_bundle(SpriteBundle {
             sprite: Sprite {
-                custom_size: Some(Vec2::new(40., 40.)),
+                custom_size: Some(Vec2::new(PLAYER_RADIUS * 2., PLAYER_RADIUS * 2.)),
                 ..default()
             },
             texture: asset_server.load("virt.png"),
@@ -2000,7 +2002,7 @@ fn collisions_players_enemy_bullets_system(
         let (entity_player, transform_player) = players.single();
         let player_pos = transform_player.translation;
 
-        if !collide(player_pos, 0., transform_bullet.translation, radius.0) {
+        if !collide(player_pos, PLAYER_RADIUS, transform_bullet.translation, radius.0) {
             continue;
         }
 
