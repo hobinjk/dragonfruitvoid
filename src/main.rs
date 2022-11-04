@@ -234,7 +234,6 @@ struct GreenSpawn {
     positions: [Vec3; 3]
 }
 
-#[derive(Default)]
 struct Player {
     hp: f32,
     shoot_cooldown: Timer,
@@ -246,6 +245,23 @@ struct Player {
     invuln: Timer,
     jump: Timer,
     entity: Option<Entity>,
+}
+
+impl Default for Player {
+    fn default() -> Self {
+        Player {
+            hp: 100.,
+            shoot_cooldown: Timer::from_seconds(BULLET_COOLDOWN, false),
+            dodge_cooldown: Timer::from_seconds(10., false),
+            blink_cooldown: Timer::from_seconds(16., false),
+            portal_cooldown: Timer::from_seconds(60., false),
+            jump_cooldown: Timer::from_seconds(0.6, false),
+            pull_cooldown: Timer::from_seconds(20., false),
+            invuln: Timer::from_seconds(0.75, false),
+            jump: Timer::from_seconds(0.75, false),
+            entity: None,
+        }
+    }
 }
 
 struct Game {
@@ -635,16 +651,7 @@ fn setup_phase(
     mut game: ResMut<Game>,
     mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
     ) {
-    game.player.hp = 100.;
-    game.player.shoot_cooldown = Timer::from_seconds(BULLET_COOLDOWN, false);
-    game.player.dodge_cooldown = Timer::from_seconds(10., false);
-    game.player.blink_cooldown = Timer::from_seconds(16., false);
-    game.player.portal_cooldown = Timer::from_seconds(60., false);
-    game.player.jump_cooldown = Timer::from_seconds(0.6, false);
-    game.player.pull_cooldown = Timer::from_seconds(20., false);
-    game.player.invuln = Timer::from_seconds(0.75, false);
-    game.player.jump = Timer::from_seconds(0.75, false);
-
+    // Reset all cooldowns and invuln timings
     game.player.dodge_cooldown.tick(Duration::from_secs_f32(1000.));
     game.player.blink_cooldown.tick(Duration::from_secs_f32(1000.));
     game.player.portal_cooldown.tick(Duration::from_secs_f32(1000.));
