@@ -83,6 +83,9 @@ const VOID_ZONE_CRAB_SPAWN_DURATION_SECS: f32 = 10.;
 const BOSS_RADIUS: f32 = 420. * GAME_TO_PX;
 const BIGBOY_RADIUS: f32 = 120. * GAME_TO_PX;
 
+const CHOMP_TARGET_Y: f32 = 1024. - 380.;
+const MINICHOMP_TARGET_Y: f32 = 380.;
+
 const GOLIATH_MOVE_SPEED: f32 = 20.;
 const GOLIATH_BULLET_SPEED: f32 = 50.;
 const GOLIATH_BULLET_DAMAGE: f32 = 20.;
@@ -123,6 +126,7 @@ struct Puddle {
 #[derive(Component)]
 struct Soup {
     damage: f32,
+    duration: Option<Timer>,
 }
 
 #[derive(Component)]
@@ -177,7 +181,7 @@ enum GameState {
     StartMenu,
     PurificationOne,
     Jormag,
-    // Primordus, -> big aoe and void zone
+    Primordus, // -> big aoe and void zone
     // Kralkatorrik, -> line aoes
     // PurificationTwo, -> kill big boy without cleaving
     Mordremoth,
@@ -306,6 +310,7 @@ const AOE_DETONATION_COLOR: Color = Color::rgba(0.7, 0., 0., 0.7);
 struct Aoe {
     visibility_start: Option<Timer>,
     detonation: Timer,
+    linger: Option<Timer>,
     damage: f32,
 }
 
@@ -363,7 +368,7 @@ const GREEN_SPAWNS_JORMAG: [GreenSpawn; 2] = [
     }
 ];
 
-const _GREEN_SPAWNS_PRIMORDUS: [GreenSpawn; 2] = [
+const GREEN_SPAWNS_PRIMORDUS: [GreenSpawn; 2] = [
     GreenSpawn {
         start: 23.,
         positions: [
@@ -487,59 +492,28 @@ fn setup_menu_system(mut commands: Commands, asset_server: Res<AssetServer>) {
         ..default()
     })
     .with_children(|container| {
-        container.spawn_bundle(ButtonBundle {
-            style: button_style.clone(),
-            color: NORMAL_BUTTON.into(),
-            ..default()
-        })
-        .with_children(|parent| {
-            parent.spawn_bundle(TextBundle::from_section(
-                "Purification One",
-                text_style.clone(),
-            ));
-        })
-        .insert(ButtonNextState(GameState::PurificationOne));
+        let phases = vec![
+            ("Purification One", GameState::PurificationOne),
+            ("Jormag", GameState::Jormag),
+            ("Primordus", GameState::Primordus),
+            ("Mordremoth", GameState::Mordremoth),
+            ("Soo-Won Two", GameState::SooWonTwo),
+        ];
 
-        container.spawn_bundle(ButtonBundle {
-            style: button_style.clone(),
-            color: NORMAL_BUTTON.into(),
-            ..default()
-        })
-        .with_children(|parent| {
-            parent.spawn_bundle(TextBundle::from_section(
-                "Jormag",
-                text_style.clone(),
-            ));
-        })
-        .insert(ButtonNextState(GameState::Jormag));
-
-
-        container.spawn_bundle(ButtonBundle {
-            style: button_style.clone(),
-            color: NORMAL_BUTTON.into(),
-            ..default()
-        })
-        .with_children(|parent| {
-            parent.spawn_bundle(TextBundle::from_section(
-                "Mordremoth",
-                text_style.clone(),
-            ));
-        })
-        .insert(ButtonNextState(GameState::Mordremoth));
-
-        container.spawn_bundle(ButtonBundle {
-            style: button_style.clone(),
-            color: NORMAL_BUTTON.into(),
-            ..default()
-        })
-        .with_children(|parent| {
-            parent.spawn_bundle(TextBundle::from_section(
-                "Soo-Won Two",
-                text_style.clone(),
-            ));
-        })
-        .insert(ButtonNextState(GameState::SooWonTwo));
-
+        for (label, state) in phases {
+            container.spawn_bundle(ButtonBundle {
+                style: button_style.clone(),
+                color: NORMAL_BUTTON.into(),
+                ..default()
+            })
+            .with_children(|parent| {
+                parent.spawn_bundle(TextBundle::from_section(
+                    label,
+                    text_style.clone(),
+                ));
+            })
+            .insert(ButtonNextState(state));
+        }
     })
     .insert(MenuContainer);
 }
@@ -895,7 +869,10 @@ fn setup_purification_one(
         })
         .insert(VoidZone)
         .insert(CollisionRadius(VOID_ZONE_START_RADIUS))
-        .insert(Soup { damage: 25. });
+        .insert(Soup {
+            damage: 25.,
+            duration: None,
+        });
     }
 }
 
@@ -920,6 +897,7 @@ fn spread_aoe_spawn_system(
                 visibility_start: None,
                 detonation: Timer::from_seconds(SPREAD_DETONATION, false),
                 damage: SPREAD_DAMAGE,
+                linger: None,
             }, Some(AoeFollow { target: players.single() }));
         }
     }
@@ -958,7 +936,7 @@ fn spawn_spew_aoe(
     commands: &mut Commands,
     start: f32,
     aoe_desc: &AoeDesc,
-    _linger: Option<f32>,
+    linger: Option<Timer>,
     ) {
 
     let rotation = Vec2::new(SPEW_DYDX.cos(), SPEW_DYDX.sin());
@@ -982,6 +960,7 @@ fn spawn_spew_aoe(
                 visibility_start: Some(Timer::from_seconds(start + aoe_delay, false)),
                 detonation: Timer::from_seconds(1.5, false),
                 damage: SPEW_DAMAGE,
+                linger: linger.clone(),
             };
 
             spawn_aoe(commands, aoe_desc, Vec3::new(pos2.x, pos2.y, LAYER_AOE), aoe, None);
@@ -1064,6 +1043,7 @@ fn setup_claw_swipes(
             visibility_start: Some(chonk_start),
             detonation: Timer::from_seconds(SWIPE_DETONATION, false),
             damage: SWIPE_DAMAGE,
+            linger: None,
         }, None);
 
         for bounce in 0..SWIPE_BALL_BOUNCE_COUNT {
@@ -1083,6 +1063,7 @@ fn setup_claw_swipes(
                     visibility_start: Some(timer),
                     detonation: Timer::from_seconds(SWIPE_DETONATION, false),
                     damage: SWIPE_DAMAGE,
+                    linger: None,
                 }, None);
             }
         }
@@ -1169,7 +1150,10 @@ fn setup_boss_phase(
             ..default()
         }).insert(VoidZone)
         .insert(CollisionRadius(VOID_ZONE_START_RADIUS))
-        .insert(Soup { damage: 25. });
+        .insert(Soup {
+            damage: 25.,
+            duration: None,
+        });
     }
 
     let puddle_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(PUDDLE_RADIUS).into()).into();
@@ -1187,7 +1171,10 @@ fn setup_boss_phase(
             drop: Timer::from_seconds(6., false),
         })
         .insert(CollisionRadius(PUDDLE_RADIUS))
-        .insert(Soup { damage: 0. });
+        .insert(Soup {
+            damage: 0.,
+            duration: None,
+        });
     }
 
     let spread_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(SPREAD_RADIUS).into()).into();
@@ -1249,7 +1236,75 @@ fn setup_jormag(
             dtheta,
         })
         .insert(CollisionRadius(70.))
-        .insert(Soup { damage: 5. });
+        .insert(Soup {
+            damage: 5.,
+            duration: None,
+        });
+    }
+
+}
+
+fn setup_primordus(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
+    ) {
+
+    let puddle_starts: Vec<f32> = vec![17., 71.];
+    let spread_starts: Vec<f32> = vec![13., 67.];
+    let chomp_starts: Vec<f32> = vec![13., 67.];
+    let minichomp_starts: Vec<f32> = vec![26., 39., 52., 80., 93., 106.];
+
+    setup_boss_phase(
+        &mut commands,
+        &asset_server,
+        &mut meshes,
+        &mut materials,
+        "Primordus".to_string(),
+        GREEN_SPAWNS_PRIMORDUS.to_vec(),
+        puddle_starts,
+        spread_starts,
+    );
+
+    let chomp_y = HEIGHT / 2. - BOSS_RADIUS;
+    let chomp_radius = CHOMP_TARGET_Y - BOSS_RADIUS;
+    let minichomp_radius = MINICHOMP_TARGET_Y - BOSS_RADIUS;
+
+    let chomp_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(chomp_radius).into()).into();
+    let minichomp_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(minichomp_radius).into()).into();
+    let material_base = materials.add(ColorMaterial::from(AOE_BASE_COLOR));
+    let material_detonation = materials.add(ColorMaterial::from(AOE_DETONATION_COLOR));
+
+    let aoe_desc_chomp = AoeDesc {
+        mesh: chomp_mesh,
+        radius: chomp_radius,
+        material_base: material_base.clone(),
+        material_detonation: material_detonation.clone(),
+    };
+
+    let aoe_desc_minichomp = AoeDesc {
+        mesh: minichomp_mesh,
+        radius: minichomp_radius,
+        material_base: material_base.clone(),
+        material_detonation: material_detonation.clone(),
+    };
+
+    for chomp_start in chomp_starts {
+        spawn_aoe(&mut commands, &aoe_desc_chomp, Vec3::new(0., chomp_y, LAYER_AOE), Aoe {
+            visibility_start: Some(Timer::from_seconds(chomp_start, false)),
+            detonation: Timer::from_seconds(7., false),
+            damage: 100.,
+            linger: Some(Timer::from_seconds(5., false)),
+        }, None);
+    }
+
+    for minichomp_start in minichomp_starts {
+        spawn_aoe(&mut commands, &aoe_desc_minichomp, Vec3::new(0., chomp_y, LAYER_AOE), Aoe {
+            visibility_start: Some(Timer::from_seconds(minichomp_start, false)),
+            detonation: Timer::from_seconds(3., false),
+            damage: 90.,
+            linger: None,
+        }, None);
     }
 
 }
@@ -1412,7 +1467,10 @@ fn setup_soowontwo(
             dtheta,
         })
         .insert(CollisionRadius(ROTATING_SOUP_RADIUS))
-        .insert(Soup { damage: 5. });
+        .insert(Soup {
+            damage: 5.,
+            duration: None,
+        });
     }
 
     setup_claw_swipes(
@@ -1577,7 +1635,15 @@ fn aoes_detonation_system(
                 entity: entity_player,
             });
         }
-        commands.entity(entity_aoe).despawn_recursive();
+        if let Some(linger) = &aoe.linger {
+            commands.entity(entity_aoe).remove::<Aoe>();
+            commands.entity(entity_aoe).insert(Soup {
+                damage: aoe.damage /  2., // arbitrary
+                duration: Some(linger.clone()),
+            });
+        } else {
+            commands.entity(entity_aoe).despawn_recursive();
+        }
     }
 }
 
@@ -1589,6 +1655,24 @@ fn aoes_follow_system(
         if let Ok(transform_target) = transforms.get(follow.target) {
             transform.translation.x = transform_target.translation.x;
             transform.translation.y = transform_target.translation.y;
+        }
+    }
+}
+
+fn soup_duration_system(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut soups: Query<(Entity, &mut Soup)>,
+    ) {
+    for (entity, mut soup) in &mut soups {
+        if soup.duration.is_none() {
+            continue;
+        }
+        if let Some(duration) = &mut soup.duration {
+            duration.tick(time.delta());
+            if duration.finished() {
+                commands.entity(entity).despawn_recursive();
+            }
         }
     }
 }
@@ -2239,7 +2323,6 @@ fn handle_mouse_events_system(
     for event in cursor_moved_events.iter() {
         let mut cursor = cursors.single_mut();
         // info!("{:?}", event);
-        // let mut cursor_transform = cursors.single_mut();
         cursor.translation.x = event.position.x - WIDTH / 2.;
         cursor.translation.y = event.position.y - HEIGHT / 2.;
     }
@@ -2452,6 +2535,7 @@ fn build_update_phase(phase: GameState) -> SystemSet {
         .with_system(tint_untint_system.after(damage_flash_system))
         .with_system(void_zone_growth_system)
         .with_system(player_hp_check_system)
+        .with_system(soup_duration_system)
 }
 
 fn build_update_boss_phase(phase: GameState) -> SystemSet {
@@ -2525,14 +2609,17 @@ fn main() {
         .add_system_set(SystemSet::on_update(GameState::Jormag)
             .with_system(jormag_soup_beam_system))
 
+        .add_system_set(SystemSet::on_enter(GameState::Primordus)
+                        .with_system(setup_phase)
+                        .with_system(setup_primordus.after(setup_phase)))
+        .add_system_set(build_update_phase(GameState::Primordus))
+        .add_system_set(build_update_boss_phase(GameState::Primordus))
+
         .add_system_set(SystemSet::on_enter(GameState::Mordremoth)
                         .with_system(setup_phase)
                         .with_system(setup_mordremoth.after(setup_phase)))
         .add_system_set(build_update_phase(GameState::Mordremoth))
         .add_system_set(build_update_boss_phase(GameState::Mordremoth))
-        // .add_system_set(SystemSet::on_update(GameState::Mordremoth)
-        //     .with_system(goliath_system)
-        //     .with_system(wyvern_system))
 
         .add_system_set(SystemSet::on_enter(GameState::SooWonTwo)
                         .with_system(setup_phase)
