@@ -1,7 +1,7 @@
 use bevy::{
     prelude::*,
     render::color::Color,
-    sprite::{Anchor, MaterialMesh2dBundle, Mesh2dHandle, collide_aabb},
+    sprite::{Anchor, MaterialMesh2dBundle, Mesh2dHandle},
     window::CursorMoved,
 };
 use core::f32::consts::PI;
@@ -639,7 +639,11 @@ fn spawn_crab(commands: &mut Commands, asset_server: &Res<AssetServer>, crab_pos
         texture: asset_server.load("crab.png"),
         transform: Transform::from_translation(crab_pos),
         ..default()
-    }).insert(MobCrab);
+    })
+    .insert(MobCrab)
+    .insert(Enemy)
+    .insert(CollisionRadius(CRAB_SIZE / 2.))
+    .insert(Hp(0.3));
 }
 
 fn setup(mut commands: Commands) {
@@ -1910,30 +1914,6 @@ fn collide(pos_a: Vec3, radius_a: f32, pos_b: Vec3, radius_b: f32) -> bool {
     return diff.length_squared() < (radius_a + radius_b) * (radius_a + radius_b);
 }
 
-fn collisions_bullets_crabs_system(
-    mut commands: Commands,
-    bullets: Query<(Entity, &Transform), With<Bullet>>,
-    crabs: Query<(Entity, &Transform), With<MobCrab>>,
-    ) {
-    for (entity_bullet, transform_bullet) in &bullets {
-        let bullet_pos = transform_bullet.translation;
-        for (entity_crab, transform_crab) in &crabs {
-            let crab_pos = transform_crab.translation;
-            if let Some(_) = collide_aabb::collide(bullet_pos, Vec2::splat(BULLET_SIZE), crab_pos, Vec2::splat(CRAB_SIZE)) {
-                // commands.entity(entity_bullet).despawn_recursive(); allows cleave
-                commands.entity(entity_crab).despawn_recursive();
-            }
-        }
-
-        if bullet_pos.x < -WIDTH / 2. - BULLET_SIZE ||
-           bullet_pos.x > WIDTH / 2. - BULLET_SIZE ||
-           bullet_pos.y < -HEIGHT / 2. - BULLET_SIZE ||
-           bullet_pos.y > HEIGHT / 2. - BULLET_SIZE {
-            commands.entity(entity_bullet).despawn_recursive();
-        }
-    }
-}
-
 fn collisions_bullets_orbs_system(
     mut commands: Commands,
     players: Query<&Transform, With<PlayerTag>>,
@@ -2454,7 +2434,7 @@ fn player_hp_check_system(game: ResMut<Game>,
     }
 }
 
-fn build_update_boss_phase(phase: GameState) -> SystemSet {
+fn build_update_phase(phase: GameState) -> SystemSet {
     SystemSet::on_update(phase)
         .with_system(handle_mouse_events_system)
         .with_system(handle_spellcasts_system)
@@ -2465,9 +2445,18 @@ fn build_update_boss_phase(phase: GameState) -> SystemSet {
         .with_system(collisions_players_edge_system)
         .with_system(collisions_bullets_enemies_system)
         .with_system(collisions_players_soups_system)
-        .with_system(collisions_players_waves_system)
         .with_system(collisions_players_enemy_bullets_system)
         .with_system(text_system)
+        .with_system(enemies_hp_check_system)
+        .with_system(damage_flash_system)
+        .with_system(tint_untint_system.after(damage_flash_system))
+        .with_system(void_zone_growth_system)
+        .with_system(player_hp_check_system)
+}
+
+fn build_update_boss_phase(phase: GameState) -> SystemSet {
+    SystemSet::on_update(phase)
+        .with_system(collisions_players_waves_system)
         .with_system(greens_system)
         .with_system(greens_detonation_system)
         .with_system(spread_aoe_spawn_system)
@@ -2475,37 +2464,20 @@ fn build_update_boss_phase(phase: GameState) -> SystemSet {
         .with_system(aoes_detonation_system)
         .with_system(aoes_follow_system)
         .with_system(waves_system)
-        .with_system(enemies_hp_check_system)
-        .with_system(damage_flash_system)
-        .with_system(tint_untint_system.after(damage_flash_system))
         .with_system(boss_existence_check_system)
         .with_system(boss_healthbar_system)
-        .with_system(void_zone_growth_system)
-        .with_system(player_hp_check_system)
         .with_system(puddles_system)
 }
 
 fn build_update_purification_phase(phase: GameState) -> SystemSet {
     SystemSet::on_update(phase)
-        .with_system(handle_mouse_events_system)
-        .with_system(handle_spellcasts_system)
-        .with_system(velocities_system)
-        .with_system(move_player_system)
         .with_system(move_crabs_system)
-        .with_system(effect_forced_march_system)
         .with_system(collisions_crabs_orbs_system)
-        .with_system(collisions_bullets_crabs_system)
         .with_system(collisions_bullets_orbs_system)
         .with_system(collisions_orb_targets_system)
         .with_system(collisions_orbs_edge_system)
-        .with_system(collisions_players_edge_system)
         .with_system(game_orb_target_progression_system)
-        .with_system(text_system)
-        .with_system(damage_flash_system)
-        .with_system(tint_untint_system.after(damage_flash_system))
-        .with_system(void_zone_growth_system)
         .with_system(void_zone_crab_system)
-        .with_system(player_hp_check_system)
 }
 
 fn main() {
@@ -2542,11 +2514,13 @@ fn main() {
         .add_system_set(SystemSet::on_enter(GameState::PurificationOne)
                         .with_system(setup_phase)
                         .with_system(setup_purification_one.after(setup_phase)))
+        .add_system_set(build_update_phase(GameState::PurificationOne))
         .add_system_set(build_update_purification_phase(GameState::PurificationOne))
 
         .add_system_set(SystemSet::on_enter(GameState::Jormag)
                         .with_system(setup_phase)
                         .with_system(setup_jormag.after(setup_phase)))
+        .add_system_set(build_update_phase(GameState::Jormag))
         .add_system_set(build_update_boss_phase(GameState::Jormag))
         .add_system_set(SystemSet::on_update(GameState::Jormag)
             .with_system(jormag_soup_beam_system))
@@ -2554,6 +2528,7 @@ fn main() {
         .add_system_set(SystemSet::on_enter(GameState::Mordremoth)
                         .with_system(setup_phase)
                         .with_system(setup_mordremoth.after(setup_phase)))
+        .add_system_set(build_update_phase(GameState::Mordremoth))
         .add_system_set(build_update_boss_phase(GameState::Mordremoth))
         // .add_system_set(SystemSet::on_update(GameState::Mordremoth)
         //     .with_system(goliath_system)
@@ -2562,6 +2537,7 @@ fn main() {
         .add_system_set(SystemSet::on_enter(GameState::SooWonTwo)
                         .with_system(setup_phase)
                         .with_system(setup_soowontwo.after(setup_phase)))
+        .add_system_set(build_update_phase(GameState::SooWonTwo))
         .add_system_set(build_update_boss_phase(GameState::SooWonTwo))
         .add_system_set(SystemSet::on_update(GameState::SooWonTwo)
             .with_system(goliath_system)
