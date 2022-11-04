@@ -1969,9 +1969,11 @@ fn collisions_bullets_enemies_system(
 
             has_hit.0.insert(entity_enemy);
             hp.0 -= BULLET_DAMAGE;
-            damage_flash_events.send(DamageFlashEvent {
-                entity: entity_enemy,
-            });
+            if hp.0 > 0. {
+                damage_flash_events.send(DamageFlashEvent {
+                    entity: entity_enemy,
+                });
+            }
         }
     }
 }
