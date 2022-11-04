@@ -715,7 +715,7 @@ fn setup_phase(
     });
 
     commands.spawn_bundle(Text2dBundle {
-        text: Text::from_section("0", 
+        text: Text::from_section("0",
             TextStyle {
                 font: asset_server.load("trebuchet_ms.ttf"),
                 font_size: 80.,
