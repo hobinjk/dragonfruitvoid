@@ -177,14 +177,14 @@ enum GameState {
     StartMenu,
     PurificationOne,
     Jormag,
-    // Primordus,
-    // Kralkatorrik,
-    // PurificationTwo,
-    // Mordremoth,
-    // Zhaitan,
-    // PurificationThree,
-    // SooWonOne,
-    // PurificationFour,
+    // Primordus, -> big aoe and void zone
+    // Kralkatorrik, -> line aoes
+    // PurificationTwo, -> kill big boy without cleaving
+    Mordremoth,
+    // Zhaitan, -> noodles and grid aoe
+    // PurificationThree, -> kill bigger boy without cleaving
+    // SooWonOne, -> soowontwo minus big boys
+    // PurificationFour, -> damage orb
     SooWonTwo,
     Failure,
     Success,
@@ -211,6 +211,7 @@ const LAYER_PLAYER: f32 = 100.;
 const LAYER_CURSOR: f32 = LAYER_PLAYER - 5.;
 const LAYER_MOB: f32 = 20.;
 const LAYER_WAVE: f32 = 15.;
+const LAYER_AOE: f32 = 12.;
 const LAYER_TARGET: f32 = 10.;
 const LAYER_ROTATING_SOUP: f32 = 11.;
 const LAYER_MAP: f32 = 0.;
@@ -267,6 +268,11 @@ struct SpreadAoeSpawn {
 const SPREAD_DAMAGE: f32 = 10.;
 const SPREAD_DETONATION: f32 = 5.;
 const SPREAD_RADIUS: f32 = 240. * GAME_TO_PX;
+
+const SPEW_DAMAGE: f32 = 40.;
+const SPEW_RADIUS: f32 = 240. * GAME_TO_PX;
+const SPEW_SPACING: f32 = 10. * GAME_TO_PX;
+const SPEW_DYDX: f32 = -0.3;
 
 #[derive(Component)]
 struct StackGreen {
@@ -490,6 +496,20 @@ fn setup_menu_system(mut commands: Commands, asset_server: Res<AssetServer>) {
             ));
         })
         .insert(ButtonNextState(GameState::Jormag));
+
+
+        container.spawn_bundle(ButtonBundle {
+            style: button_style.clone(),
+            color: NORMAL_BUTTON.into(),
+            ..default()
+        })
+        .with_children(|parent| {
+            parent.spawn_bundle(TextBundle::from_section(
+                "Mordremoth",
+                text_style.clone(),
+            ));
+        })
+        .insert(ButtonNextState(GameState::Mordremoth));
 
         container.spawn_bundle(ButtonBundle {
             style: button_style.clone(),
@@ -923,6 +943,41 @@ fn spawn_aoe(
     id
 }
 
+fn spawn_spew_aoe(
+    commands: &mut Commands,
+    start: f32,
+    aoe_desc: &AoeDesc,
+    _linger: Option<f32>,
+    ) {
+
+    let rotation = Vec2::new(SPEW_DYDX.cos(), SPEW_DYDX.sin());
+
+    for row in -6..=6 {
+        let y = row as f32 * (SPEW_RADIUS * 2. + SPEW_SPACING);
+        for col in -6..=6 {
+            let x = col as f32 * (SPEW_RADIUS * 2. + SPEW_SPACING);
+            let dist = (x * x + y * y).sqrt();
+            if dist > GAME_RADIUS {
+                continue;
+            }
+
+            // Rotation and offset are both pretty arbitrary
+            let pos2 = Vec2::new(x, y).rotate(rotation).add(Vec2::new(SPEW_RADIUS * 0.7, SPEW_RADIUS * 0.1));
+            let dy = pos2.y - GAME_RADIUS;
+            let dist = (pos2.x * pos2.x + dy * dy).sqrt();
+            let aoe_delay = dist / 2000.;
+
+            let aoe = Aoe {
+                visibility_start: Some(Timer::from_seconds(start + aoe_delay, false)),
+                detonation: Timer::from_seconds(1.5, false),
+                damage: SPEW_DAMAGE,
+            };
+
+            spawn_aoe(commands, aoe_desc, Vec3::new(pos2.x, pos2.y, LAYER_AOE), aoe, None);
+        }
+    }
+}
+
 fn setup_greens(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
@@ -1186,6 +1241,65 @@ fn setup_jormag(
         .insert(Soup { damage: 5. });
     }
 
+}
+
+fn setup_mordremoth(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
+    ) {
+
+    let puddle_starts: Vec<f32> = vec![8., 30., 53., 82.];
+    let spread_starts: Vec<f32> = vec![18., 40., 63., 91.];
+    let boop_starts: Vec<f32> = vec![22., 44., 67., 95.];
+    let boop_delays: Vec<f32> = vec![0., 2., 4.]; // 21.5, 24, 26 hmm
+    let spew_starts: Vec<f32> = vec![13., 35., 58., 87.];
+
+    setup_boss_phase(
+        &mut commands,
+        &asset_server,
+        &mut meshes,
+        &mut materials,
+        "Mordremoth".to_string(),
+        vec![],
+        puddle_starts,
+        spread_starts,
+    );
+
+    let wave_sprite = Sprite {
+        custom_size: Some(Vec2::new(WAVE_MAX_RADIUS * 2., WAVE_MAX_RADIUS * 2.)),
+        ..default()
+    };
+    let wave_texture = asset_server.load("wave.png");
+
+    for boop_start in &boop_starts {
+        for boop_delay in &boop_delays {
+            commands.spawn_bundle(SpriteBundle {
+                sprite: wave_sprite.clone(),
+                texture: wave_texture.clone(),
+                transform: Transform::from_xyz(0., 0., LAYER_WAVE).with_scale(Vec3::ZERO),
+                ..default()
+            }).insert(Wave {
+                visibility_start: Timer::from_seconds(boop_start + boop_delay, false),
+                ..default()
+            });
+        }
+    }
+
+    let spew_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(SPEW_RADIUS).into()).into();
+    let material_base = materials.add(ColorMaterial::from(AOE_BASE_COLOR));
+    let material_detonation = materials.add(ColorMaterial::from(AOE_DETONATION_COLOR));
+
+    let aoe_desc_spew = AoeDesc {
+        mesh: spew_mesh,
+        radius: SPEW_RADIUS,
+        material_base: material_base.clone(),
+        material_detonation: material_detonation.clone(),
+    };
+
+    for spew_start in spew_starts {
+        spawn_spew_aoe(&mut commands, spew_start, &aoe_desc_spew, None);
+    }
 }
 
 fn setup_soowontwo(
@@ -2427,6 +2541,14 @@ fn main() {
         .add_system_set(build_update_boss_phase(GameState::Jormag))
         .add_system_set(SystemSet::on_update(GameState::Jormag)
             .with_system(jormag_soup_beam_system))
+
+        .add_system_set(SystemSet::on_enter(GameState::Mordremoth)
+                        .with_system(setup_phase)
+                        .with_system(setup_mordremoth.after(setup_phase)))
+        .add_system_set(build_update_boss_phase(GameState::Mordremoth))
+        // .add_system_set(SystemSet::on_update(GameState::Mordremoth)
+        //     .with_system(goliath_system)
+        //     .with_system(wyvern_system))
 
         .add_system_set(SystemSet::on_enter(GameState::SooWonTwo)
                         .with_system(setup_phase)
