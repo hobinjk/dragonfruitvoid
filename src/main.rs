@@ -46,6 +46,13 @@ struct MobWyvern {
 }
 
 #[derive(Component)]
+struct MobNoodle {
+    visibility_start: Timer,
+    slam_cooldown: Timer,
+    aoe_desc: AoeDesc,
+}
+
+#[derive(Component)]
 struct EnemyBullet {
     damage: f32,
     knockback: f32,
@@ -82,6 +89,9 @@ const VOID_ZONE_CRAB_SPAWN_DURATION_SECS: f32 = 10.;
 
 const BOSS_RADIUS: f32 = 420. * GAME_TO_PX;
 const BIGBOY_RADIUS: f32 = 120. * GAME_TO_PX;
+
+const NOODLE_RADIUS: f32 = 80. * GAME_TO_PX;
+const NOODLE_SLAM_RADIUS: f32 = 540. * GAME_TO_PX;
 
 const CHOMP_TARGET_Y: f32 = 1024. - 380.;
 const MINICHOMP_TARGET_Y: f32 = 380.;
@@ -185,7 +195,7 @@ enum GameState {
     // Kralkatorrik, -> line aoes
     // PurificationTwo, -> kill big boy without cleaving
     Mordremoth,
-    // Zhaitan, -> noodles and grid aoe
+    Zhaitan, // -> noodles and grid aoe
     // PurificationThree, -> kill bigger boy without cleaving
     // SooWonOne, -> soowontwo minus big boys
     // PurificationFour, -> damage orb
@@ -290,8 +300,8 @@ const SPREAD_DETONATION: f32 = 5.;
 const SPREAD_RADIUS: f32 = 240. * GAME_TO_PX;
 
 const SPEW_DAMAGE: f32 = 40.;
-const SPEW_RADIUS: f32 = 240. * GAME_TO_PX;
-const SPEW_SPACING: f32 = 10. * GAME_TO_PX;
+const SPEW_RADIUS: f32 = 220. * GAME_TO_PX;
+const SPEW_SPACING: f32 = 30. * GAME_TO_PX;
 const SPEW_DYDX: f32 = -0.3;
 
 #[derive(Component)]
@@ -322,6 +332,7 @@ struct AoeFollow {
 #[derive(Component)]
 struct AoeIndicator;
 
+#[derive(Clone)]
 struct AoeDesc {
     mesh: Mesh2dHandle,
     radius: f32,
@@ -387,7 +398,7 @@ const GREEN_SPAWNS_PRIMORDUS: [GreenSpawn; 2] = [
     }
 ];
 
-const _GREEN_SPAWNS_ZHAITAN: [GreenSpawn; 3] = [
+const GREEN_SPAWNS_ZHAITAN: [GreenSpawn; 3] = [
     GreenSpawn {
         start: 0., // actually -5., not entirely sure what to do here
         positions: [
@@ -397,7 +408,7 @@ const _GREEN_SPAWNS_ZHAITAN: [GreenSpawn; 3] = [
         ],
     },
     GreenSpawn {
-        start: 28.,
+        start: 28. + 5.,
         positions: [
             Vec3::new(197., -131., 0.),
             Vec3::new(-201., -131., 0.),
@@ -405,7 +416,7 @@ const _GREEN_SPAWNS_ZHAITAN: [GreenSpawn; 3] = [
         ],
     },
     GreenSpawn {
-        start: 60.,
+        start: 60. + 5.,
         positions: [
             Vec3::new(308., -179., 0.),
             Vec3::new(-308., -189., 0.),
@@ -497,6 +508,7 @@ fn setup_menu_system(mut commands: Commands, asset_server: Res<AssetServer>) {
             ("Jormag", GameState::Jormag),
             ("Primordus", GameState::Primordus),
             ("Mordremoth", GameState::Mordremoth),
+            ("Zhaitan", GameState::Zhaitan),
             ("Soo-Won Two", GameState::SooWonTwo),
         ];
 
@@ -935,6 +947,7 @@ fn spawn_aoe(
 fn spawn_spew_aoe(
     commands: &mut Commands,
     start: f32,
+    detonation: f32,
     aoe_desc: &AoeDesc,
     linger: Option<Timer>,
     ) {
@@ -958,7 +971,8 @@ fn spawn_spew_aoe(
 
             let aoe = Aoe {
                 visibility_start: Some(Timer::from_seconds(start + aoe_delay, false)),
-                detonation: Timer::from_seconds(1.5, false),
+                // detonation: Timer::from_seconds(1.5, false),
+                detonation: Timer::from_seconds(detonation, false),
                 damage: SPEW_DAMAGE,
                 linger: linger.clone(),
             };
@@ -1364,7 +1378,108 @@ fn setup_mordremoth(
     };
 
     for spew_start in spew_starts {
-        spawn_spew_aoe(&mut commands, spew_start, &aoe_desc_spew, None);
+        spawn_spew_aoe(&mut commands, spew_start, 1.5, &aoe_desc_spew, None);
+    }
+}
+
+fn setup_zhaitan(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
+    ) {
+
+    // Timed relative to the first green (-5 seconds)
+    let puddle_starts: Vec<f32> = vec![9., 42., 74.].iter().map(|x| x + 5.).collect();
+    let spread_starts: Vec<f32> = vec![18., 51., 83.].iter().map(|x| x + 5.).collect();
+    let fear_starts: Vec<f32> = vec![14., 47., 79.].iter().map(|x| x + 5.).collect();
+    let spew_starts: Vec<f32> = vec![3., 68.];
+
+    setup_boss_phase(
+        &mut commands,
+        &asset_server,
+        &mut meshes,
+        &mut materials,
+        "Zhaitan".to_string(),
+        GREEN_SPAWNS_ZHAITAN.to_vec(),
+        puddle_starts,
+        spread_starts,
+    );
+
+    let spew_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(SPEW_RADIUS).into()).into();
+    let fear_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(WIDTH / 2.).into()).into();
+    let noodle_aoe_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(NOODLE_SLAM_RADIUS).into()).into();
+    let material_base = materials.add(ColorMaterial::from(AOE_BASE_COLOR));
+    let material_detonation = materials.add(ColorMaterial::from(AOE_DETONATION_COLOR));
+
+    let aoe_desc_spew = AoeDesc {
+        mesh: spew_mesh,
+        radius: SPEW_RADIUS,
+        material_base: material_base.clone(),
+        material_detonation: material_detonation.clone(),
+    };
+
+    for spew_start in spew_starts {
+        spawn_spew_aoe(&mut commands, spew_start, 3., &aoe_desc_spew, Some(Timer::from_seconds(10., false)));
+    }
+
+    let aoe_desc_fear = AoeDesc {
+        mesh: fear_mesh,
+        radius: WIDTH / 2.,
+        material_base: material_base.clone(),
+        material_detonation: material_detonation.clone(),
+    };
+
+    for fear_start in fear_starts {
+        spawn_aoe(&mut commands, &aoe_desc_fear, Vec3::new(0., 0., LAYER_AOE), Aoe {
+            visibility_start: Some(Timer::from_seconds(fear_start, false)),
+            detonation: Timer::from_seconds(2.5, false),
+            damage: 30.,
+            linger: None,
+        }, None);
+    }
+
+    let aoe_desc_noodle = AoeDesc {
+        mesh: noodle_aoe_mesh,
+        radius: NOODLE_SLAM_RADIUS,
+        material_base: material_base.clone(),
+        material_detonation: material_detonation.clone(),
+    };
+
+    // There is a third spawn but it doesn't really do much all things considered
+    let noodle_spawns = vec![
+        (5., vec![
+            Transform::from_xyz(-36., 224., LAYER_MOB),
+            Transform::from_xyz(375., -80., LAYER_MOB),
+            Transform::from_xyz(-120., -255., LAYER_MOB),
+        ]),
+        (37., vec![
+            Transform::from_xyz(-36., 400., LAYER_MOB),
+            Transform::from_xyz(-142., -142., LAYER_MOB),
+            Transform::from_xyz(275., -104., LAYER_MOB),
+        ])
+    ];
+
+    for (visibility_start, noodle_positions) in noodle_spawns {
+        for noodle_pos in noodle_positions {
+            commands.spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(NOODLE_RADIUS * 2., NOODLE_RADIUS * 2.)),
+                    ..default()
+                },
+                visibility: Visibility { is_visible: false },
+                texture: asset_server.load("noodle.png"),
+                transform: noodle_pos,
+                ..default()
+            })
+            .insert(MobNoodle {
+                visibility_start: Timer::from_seconds(visibility_start, false),
+                slam_cooldown: Timer::from_seconds(5., true),
+                aoe_desc: aoe_desc_noodle.clone(),
+            })
+            .insert(Enemy)
+            .insert(Hp(5.))
+            .insert(CollisionRadius(NOODLE_RADIUS));
+        }
     }
 }
 
@@ -1856,6 +1971,34 @@ fn wyvern_system(
     }
 }
 
+fn noodle_system(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut noodles: Query<(&mut MobNoodle, &Transform, &mut Visibility)>,
+    ) {
+    for (mut noodle, transform, mut visibility) in &mut noodles {
+        if !noodle.visibility_start.finished() {
+            noodle.visibility_start.tick(time.delta());
+            continue;
+        }
+
+        visibility.is_visible = true;
+
+        noodle.slam_cooldown.tick(time.delta());
+        if noodle.slam_cooldown.finished() {
+            noodle.slam_cooldown.reset();
+            let pos = transform.translation;
+
+            spawn_aoe(&mut commands, &noodle.aoe_desc, Vec3::new(pos.x, pos.y, LAYER_AOE), Aoe {
+                visibility_start: None,
+                detonation: Timer::from_seconds(2., false),
+                damage: 20.,
+                linger: None,
+            }, None);
+        }
+    }
+}
+
 
 fn move_crabs_system(time: Res<Time>,
               mut crabs: Query<&mut Transform, (With<MobCrab>, Without<EffectForcedMarch>)>,
@@ -2024,12 +2167,12 @@ fn collisions_bullets_orbs_system(
 fn collisions_bullets_enemies_system(
     mut damage_flash_events: EventWriter<DamageFlashEvent>,
     mut bullets: Query<(&Transform, &mut HasHit), (With<Bullet>, Without<Enemy>)>,
-    mut enemies: Query<(Entity, &Transform, &CollisionRadius, &mut Hp), (With<Enemy>, Without<Bullet>)>,
+    mut enemies: Query<(Entity, &Transform, &Visibility, &CollisionRadius, &mut Hp), (With<Enemy>, Without<Bullet>)>,
     ) {
     for (transform_bullet, mut has_hit) in &mut bullets {
         let bullet_pos = transform_bullet.translation;
-        for (entity_enemy, transform_enemy, radius_enemy, mut hp) in &mut enemies {
-            if has_hit.0.contains(&entity_enemy) {
+        for (entity_enemy, transform_enemy, visibility, radius_enemy, mut hp) in &mut enemies {
+            if has_hit.0.contains(&entity_enemy) || !visibility.is_visible {
                 continue;
             }
 
@@ -2318,6 +2461,14 @@ fn handle_mouse_events_system(
           .insert(Bullet)
           .insert(HasHit(HashSet::new()));
         game.player.shoot_cooldown.reset();
+    }
+
+    {
+        let cursor = cursors.single();
+        // info!("{:?}", event);
+        if mouse_button_input.just_pressed(MouseButton::Left) {
+            info!("{:?}", cursor.translation);
+        }
     }
 
     for event in cursor_moved_events.iter() {
@@ -2620,6 +2771,14 @@ fn main() {
                         .with_system(setup_mordremoth.after(setup_phase)))
         .add_system_set(build_update_phase(GameState::Mordremoth))
         .add_system_set(build_update_boss_phase(GameState::Mordremoth))
+
+        .add_system_set(SystemSet::on_enter(GameState::Zhaitan)
+                        .with_system(setup_phase)
+                        .with_system(setup_zhaitan.after(setup_phase)))
+        .add_system_set(build_update_phase(GameState::Zhaitan))
+        .add_system_set(build_update_boss_phase(GameState::Zhaitan))
+        .add_system_set(SystemSet::on_update(GameState::Zhaitan)
+            .with_system(noodle_system))
 
         .add_system_set(SystemSet::on_enter(GameState::SooWonTwo)
                         .with_system(setup_phase)
