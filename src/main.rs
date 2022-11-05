@@ -764,8 +764,17 @@ fn spawn_crab(commands: &mut Commands, asset_server: &Res<AssetServer>, crab_pos
     .insert(Hp(0.3));
 }
 
-fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands,
+    mut game: ResMut<Game>,
+    ) {
     commands.spawn_bundle(Camera2dBundle::default());
+
+    game.player.dodge_cooldown.tick(Duration::from_secs_f32(1000.));
+    game.player.blink_cooldown.tick(Duration::from_secs_f32(1000.));
+    game.player.portal_cooldown.tick(Duration::from_secs_f32(1000.));
+    game.player.pull_cooldown.tick(Duration::from_secs_f32(1000.));
+    game.player.invuln.tick(Duration::from_secs_f32(1000.));
+    game.player.jump.tick(Duration::from_secs_f32(1000.));
 }
 
 
