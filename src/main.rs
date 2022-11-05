@@ -533,7 +533,7 @@ fn setup_menu_system(mut commands: Commands, asset_server: Res<AssetServer>) {
             ("Purification One", GameState::PurificationOne),
             ("Jormag", GameState::Jormag),
             ("Primordus", GameState::Primordus),
-            ("Kralkatorrik (TODO)", GameState::Kralkatorrik),
+            ("Kralkatorrik", GameState::Kralkatorrik),
             ("Purification Two", GameState::PurificationTwo),
             ("Mordremoth", GameState::Mordremoth),
             ("Zhaitan", GameState::Zhaitan),
@@ -1598,19 +1598,75 @@ fn setup_kralkatorrik(
     mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
     ) {
 
-    let puddle_starts: Vec<f32> = vec![5., 45., 85.];
-    let spread_starts: Vec<f32> = vec![28., 68.];
+    let puddle_starts: Vec<f32> = vec![18., 43., 68., 93.];
+    let spread_starts: Vec<f32> = vec![];
+    let line_delay: f32 = 2.;
+    let line_duration: f32 = 5.;
+    let double_line_starts: Vec<f32> = vec![5., 30., 54., 78., 102.];
+    let mid_line_starts: Vec<f32> = vec![18., 42., 66., 90.];
 
     setup_boss_phase(
         &mut commands,
         &asset_server,
         &mut meshes,
         &mut materials,
-        "Jormag".to_string(),
-        GREEN_SPAWNS_JORMAG.to_vec(),
+        "Kralkatorrik".to_string(),
+        vec![],
         puddle_starts,
         spread_starts,
     );
+
+    let line_radius = BOSS_RADIUS * 0.9;
+    let line_x = BOSS_RADIUS * 0.3 + line_radius;
+    let line_spacing = line_radius;
+    let line_circles = (GAME_WIDTH / line_spacing) as i32;
+
+    let mesh: Mesh2dHandle = meshes.add(shape::Circle::new(line_radius).into()).into();
+    let material_base = materials.add(ColorMaterial::from(AOE_BASE_COLOR));
+    let material_detonation = materials.add(ColorMaterial::from(Color::rgb(0., 0., 0.)));
+
+    let aoe_desc = AoeDesc {
+        mesh,
+        radius: SPEW_RADIUS,
+        material_base,
+        material_detonation,
+    };
+
+    for line_start in double_line_starts {
+        for i in 0..line_circles {
+            let delay = 0.5 - i as f32 / (2. * line_circles as f32);
+            let mut pos = Vec3::new(line_x, i as f32 * line_spacing - GAME_WIDTH / 2., LAYER_AOE);
+
+            spawn_aoe(&mut commands, &aoe_desc, pos, Aoe {
+                visibility_start: Some(Timer::from_seconds(line_start + delay, false)),
+                detonation: Timer::from_seconds(line_delay, false),
+                damage: SPREAD_DAMAGE,
+                linger: Some(Timer::from_seconds(line_duration, false)),
+            }, None);
+
+            pos.x *= -1.;
+            spawn_aoe(&mut commands, &aoe_desc, pos, Aoe {
+                visibility_start: Some(Timer::from_seconds(line_start + delay, false)),
+                detonation: Timer::from_seconds(line_delay, false),
+                damage: SPREAD_DAMAGE,
+                linger: Some(Timer::from_seconds(line_duration, false)),
+            }, None);
+        }
+    }
+
+    for line_start in mid_line_starts {
+        for i in 0..line_circles {
+            let delay = i as f32 / (2. * line_circles as f32);
+            let pos = Vec3::new(0., i as f32 * line_spacing - GAME_WIDTH / 2., LAYER_AOE);
+
+            spawn_aoe(&mut commands, &aoe_desc, pos, Aoe {
+                visibility_start: Some(Timer::from_seconds(line_start + delay, false)),
+                detonation: Timer::from_seconds(line_delay, false),
+                damage: SPREAD_DAMAGE,
+                linger: Some(Timer::from_seconds(line_duration, false)),
+            }, None);
+        }
+    }
 }
 
 fn setup_mordremoth(
