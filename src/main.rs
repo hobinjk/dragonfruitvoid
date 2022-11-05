@@ -1198,6 +1198,13 @@ fn setup_purification_three(
         ..default()
     }).insert(OrbTarget(0));
 
+    commands.spawn_bundle(MaterialMesh2dBundle {
+        mesh: orb_target_mesh.clone(),
+        material: materials.add(orb_target_material.clone()),
+        transform: Transform::from_xyz(-240., -240., LAYER_TARGET),
+        ..default()
+    }).insert(OrbTarget(1));
+
     let mut shoot_cooldown = Timer::from_seconds(6., false);
     shoot_cooldown.tick(Duration::from_secs_f32(3.));
 
