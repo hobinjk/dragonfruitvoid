@@ -451,7 +451,7 @@ const GREEN_SPAWNS_ZHAITAN: [GreenSpawn; 3] = [
     }
 ];
 
-const _GREEN_SPAWNS_SOOWONONE: [GreenSpawn; 2] = [
+const GREEN_SPAWNS_SOOWONONE: [GreenSpawn; 2] = [
     GreenSpawn {
         start: 5.,
         positions: [
@@ -898,13 +898,6 @@ fn setup_purification_one(
     for crab_pos in crab_positions {
         spawn_crab(&mut commands, &asset_server, crab_pos);
     }
-
-    commands.spawn_bundle(MaterialMesh2dBundle {
-        mesh: meshes.add(shape::Circle::new(ORB_RADIUS).into()).into(),
-        material: materials.add(ColorMaterial::from(Color::rgb(0.9, 1.0, 1.0))),
-        transform: Transform::from_xyz(0., 0., LAYER_MOB),
-        ..default()
-    }).insert(MobOrb).insert(Velocity(Vec3::new(0., 0., 0.)));
 
     let orb_target_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(ORB_TARGET_RADIUS).into()).into();
     let orb_target_material = ColorMaterial::from(Color::rgb(0.5, 0.5, 0.5));
@@ -1835,16 +1828,16 @@ fn setup_soowonone(
     mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
     ) {
 
-    let puddle_starts: Vec<f32> = vec![11., 32., 57., 77., 103.];
-    let spread_starts: Vec<f32> = vec![21., 67.];
+    let puddle_starts: Vec<f32> = vec![4., 25., 49., 70., 94.];
+    let spread_starts: Vec<f32> = vec![12., 58., 103.];
 
     setup_boss_phase(
         &mut commands,
         &asset_server,
         &mut meshes,
         &mut materials,
-        "Soo-Won 2".to_string(),
-        GREEN_SPAWNS_SOOWONTWO.to_vec(),
+        "Soo-Won 1".to_string(),
+        GREEN_SPAWNS_SOOWONONE.to_vec(),
         puddle_starts,
         spread_starts,
     );
@@ -1861,7 +1854,7 @@ fn setup_soowonone(
         transform: Transform::from_xyz(-140., 300., LAYER_WAVE).with_scale(Vec3::ZERO),
         ..default()
     }).insert(Wave {
-        visibility_start: Timer::from_seconds(13.5, false),
+        visibility_start: Timer::from_seconds(7., false),
         ..default()
     });
 
@@ -1871,7 +1864,7 @@ fn setup_soowonone(
         transform: Transform::from_xyz(0., 0., LAYER_WAVE).with_scale(Vec3::ZERO),
         ..default()
     }).insert(Wave {
-        visibility_start: Timer::from_seconds(38.5, false),
+        visibility_start: Timer::from_seconds(32., false),
         ..default()
     });
 
@@ -1881,7 +1874,7 @@ fn setup_soowonone(
         transform: Transform::from_xyz(-140., 300., LAYER_WAVE).with_scale(Vec3::ZERO),
         ..default()
     }).insert(Wave {
-        visibility_start: Timer::from_seconds(54., false),
+        visibility_start: Timer::from_seconds(52., false),
         ..default()
     });
 
@@ -1891,7 +1884,7 @@ fn setup_soowonone(
         transform: Transform::from_xyz(0., 0., LAYER_WAVE).with_scale(Vec3::ZERO),
         ..default()
     }).insert(Wave {
-        visibility_start: Timer::from_seconds(79., false),
+        visibility_start: Timer::from_seconds(77., false),
         ..default()
     });
 
@@ -1901,7 +1894,7 @@ fn setup_soowonone(
         transform: Transform::from_xyz(-140., 300., LAYER_WAVE).with_scale(Vec3::ZERO),
         ..default()
     }).insert(Wave {
-        visibility_start: Timer::from_seconds(99.5, false),
+        visibility_start: Timer::from_seconds(97., false),
         ..default()
     });
 
@@ -1938,7 +1931,7 @@ fn setup_soowonone(
         &mut commands,
         &mut meshes,
         &mut materials,
-        vec![22., 62., 107.]
+        vec![15., 60., 105.]
     );
 }
 
