@@ -5,6 +5,7 @@ use bevy::{
     window::CursorMoved,
 };
 use core::f32::consts::PI;
+use rand::Rng;
 use std::collections::HashSet;
 use std::time::Duration;
 use std::ops::{Add, Mul, Sub};
@@ -50,6 +51,23 @@ struct MobNoodle {
     visibility_start: Timer,
     slam_cooldown: Timer,
     aoe_desc: AoeDesc,
+}
+
+#[derive(Component)]
+struct MobTimeCaster {
+    shoot_cooldown: Timer,
+}
+
+#[derive(Component)]
+struct MobSaltspray {
+    shoot_cooldown: Timer,
+}
+
+#[derive(Component)]
+struct OhNoNotTheBees {
+    bees_cooldown: Timer,
+    mesh: Mesh2dHandle,
+    material: Handle<ColorMaterial>,
 }
 
 #[derive(Component)]
@@ -104,6 +122,11 @@ const GOLIATH_BULLET_KNOCKBACK: f32 = 120. * GAME_TO_PX;
 const WYVERN_CHARGE_RANGE: f32 = 1200. * GAME_TO_PX;
 const WYVERN_BULLET_SPEED: f32 = 200.;
 const WYVERN_BULLET_DAMAGE: f32 = 10.;
+
+const TIMECASTER_BULLET_SPEED: f32 = 200.;
+const TIMECASTER_BULLET_DAMAGE: f32 = 10.;
+
+const BEE_SPEED: f32 = 50.;
 
 const PLAYER_RADIUS: f32 = 20.;
 
@@ -192,13 +215,13 @@ enum GameState {
     PurificationOne,
     Jormag,
     Primordus, // -> big aoe and void zone
-    // Kralkatorrik, -> line aoes
-    // PurificationTwo, -> kill big boy without cleaving
+    Kralkatorrik, // -> line aoes
+    PurificationTwo, // -> kill big boy without cleaving
     Mordremoth,
     Zhaitan, // -> noodles and grid aoe
-    // PurificationThree, -> kill bigger boy without cleaving
-    // SooWonOne, -> soowontwo minus big boys
-    // PurificationFour, -> damage orb
+    PurificationThree, // -> kill bigger boy without cleaving
+    SooWonOne, // -> soowontwo minus big boys
+    PurificationFour, // -> damage orb
     SooWonTwo,
     Failure,
     Success,
@@ -507,8 +530,13 @@ fn setup_menu_system(mut commands: Commands, asset_server: Res<AssetServer>) {
             ("Purification One", GameState::PurificationOne),
             ("Jormag", GameState::Jormag),
             ("Primordus", GameState::Primordus),
+            ("Kralkatorrik", GameState::Kralkatorrik),
+            ("Purification Two", GameState::PurificationTwo),
             ("Mordremoth", GameState::Mordremoth),
             ("Zhaitan", GameState::Zhaitan),
+            ("Purification Three", GameState::PurificationThree),
+            ("Soo-Won One", GameState::SooWonOne),
+            ("Purification Four", GameState::PurificationFour),
             ("Soo-Won Two", GameState::SooWonTwo),
         ];
 
@@ -811,12 +839,50 @@ fn setup_phase(
     });
 }
 
+fn setup_purification(
+    mut commands: Commands, asset_server: Res<AssetServer>, mut game: ResMut<Game>,
+    mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
+    ) {
+    game.orb_target = 0;
+
+    commands.spawn_bundle(MaterialMesh2dBundle {
+        mesh: meshes.add(shape::Circle::new(ORB_RADIUS).into()).into(),
+        material: materials.add(ColorMaterial::from(Color::rgb(0.9, 1.0, 1.0))),
+        transform: Transform::from_xyz(0., 0., LAYER_MOB),
+        ..default()
+    }).insert(MobOrb).insert(Velocity(Vec3::new(0., 0., 0.)));
+
+    let void_zone_offset = 420.;
+    let void_zone_positions = [
+        Vec3::new(-void_zone_offset, 0., LAYER_VOID),
+        Vec3::new(void_zone_offset, 0., LAYER_VOID),
+        Vec3::new(0., -void_zone_offset, LAYER_VOID),
+        Vec3::new(0., void_zone_offset, LAYER_VOID),
+    ];
+
+    let void_zone_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(VOID_ZONE_START_RADIUS).into()).into();
+    let void_zone_material = ColorMaterial::from(Color::rgba(0.0, 0.0, 0.0, 0.9));
+
+    for pos in void_zone_positions {
+        commands.spawn_bundle(MaterialMesh2dBundle {
+            mesh: void_zone_mesh.clone(),
+            material: materials.add(void_zone_material.clone()),
+            transform: Transform::from_translation(pos),
+            ..default()
+        })
+        .insert(VoidZone)
+        .insert(CollisionRadius(VOID_ZONE_START_RADIUS))
+        .insert(Soup {
+            damage: 25.,
+            duration: None,
+        });
+    }
+}
+
 fn setup_purification_one(
     mut commands: Commands, asset_server: Res<AssetServer>, mut game: ResMut<Game>,
     mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
     ) {
-
-    game.orb_target = 0;
 
     let crab_positions = vec![
         Vec3::new(-350., 200., LAYER_MOB),
@@ -860,32 +926,214 @@ fn setup_purification_one(
         transform: Transform::from_xyz(240., -240., LAYER_TARGET),
         ..default()
     }).insert(OrbTarget(2));
+}
 
-    let void_zone_offset = 420.;
-    let void_zone_positions = [
-        Vec3::new(-void_zone_offset, 0., LAYER_VOID),
-        Vec3::new(void_zone_offset, 0., LAYER_VOID),
-        Vec3::new(0., -void_zone_offset, LAYER_VOID),
-        Vec3::new(0., void_zone_offset, LAYER_VOID),
+fn setup_purification_two(
+    mut commands: Commands, asset_server: Res<AssetServer>,
+    mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
+    ) {
+
+    let bee_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(ORB_RADIUS).into()).into();
+    let bee_material = materials.add(ColorMaterial::from(Color::rgba(0.9, 0.0, 0.0, 0.7)));
+
+    commands.spawn().insert(OhNoNotTheBees {
+        bees_cooldown: Timer::from_seconds(5., false),
+        mesh: bee_mesh,
+        material: bee_material,
+    });
+
+    let crab_positions = vec![
+        // Vec3::new(-350., 200., LAYER_MOB),
+        Vec3::new(-312.5, 237.5, LAYER_MOB),
+        Vec3::new(-275., 275., LAYER_MOB),
+        Vec3::new(-237.5, 312.5, LAYER_MOB),
+        Vec3::new(-200., 350., LAYER_MOB),
+
+        Vec3::new(-275., -275., LAYER_MOB),
     ];
 
-    let void_zone_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(VOID_ZONE_START_RADIUS).into()).into();
-    let void_zone_material = ColorMaterial::from(Color::rgba(0.0, 0.0, 0.0, 0.9));
-
-    for pos in void_zone_positions {
-        commands.spawn_bundle(MaterialMesh2dBundle {
-            mesh: void_zone_mesh.clone(),
-            material: materials.add(void_zone_material.clone()),
-            transform: Transform::from_translation(pos),
-            ..default()
-        })
-        .insert(VoidZone)
-        .insert(CollisionRadius(VOID_ZONE_START_RADIUS))
-        .insert(Soup {
-            damage: 25.,
-            duration: None,
-        });
+    for crab_pos in crab_positions {
+        spawn_crab(&mut commands, &asset_server, crab_pos);
     }
+
+    let orb_target_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(ORB_TARGET_RADIUS).into()).into();
+    let orb_target_material = ColorMaterial::from(Color::rgb(0.5, 0.5, 0.5));
+
+    commands.spawn_bundle(MaterialMesh2dBundle {
+        mesh: orb_target_mesh.clone(),
+        material: materials.add(orb_target_material.clone()),
+        transform: Transform::from_xyz(-240., 240., LAYER_TARGET),
+        ..default()
+    }).insert(OrbTarget(0));
+
+    commands.spawn_bundle(MaterialMesh2dBundle {
+        mesh: orb_target_mesh.clone(),
+        material: materials.add(orb_target_material.clone()),
+        transform: Transform::from_xyz(240., -240., LAYER_TARGET),
+        ..default()
+    }).insert(OrbTarget(1));
+
+    commands.spawn_bundle(SpriteBundle {
+        sprite: Sprite {
+            custom_size: Some(Vec2::new(BIGBOY_RADIUS * 2., BIGBOY_RADIUS * 2.)),
+            ..default()
+        },
+        texture: asset_server.load("timecaster.png"),
+        transform: Transform::from_xyz(150., -150., LAYER_MOB),
+        ..default()
+    })
+    .insert(MobTimeCaster {
+        shoot_cooldown: Timer::from_seconds(0.5, true),
+    })
+    .insert(Enemy)
+    .insert(Hp(10.))
+    .insert(CollisionRadius(BIGBOY_RADIUS));
+}
+
+fn unleash_the_bees(
+    time: Res<Time>,
+    mut commands: Commands,
+    orb: Query<&Transform, With<MobOrb>>,
+    mut onntb: Query<&mut OhNoNotTheBees>,
+    ) {
+
+    if orb.is_empty() || onntb.is_empty() {
+        return;
+    }
+
+    let transform_orb = orb.single();
+
+    let mut bees = onntb.single_mut();
+
+    bees.bees_cooldown.tick(time.delta());
+    if !bees.bees_cooldown.finished() {
+        return;
+    }
+    bees.bees_cooldown.reset();
+
+    let dir = rand::thread_rng().gen_range(0..8);
+    let theta = (dir as f32) / 4. * PI;
+    let vel = Vec3::new(theta.cos() * BEE_SPEED, theta.sin() * BEE_SPEED, 0.);
+    let orb_pos = transform_orb.translation;
+    let pos = Vec3::new(
+        orb_pos.x,
+        orb_pos.y,
+        LAYER_AOE,
+    );
+
+    commands.spawn_bundle(MaterialMesh2dBundle {
+        mesh: bees.mesh.clone(),
+        material: bees.material.clone(),
+        transform: Transform::from_translation(pos),
+        ..default()
+    })
+    .insert(CollisionRadius(ORB_RADIUS))
+    .insert(Velocity(vel))
+    .insert(Soup {
+        damage: 25.,
+        duration: None,
+    });
+}
+
+fn setup_purification_three(
+    mut commands: Commands, asset_server: Res<AssetServer>,
+    mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
+    ) {
+
+    let crab_positions = vec![
+        // Vec3::new(-350., 200., LAYER_MOB),
+        Vec3::new(-312.5, 237.5, LAYER_MOB),
+        Vec3::new(-275., 275., LAYER_MOB),
+        Vec3::new(-237.5, 312.5, LAYER_MOB),
+        Vec3::new(-200., 350., LAYER_MOB),
+
+        Vec3::new(-275., -275., LAYER_MOB),
+    ];
+
+    for crab_pos in crab_positions {
+        spawn_crab(&mut commands, &asset_server, crab_pos);
+    }
+
+    let orb_target_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(ORB_TARGET_RADIUS).into()).into();
+    let orb_target_material = ColorMaterial::from(Color::rgb(0.5, 0.5, 0.5));
+
+    commands.spawn_bundle(MaterialMesh2dBundle {
+        mesh: orb_target_mesh.clone(),
+        material: materials.add(orb_target_material.clone()),
+        transform: Transform::from_xyz(-240., 240., LAYER_TARGET),
+        ..default()
+    }).insert(OrbTarget(0));
+
+    commands.spawn_bundle(SpriteBundle {
+        sprite: Sprite {
+            custom_size: Some(Vec2::new(BIGBOY_RADIUS * 2., BIGBOY_RADIUS * 2.)),
+            ..default()
+        },
+        texture: asset_server.load("saltspray.png"),
+        transform: Transform::from_xyz(-200., 200., LAYER_MOB),
+        ..default()
+    })
+    .insert(MobSaltspray {
+        shoot_cooldown: Timer::from_seconds(1., true),
+    })
+    .insert(Enemy)
+    .insert(Hp(20.))
+    .insert(CollisionRadius(BIGBOY_RADIUS));
+}
+
+fn setup_purification_four(
+    mut commands: Commands, asset_server: Res<AssetServer>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    orb: Query<(Entity, &Handle<ColorMaterial>), With<MobOrb>>,
+    ) {
+
+    let (entity_orb, material_orb) = orb.single();
+    materials.get_mut(material_orb).unwrap().color = Color::rgb(0., 0., 0.);
+
+    commands.entity(entity_orb)
+    .insert(Enemy)
+    .insert(CollisionRadius(ORB_RADIUS))
+    .insert(Hp(50.))
+    .insert(Boss {
+        max_hp: 50.,
+    });
+
+    commands.spawn_bundle(SpriteBundle {
+        sprite: Sprite {
+            color: Color::rgb(1., 0., 0.),
+            custom_size: Some(Vec2::new(256., 32.)),
+            anchor: Anchor::CenterLeft,
+            ..default()
+        },
+        transform: Transform::from_xyz(-WIDTH / 2. + 20., -HEIGHT / 2. + 128. + 24., LAYER_UI),
+        ..default()
+    }).insert(BossHealthbar);
+
+    commands.spawn_bundle(Text2dBundle {
+        text: Text::from_section(
+            "100",
+            TextStyle {
+                font: asset_server.load("trebuchet_ms.ttf"),
+                font_size: 16.,
+                color: Color::rgb(1.0, 1.0, 1.0),
+            },
+        ).with_alignment(TextAlignment::CENTER),
+        transform: Transform::from_xyz(-WIDTH / 2. + 20. + 128., -HEIGHT / 2. + 128. + 24., LAYER_TEXT),
+        ..default()
+    }).insert(BossHealthbarText);
+
+    commands.spawn_bundle(Text2dBundle {
+        text: Text::from_section(
+            "Dark Orb",
+            TextStyle {
+                font: asset_server.load("trebuchet_ms.ttf"),
+                font_size: 32.,
+                color: Color::rgb(0.0, 0.8, 0.8),
+            },
+        ).with_alignment(TextAlignment::BOTTOM_LEFT),
+        transform: Transform::from_xyz(-WIDTH / 2. + 20., -HEIGHT / 2. + 128. + 8. + 32. + 8., LAYER_TEXT),
+        ..default()
+    });
 }
 
 fn spread_aoe_spawn_system(
@@ -1323,6 +1571,27 @@ fn setup_primordus(
 
 }
 
+fn setup_kralkatorrik(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
+    ) {
+
+    let puddle_starts: Vec<f32> = vec![5., 45., 85.];
+    let spread_starts: Vec<f32> = vec![28., 68.];
+
+    setup_boss_phase(
+        &mut commands,
+        &asset_server,
+        &mut meshes,
+        &mut materials,
+        "Jormag".to_string(),
+        GREEN_SPAWNS_JORMAG.to_vec(),
+        puddle_starts,
+        spread_starts,
+    );
+}
+
 fn setup_mordremoth(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
@@ -1481,6 +1750,119 @@ fn setup_zhaitan(
             .insert(CollisionRadius(NOODLE_RADIUS));
         }
     }
+}
+
+fn setup_soowonone(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
+    ) {
+
+    let puddle_starts: Vec<f32> = vec![11., 32., 57., 77., 103.];
+    let spread_starts: Vec<f32> = vec![21., 67.];
+
+    setup_boss_phase(
+        &mut commands,
+        &asset_server,
+        &mut meshes,
+        &mut materials,
+        "Soo-Won 2".to_string(),
+        GREEN_SPAWNS_SOOWONTWO.to_vec(),
+        puddle_starts,
+        spread_starts,
+    );
+
+    let wave_sprite = Sprite {
+        custom_size: Some(Vec2::new(WAVE_MAX_RADIUS * 2., WAVE_MAX_RADIUS * 2.)),
+        ..default()
+    };
+    let wave_texture = asset_server.load("wave.png");
+
+    commands.spawn_bundle(SpriteBundle {
+        sprite: wave_sprite.clone(),
+        texture: wave_texture.clone(),
+        transform: Transform::from_xyz(-140., 300., LAYER_WAVE).with_scale(Vec3::ZERO),
+        ..default()
+    }).insert(Wave {
+        visibility_start: Timer::from_seconds(13.5, false),
+        ..default()
+    });
+
+    commands.spawn_bundle(SpriteBundle {
+        sprite: wave_sprite.clone(),
+        texture: wave_texture.clone(),
+        transform: Transform::from_xyz(0., 0., LAYER_WAVE).with_scale(Vec3::ZERO),
+        ..default()
+    }).insert(Wave {
+        visibility_start: Timer::from_seconds(38.5, false),
+        ..default()
+    });
+
+    commands.spawn_bundle(SpriteBundle {
+        sprite: wave_sprite.clone(),
+        texture: wave_texture.clone(),
+        transform: Transform::from_xyz(-140., 300., LAYER_WAVE).with_scale(Vec3::ZERO),
+        ..default()
+    }).insert(Wave {
+        visibility_start: Timer::from_seconds(54., false),
+        ..default()
+    });
+
+    commands.spawn_bundle(SpriteBundle {
+        sprite: wave_sprite.clone(),
+        texture: wave_texture.clone(),
+        transform: Transform::from_xyz(0., 0., LAYER_WAVE).with_scale(Vec3::ZERO),
+        ..default()
+    }).insert(Wave {
+        visibility_start: Timer::from_seconds(79., false),
+        ..default()
+    });
+
+    commands.spawn_bundle(SpriteBundle {
+        sprite: wave_sprite.clone(),
+        texture: wave_texture.clone(),
+        transform: Transform::from_xyz(-140., 300., LAYER_WAVE).with_scale(Vec3::ZERO),
+        ..default()
+    }).insert(Wave {
+        visibility_start: Timer::from_seconds(99.5, false),
+        ..default()
+    });
+
+    let rotating_soup_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(ROTATING_SOUP_RADIUS).into()).into();
+    let rotating_soup_material = materials.add(ColorMaterial::from(Color::rgba(0.0, 0.0, 0.0, 0.3)));
+
+    for i in 1..=5 {
+        let radius = (i as f32) / 5. * (HEIGHT / 2. - 20.);
+        let theta = i as f32 * 6. * PI / 5.;
+        let mut dtheta = (7. - (i as f32)) / 5. * ROTATING_SOUP_DTHETA;
+        if i % 2 == 0 {
+            dtheta = -dtheta;
+        }
+
+        commands.spawn_bundle(MaterialMesh2dBundle {
+            mesh: rotating_soup_mesh.clone(),
+            material: rotating_soup_material.clone(),
+            transform: Transform::from_xyz(0., radius, LAYER_ROTATING_SOUP),
+            ..default()
+        })
+        .insert(RotatingSoup {
+            radius,
+            theta,
+            dtheta,
+        })
+        .insert(CollisionRadius(ROTATING_SOUP_RADIUS))
+        .insert(Soup {
+            damage: 5.,
+            duration: None,
+        });
+    }
+
+    setup_claw_swipes(
+        &mut commands,
+        &mut meshes,
+        &mut materials,
+        vec![22., 62., 107.]
+    );
 }
 
 fn setup_soowontwo(
@@ -1999,6 +2381,80 @@ fn noodle_system(
     }
 }
 
+fn saltspray_system(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut saltsprays: Query<(&mut MobSaltspray, &Transform)>,
+    players: Query<&Transform, With<PlayerTag>>,
+    ) {
+    let player = players.single();
+    for (mut mob, transform) in &mut saltsprays {
+        let mut vel = player.translation.sub(transform.translation);
+        vel.z = 0.;
+        let bullet_speed = WYVERN_BULLET_SPEED;
+        vel = vel.clamp_length(bullet_speed, bullet_speed);
+
+
+        mob.shoot_cooldown.tick(time.delta());
+        if mob.shoot_cooldown.finished() {
+            mob.shoot_cooldown.reset();
+
+            commands.spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    color: Color::rgb(1.0, 0., 0.),
+                    custom_size: Some(Vec2::new(BULLET_SIZE, BULLET_SIZE)),
+                    ..default()
+                },
+                transform: Transform::from_translation(transform.translation),
+                ..default()
+            })
+            .insert(Velocity(vel))
+            .insert(EnemyBullet {
+                damage: WYVERN_BULLET_DAMAGE,
+                knockback: 0.,
+            })
+            .insert(CollisionRadius(BULLET_SIZE / 2.));
+        }
+    }
+}
+
+fn timecaster_system(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut timecasters: Query<(&mut MobTimeCaster, &Transform), Without<EffectForcedMarch>>,
+    ) {
+
+    for (mut mob, transform) in &mut timecasters {
+        mob.shoot_cooldown.tick(time.delta());
+        if mob.shoot_cooldown.finished() {
+            mob.shoot_cooldown.reset();
+            for step in 0..3 {
+                let theta = time.time_since_startup().as_secs_f32() / 2. + (step as f32) * PI * 2. / 3.;
+                let vel = Vec3::new(
+                    theta.cos() * TIMECASTER_BULLET_SPEED,
+                    theta.sin() * TIMECASTER_BULLET_SPEED,
+                    0.,
+                );
+
+                commands.spawn_bundle(SpriteBundle {
+                    sprite: Sprite {
+                        color: Color::rgb(1.0, 0., 0.),
+                        custom_size: Some(Vec2::new(BULLET_SIZE, BULLET_SIZE)),
+                        ..default()
+                    },
+                    transform: Transform::from_translation(transform.translation),
+                    ..default()
+                })
+                .insert(Velocity(vel))
+                .insert(EnemyBullet {
+                    damage: TIMECASTER_BULLET_DAMAGE,
+                    knockback: 10.,
+                })
+                .insert(CollisionRadius(BULLET_SIZE / 2.));
+            }
+        }
+    }
+}
 
 fn move_crabs_system(time: Res<Time>,
               mut crabs: Query<&mut Transform, (With<MobCrab>, Without<EffectForcedMarch>)>,
@@ -2158,7 +2614,9 @@ fn collisions_bullets_orbs_system(
                 let orb_max_vel = 60.;
                 let mut diff = orb_pos.sub(transform_player.translation);
                 diff.z = 0.;
-                velocity_orb.0 = velocity_orb.0.add(diff.clamp_length(push_str, push_str)).clamp_length(0., orb_max_vel);
+                if velocity_orb.0.length_squared() < orb_max_vel * orb_max_vel * 4. {
+                    velocity_orb.0 = velocity_orb.0.add(diff.clamp_length(push_str, push_str)).clamp_length(0., orb_max_vel);
+                }
             }
         }
     }
@@ -2207,6 +2665,22 @@ fn collisions_crabs_orbs_system(
         }
     }
 }
+
+fn collisions_enemies_orbs_system(
+    enemies: Query<(&Transform, &CollisionRadius), (With<Enemy>, Without<MobCrab>)>,
+    mut orbs: Query<(&Transform, &mut Velocity), With<MobOrb>>,
+    ) {
+    for (transform_orb, mut velocity_orb) in &mut orbs {
+        let orb_pos = transform_orb.translation;
+        for (transform_enemy, collision_radius) in &enemies {
+            let enemy_pos = transform_enemy .translation;
+            if collide(orb_pos, ORB_RADIUS, enemy_pos, collision_radius.0) {
+                velocity_orb.0 = velocity_orb.0.mul(-10.);
+            }
+        }
+    }
+}
+
 
 fn collisions_orb_targets_system(
     mut game: ResMut<Game>,
@@ -2360,6 +2834,7 @@ fn collisions_players_enemy_bullets_system(
 fn game_orb_target_progression_system(
     game: ResMut<Game>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    orb: Query<&MobOrb>,
     orb_targets: Query<(&OrbTarget, &mut Handle<ColorMaterial>)>,
     ) {
     for (orb_target, material) in &orb_targets {
@@ -2708,6 +3183,7 @@ fn build_update_purification_phase(phase: GameState) -> SystemSet {
     SystemSet::on_update(phase)
         .with_system(move_crabs_system)
         .with_system(collisions_crabs_orbs_system)
+        .with_system(collisions_enemies_orbs_system)
         .with_system(collisions_bullets_orbs_system)
         .with_system(collisions_orb_targets_system)
         .with_system(collisions_orbs_edge_system)
@@ -2748,7 +3224,8 @@ fn main() {
 
         .add_system_set(SystemSet::on_enter(GameState::PurificationOne)
                         .with_system(setup_phase)
-                        .with_system(setup_purification_one.after(setup_phase)))
+                        .with_system(setup_purification.after(setup_phase))
+                        .with_system(setup_purification_one.after(setup_purification)))
         .add_system_set(build_update_phase(GameState::PurificationOne))
         .add_system_set(build_update_purification_phase(GameState::PurificationOne))
 
@@ -2766,6 +3243,22 @@ fn main() {
         .add_system_set(build_update_phase(GameState::Primordus))
         .add_system_set(build_update_boss_phase(GameState::Primordus))
 
+        .add_system_set(SystemSet::on_enter(GameState::Kralkatorrik)
+                        .with_system(setup_phase)
+                        .with_system(setup_kralkatorrik.after(setup_phase)))
+        .add_system_set(build_update_phase(GameState::Kralkatorrik))
+        .add_system_set(build_update_boss_phase(GameState::Kralkatorrik))
+
+        .add_system_set(SystemSet::on_enter(GameState::PurificationTwo)
+                        .with_system(setup_phase)
+                        .with_system(setup_purification.after(setup_phase))
+                        .with_system(setup_purification_two.after(setup_purification)))
+        .add_system_set(build_update_phase(GameState::PurificationTwo))
+        .add_system_set(build_update_purification_phase(GameState::PurificationTwo))
+        .add_system_set(SystemSet::on_update(GameState::PurificationTwo)
+            .with_system(timecaster_system)
+            .with_system(unleash_the_bees))
+
         .add_system_set(SystemSet::on_enter(GameState::Mordremoth)
                         .with_system(setup_phase)
                         .with_system(setup_mordremoth.after(setup_phase)))
@@ -2779,6 +3272,28 @@ fn main() {
         .add_system_set(build_update_boss_phase(GameState::Zhaitan))
         .add_system_set(SystemSet::on_update(GameState::Zhaitan)
             .with_system(noodle_system))
+
+        .add_system_set(SystemSet::on_enter(GameState::PurificationThree)
+                        .with_system(setup_phase)
+                        .with_system(setup_purification.after(setup_phase))
+                        .with_system(setup_purification_three.after(setup_purification)))
+        .add_system_set(build_update_phase(GameState::PurificationThree))
+        .add_system_set(build_update_purification_phase(GameState::PurificationThree))
+        .add_system_set(SystemSet::on_update(GameState::PurificationThree)
+            .with_system(saltspray_system))
+
+        .add_system_set(SystemSet::on_enter(GameState::SooWonOne)
+                        .with_system(setup_phase)
+                        .with_system(setup_soowonone.after(setup_phase)))
+        .add_system_set(build_update_phase(GameState::SooWonOne))
+        .add_system_set(build_update_boss_phase(GameState::SooWonOne))
+
+        .add_system_set(SystemSet::on_enter(GameState::PurificationFour)
+                        .with_system(setup_phase)
+                        .with_system(setup_purification_four.after(setup_phase)))
+        .add_system_set(build_update_phase(GameState::PurificationFour))
+        .add_system_set(build_update_purification_phase(GameState::PurificationFour))
+
 
         .add_system_set(SystemSet::on_enter(GameState::SooWonTwo)
                         .with_system(setup_phase)
