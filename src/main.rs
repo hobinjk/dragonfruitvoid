@@ -228,13 +228,19 @@ enum GameState {
     SooWonTwo,
     Failure,
     Success,
+    Paused,
 }
 
 #[derive(Component)]
 struct MenuContainer;
 
 #[derive(Component)]
-struct ButtonNextState(GameState);
+enum ButtonNextState {
+    GoTo(GameState),
+    StartContinuous(),
+    Resume(),
+    Exit(),
+}
 
 const CRAB_SIZE: f32 = 30.;
 const CRAB_SPEED: f32 = 15.;
@@ -307,6 +313,7 @@ impl Default for Player {
 struct Game {
     player: Player,
     orb_target: i32,
+    continuous: bool,
 }
 
 #[derive(Component)]
@@ -530,17 +537,18 @@ fn setup_menu_system(mut commands: Commands, asset_server: Res<AssetServer>) {
     })
     .with_children(|container| {
         let phases = vec![
-            ("Purification One", GameState::PurificationOne),
-            ("Jormag", GameState::Jormag),
-            ("Primordus", GameState::Primordus),
-            ("Kralkatorrik", GameState::Kralkatorrik),
-            ("Purification Two", GameState::PurificationTwo),
-            ("Mordremoth", GameState::Mordremoth),
-            ("Zhaitan", GameState::Zhaitan),
-            ("Purification Three", GameState::PurificationThree),
-            ("Soo-Won One (TODO)", GameState::SooWonOne),
-            ("Purification Four", GameState::PurificationFour),
-            ("Soo-Won Two", GameState::SooWonTwo),
+            ("The Whole Fight", ButtonNextState::StartContinuous()),
+            ("Purification One", ButtonNextState::GoTo(GameState::PurificationOne)),
+            ("Jormag", ButtonNextState::GoTo(GameState::Jormag)),
+            ("Primordus", ButtonNextState::GoTo(GameState::Primordus)),
+            ("Kralkatorrik", ButtonNextState::GoTo(GameState::Kralkatorrik)),
+            ("Purification Two", ButtonNextState::GoTo(GameState::PurificationTwo)),
+            ("Mordremoth", ButtonNextState::GoTo(GameState::Mordremoth)),
+            ("Zhaitan", ButtonNextState::GoTo(GameState::Zhaitan)),
+            ("Purification Three", ButtonNextState::GoTo(GameState::PurificationThree)),
+            ("Soo-Won One", ButtonNextState::GoTo(GameState::SooWonOne)),
+            ("Purification Four", ButtonNextState::GoTo(GameState::PurificationFour)),
+            ("Soo-Won Two", ButtonNextState::GoTo(GameState::SooWonTwo)),
         ];
 
         for (label, state) in phases {
@@ -555,7 +563,64 @@ fn setup_menu_system(mut commands: Commands, asset_server: Res<AssetServer>) {
                     text_style.clone(),
                 ));
             })
-            .insert(ButtonNextState(state));
+            .insert(state);
+        }
+    })
+    .insert(MenuContainer);
+}
+
+fn setup_pause_menu_system(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let button_size = Size::new(Val::Px(350.0), Val::Px(65.0));
+    let button_margin = UiRect::all(Val::Px(10.));
+
+    let button_style = Style {
+        size: button_size,
+        // center button
+        margin: button_margin,
+        // horizontally center child text
+        justify_content: JustifyContent::Center,
+        // vertically center child text
+        align_items: AlignItems::Center,
+        ..default()
+    };
+
+    let text_style = TextStyle {
+        font: asset_server.load("trebuchet_ms.ttf"),
+        font_size: 40.0,
+        color: Color::rgb(0.9, 0.9, 0.9),
+    };
+
+    commands.spawn_bundle(NodeBundle {
+        style: Style {
+            size: Size::new(Val::Px(WIDTH), Val::Px(HEIGHT)),
+            flex_direction: FlexDirection::ColumnReverse,
+            // horizontally center children
+            justify_content: JustifyContent::Center,
+            // vertically center children
+            align_items: AlignItems::Center,
+            ..default()
+        },
+        ..default()
+    })
+    .with_children(|container| {
+        let buttons = vec![
+            ("Resume", ButtonNextState::Resume()),
+            ("Exit", ButtonNextState::Exit()),
+        ];
+
+        for (label, state) in buttons {
+            container.spawn_bundle(ButtonBundle {
+                style: button_style.clone(),
+                color: NORMAL_BUTTON.into(),
+                ..default()
+            })
+            .with_children(|parent| {
+                parent.spawn_bundle(TextBundle::from_section(
+                    label,
+                    text_style.clone(),
+                ));
+            })
+            .insert(state);
         }
     })
     .insert(MenuContainer);
@@ -563,6 +628,7 @@ fn setup_menu_system(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 fn update_menu_system(
     mut state: ResMut<State<GameState>>,
+    mut game: ResMut<Game>,
     mut interaction_query: Query<
         (&Interaction, &mut UiColor, &ButtonNextState),
         (Changed<Interaction>, With<Button>),
@@ -572,7 +638,22 @@ fn update_menu_system(
         match *interaction {
             Interaction::Clicked => {
                 *color = PRESSED_BUTTON.into();
-                state.set(next_state.0).unwrap();
+                match next_state {
+                    ButtonNextState::GoTo(next_state) => {
+                        game.continuous = false;
+                        state.set(*next_state).unwrap();
+                    }
+                    ButtonNextState::StartContinuous() => {
+                        game.continuous = true;
+                        state.set(GameState::PurificationOne).unwrap();
+                    }
+                    ButtonNextState::Resume() => {
+                        state.pop().unwrap();
+                    }
+                    ButtonNextState::Exit() => {
+                        state.replace(GameState::StartMenu).unwrap();
+                    }
+                }
             }
             Interaction::Hovered => {
                 *color = HOVERED_BUTTON.into();
@@ -646,6 +727,26 @@ fn setup_failure_system(mut commands: Commands, asset_server: Res<AssetServer>) 
         });
 }
 
+fn next_game_state(game_state: GameState) -> GameState {
+    match game_state {
+        GameState::PurificationOne => GameState::Jormag,
+        GameState::Jormag => GameState::Primordus,
+        GameState::Primordus => GameState::Kralkatorrik,
+        GameState::Kralkatorrik => GameState::PurificationTwo,
+        GameState::PurificationTwo => GameState::Mordremoth,
+        GameState::Mordremoth => GameState::Zhaitan,
+        GameState::Zhaitan => GameState::PurificationThree,
+        GameState::PurificationThree => GameState::SooWonOne,
+        GameState::SooWonOne => GameState::PurificationFour,
+        GameState::PurificationFour => GameState::SooWonTwo,
+
+        other => {
+            warn!("next_game_state called for one not in the flow {:?}", other);
+            other
+        }
+    }
+}
+
 fn spawn_crab(commands: &mut Commands, asset_server: &Res<AssetServer>, crab_pos: Vec3) {
     commands.spawn_bundle(SpriteBundle {
         sprite: Sprite {
@@ -667,30 +768,54 @@ fn setup(mut commands: Commands) {
     commands.spawn_bundle(Camera2dBundle::default());
 }
 
+
+fn cleanup_phase(
+    mut commands: Commands,
+    game: Res<Game>,
+    entities: Query<Entity, (Without<PlayerTag>, Without<Camera>)>,
+    player_entity: Query<Entity, With<PlayerTag>>,
+    ) {
+    for entity in &entities {
+        commands.entity(entity).despawn_recursive();
+    }
+    if !game.continuous {
+        for entity in &player_entity {
+            commands.entity(entity).despawn_recursive();
+        }
+    }
+}
+
 fn setup_phase(
     mut commands: Commands, asset_server: Res<AssetServer>,
     mut game: ResMut<Game>,
+    existing_player: Query<&PlayerTag>,
     mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
     ) {
-    // Reset all cooldowns and invuln timings
-    game.player.dodge_cooldown.tick(Duration::from_secs_f32(1000.));
-    game.player.blink_cooldown.tick(Duration::from_secs_f32(1000.));
-    game.player.portal_cooldown.tick(Duration::from_secs_f32(1000.));
-    game.player.pull_cooldown.tick(Duration::from_secs_f32(1000.));
-    game.player.invuln.tick(Duration::from_secs_f32(1000.));
-    game.player.jump.tick(Duration::from_secs_f32(1000.));
 
-    game.player.entity = Some(
-        commands.spawn_bundle(SpriteBundle {
-            sprite: Sprite {
-                custom_size: Some(Vec2::new(PLAYER_RADIUS * 2., PLAYER_RADIUS * 2.)),
+    // Reset all cooldowns and invuln timings
+    if !game.continuous {
+        game.player.hp = 100.;
+        game.player.dodge_cooldown.tick(Duration::from_secs_f32(1000.));
+        game.player.blink_cooldown.tick(Duration::from_secs_f32(1000.));
+        game.player.portal_cooldown.tick(Duration::from_secs_f32(1000.));
+        game.player.pull_cooldown.tick(Duration::from_secs_f32(1000.));
+        game.player.invuln.tick(Duration::from_secs_f32(1000.));
+        game.player.jump.tick(Duration::from_secs_f32(1000.));
+    }
+
+    if existing_player.is_empty() {
+        game.player.entity = Some(
+            commands.spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(PLAYER_RADIUS * 2., PLAYER_RADIUS * 2.)),
+                    ..default()
+                },
+                texture: asset_server.load("virt.png"),
+                transform: Transform::from_xyz(0., 200., LAYER_PLAYER),
                 ..default()
-            },
-            texture: asset_server.load("virt.png"),
-            transform: Transform::from_xyz(0., 200., LAYER_PLAYER),
-            ..default()
-        }).insert(PlayerTag).id()
-    );
+            }).insert(PlayerTag).id()
+        );
+    }
 
     commands.spawn()
         .insert(VoidZoneGrowth(Timer::from_seconds(VOID_ZONE_GROWTH_DURATION_SECS, true)))
@@ -2777,7 +2902,12 @@ fn collisions_orb_targets_system(
 
     if !any_orb_targetted {
         info!("win detected!");
-        state.set(GameState::Success).unwrap();
+        if game.continuous {
+            let cur_state = state.current().clone();
+            state.set(next_game_state(cur_state)).unwrap();
+        } else {
+            state.push(GameState::Success).unwrap();
+        }
     }
 }
 
@@ -2927,12 +3057,19 @@ fn enemies_hp_check_system(
 
 fn boss_existence_check_system(
     bosses: Query<&Boss>,
+    game: Res<Game>,
     mut state: ResMut<State<GameState>>,
     ) {
     if let Ok(_) = bosses.get_single() {
         return;
     }
-    state.set(GameState::Success).unwrap();
+
+    let cur_state = state.current().clone();
+    if game.continuous && cur_state != GameState::SooWonTwo {
+        state.set(next_game_state(cur_state)).unwrap();
+    } else {
+        state.push(GameState::Success).unwrap();
+    }
 }
 
 fn boss_healthbar_system(
@@ -3006,17 +3143,16 @@ fn handle_mouse_events_system(
         game.player.shoot_cooldown.reset();
     }
 
-    {
-        let cursor = cursors.single();
-        // info!("{:?}", event);
-        if mouse_button_input.just_pressed(MouseButton::Left) {
-            info!("{:?}", cursor.translation);
-        }
-    }
+    // {
+    //     let cursor = cursors.single();
+    //     // info!("{:?}", event);
+    //     if mouse_button_input.just_pressed(MouseButton::Left) {
+    //         info!("{:?}", cursor.translation);
+    //     }
+    // }
 
     for event in cursor_moved_events.iter() {
         let mut cursor = cursors.single_mut();
-        // info!("{:?}", event);
         cursor.translation.x = event.position.x - WIDTH / 2.;
         cursor.translation.y = event.position.y - HEIGHT / 2.;
     }
@@ -3102,6 +3238,25 @@ fn handle_spellcasts_system(
         }
 
         game.player.pull_cooldown.reset();
+    }
+}
+
+fn handle_keyboard_system(
+    keyboard_input: Res<Input<KeyCode>>,
+    mut state: ResMut<State<GameState>>,
+    ) {
+
+    if keyboard_input.just_pressed(KeyCode::Escape) {
+        match state.current() {
+            GameState::Paused => {
+                state.pop().unwrap();
+            },
+            GameState::StartMenu => {
+            },
+            _ => {
+                state.push(GameState::Paused).unwrap();
+            }
+        }
     }
 }
 
@@ -3207,7 +3362,7 @@ fn player_hp_check_system(game: ResMut<Game>,
                           mut state: ResMut<State<GameState>>,
                           ) {
     if game.player.hp <= 0.1 {
-        state.set(GameState::Failure).unwrap();
+        state.push(GameState::Failure).unwrap();
     }
 }
 
@@ -3215,6 +3370,7 @@ fn build_update_phase(phase: GameState) -> SystemSet {
     SystemSet::on_update(phase)
         .with_system(handle_mouse_events_system)
         .with_system(handle_spellcasts_system)
+        .with_system(handle_keyboard_system)
         .with_system(velocities_system)
         .with_system(move_player_system)
         .with_system(move_rotating_soup_system)
@@ -3264,6 +3420,7 @@ fn main() {
         player: Player {
             ..default()
         },
+        continuous: false,
         orb_target: -1,
     };
 
@@ -3287,6 +3444,10 @@ fn main() {
         .add_system_set(SystemSet::on_update(GameState::StartMenu).with_system(update_menu_system))
         .add_system_set(SystemSet::on_exit(GameState::StartMenu).with_system(cleanup_menu_system))
 
+        .add_system_set(SystemSet::on_enter(GameState::Paused).with_system(setup_pause_menu_system))
+        .add_system_set(SystemSet::on_update(GameState::Paused).with_system(update_menu_system))
+        .add_system_set(SystemSet::on_exit(GameState::Paused).with_system(cleanup_menu_system))
+
         .add_system_set(SystemSet::on_enter(GameState::Success).with_system(setup_success_system))
         .add_system_set(SystemSet::on_enter(GameState::Failure).with_system(setup_failure_system))
 
@@ -3296,6 +3457,8 @@ fn main() {
                         .with_system(setup_purification_one.after(setup_purification)))
         .add_system_set(build_update_phase(GameState::PurificationOne))
         .add_system_set(build_update_purification_phase(GameState::PurificationOne))
+        .add_system_set(SystemSet::on_exit(GameState::PurificationOne)
+                        .with_system(cleanup_phase))
 
         .add_system_set(SystemSet::on_enter(GameState::Jormag)
                         .with_system(setup_phase)
@@ -3304,18 +3467,24 @@ fn main() {
         .add_system_set(build_update_boss_phase(GameState::Jormag))
         .add_system_set(SystemSet::on_update(GameState::Jormag)
             .with_system(jormag_soup_beam_system))
+        .add_system_set(SystemSet::on_exit(GameState::Jormag)
+                        .with_system(cleanup_phase))
 
         .add_system_set(SystemSet::on_enter(GameState::Primordus)
                         .with_system(setup_phase)
                         .with_system(setup_primordus.after(setup_phase)))
         .add_system_set(build_update_phase(GameState::Primordus))
         .add_system_set(build_update_boss_phase(GameState::Primordus))
+        .add_system_set(SystemSet::on_exit(GameState::Primordus)
+                        .with_system(cleanup_phase))
 
         .add_system_set(SystemSet::on_enter(GameState::Kralkatorrik)
                         .with_system(setup_phase)
                         .with_system(setup_kralkatorrik.after(setup_phase)))
         .add_system_set(build_update_phase(GameState::Kralkatorrik))
         .add_system_set(build_update_boss_phase(GameState::Kralkatorrik))
+        .add_system_set(SystemSet::on_exit(GameState::Kralkatorrik)
+                        .with_system(cleanup_phase))
 
         .add_system_set(SystemSet::on_enter(GameState::PurificationTwo)
                         .with_system(setup_phase)
@@ -3326,12 +3495,16 @@ fn main() {
         .add_system_set(SystemSet::on_update(GameState::PurificationTwo)
             .with_system(timecaster_system)
             .with_system(unleash_the_bees))
+        .add_system_set(SystemSet::on_exit(GameState::PurificationTwo)
+                        .with_system(cleanup_phase))
 
         .add_system_set(SystemSet::on_enter(GameState::Mordremoth)
                         .with_system(setup_phase)
                         .with_system(setup_mordremoth.after(setup_phase)))
         .add_system_set(build_update_phase(GameState::Mordremoth))
         .add_system_set(build_update_boss_phase(GameState::Mordremoth))
+        .add_system_set(SystemSet::on_exit(GameState::Mordremoth)
+                        .with_system(cleanup_phase))
 
         .add_system_set(SystemSet::on_enter(GameState::Zhaitan)
                         .with_system(setup_phase)
@@ -3340,6 +3513,8 @@ fn main() {
         .add_system_set(build_update_boss_phase(GameState::Zhaitan))
         .add_system_set(SystemSet::on_update(GameState::Zhaitan)
             .with_system(noodle_system))
+        .add_system_set(SystemSet::on_exit(GameState::Zhaitan)
+                        .with_system(cleanup_phase))
 
         .add_system_set(SystemSet::on_enter(GameState::PurificationThree)
                         .with_system(setup_phase)
@@ -3351,12 +3526,16 @@ fn main() {
             .with_system(saltspray_system)
             .with_system(aoes_system)
             .with_system(aoes_detonation_system))
+        .add_system_set(SystemSet::on_exit(GameState::PurificationThree)
+                        .with_system(cleanup_phase))
 
         .add_system_set(SystemSet::on_enter(GameState::SooWonOne)
                         .with_system(setup_phase)
                         .with_system(setup_soowonone.after(setup_phase)))
         .add_system_set(build_update_phase(GameState::SooWonOne))
         .add_system_set(build_update_boss_phase(GameState::SooWonOne))
+        .add_system_set(SystemSet::on_exit(GameState::SooWonOne)
+                        .with_system(cleanup_phase))
 
         .add_system_set(SystemSet::on_enter(GameState::PurificationFour)
                         .with_system(setup_phase)
@@ -3367,6 +3546,8 @@ fn main() {
             .with_system(collisions_orbs_edge_system)
             .with_system(boss_existence_check_system)
             .with_system(boss_healthbar_system))
+        .add_system_set(SystemSet::on_exit(GameState::PurificationFour)
+                        .with_system(cleanup_phase))
 
         .add_system_set(SystemSet::on_enter(GameState::SooWonTwo)
                         .with_system(setup_phase)
@@ -3376,6 +3557,8 @@ fn main() {
         .add_system_set(SystemSet::on_update(GameState::SooWonTwo)
             .with_system(goliath_system)
             .with_system(wyvern_system))
+        .add_system_set(SystemSet::on_exit(GameState::SooWonTwo)
+                        .with_system(cleanup_phase))
 
         .run();
 }
