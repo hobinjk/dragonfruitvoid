@@ -533,7 +533,7 @@ fn setup_menu_system(mut commands: Commands, asset_server: Res<AssetServer>) {
             ("Purification One", GameState::PurificationOne),
             ("Jormag", GameState::Jormag),
             ("Primordus", GameState::Primordus),
-            ("Kralkatorrik", GameState::Kralkatorrik),
+            ("Kralkatorrik (TODO)", GameState::Kralkatorrik),
             ("Purification Two", GameState::PurificationTwo),
             ("Mordremoth", GameState::Mordremoth),
             ("Zhaitan", GameState::Zhaitan),
