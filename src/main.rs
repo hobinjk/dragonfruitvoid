@@ -538,7 +538,7 @@ fn setup_menu_system(mut commands: Commands, asset_server: Res<AssetServer>) {
             ("Mordremoth", GameState::Mordremoth),
             ("Zhaitan", GameState::Zhaitan),
             ("Purification Three", GameState::PurificationThree),
-            ("Soo-Won One", GameState::SooWonOne),
+            ("Soo-Won One (TODO)", GameState::SooWonOne),
             ("Purification Four", GameState::PurificationFour),
             ("Soo-Won Two", GameState::SooWonTwo),
         ];
