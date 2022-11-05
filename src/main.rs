@@ -61,6 +61,7 @@ struct MobTimeCaster {
 #[derive(Component)]
 struct MobSaltspray {
     shoot_cooldown: Timer,
+    aoe_desc: AoeDesc,
 }
 
 #[derive(Component)]
@@ -135,6 +136,8 @@ const PUDDLE_DAMAGE: f32 = 20.;
 
 const ROTATING_SOUP_RADIUS: f32 = 40.;
 const ROTATING_SOUP_DTHETA: f32 = 0.2;
+
+const LASER_RADIUS: f32 = 25.;
 
 const SWIPE_CHONK_RADIUS: f32 = 650. * GAME_TO_PX;
 const SWIPE_CENTER: Vec3 = Vec3::new(-428. * GAME_TO_PX, 1061. * GAME_TO_PX, LAYER_WAVE);
@@ -840,7 +843,7 @@ fn setup_phase(
 }
 
 fn setup_purification(
-    mut commands: Commands, asset_server: Res<AssetServer>, mut game: ResMut<Game>,
+    mut commands: Commands, mut game: ResMut<Game>,
     mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
     ) {
     game.orb_target = 0;
@@ -880,7 +883,7 @@ fn setup_purification(
 }
 
 fn setup_purification_one(
-    mut commands: Commands, asset_server: Res<AssetServer>, mut game: ResMut<Game>,
+    mut commands: Commands, asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
     ) {
 
@@ -1054,6 +1057,10 @@ fn setup_purification_three(
         spawn_crab(&mut commands, &asset_server, crab_pos);
     }
 
+    let laser_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(LASER_RADIUS).into()).into();
+    let laser_material = materials.add(ColorMaterial::from(Color::rgba(0.7, 0.9, 1.0, 0.5)));
+    let material_detonation = materials.add(ColorMaterial::from(AOE_DETONATION_COLOR));
+
     let orb_target_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(ORB_TARGET_RADIUS).into()).into();
     let orb_target_material = ColorMaterial::from(Color::rgb(0.5, 0.5, 0.5));
 
@@ -1064,17 +1071,26 @@ fn setup_purification_three(
         ..default()
     }).insert(OrbTarget(0));
 
+    let mut shoot_cooldown = Timer::from_seconds(6., false);
+    shoot_cooldown.tick(Duration::from_secs_f32(3.));
+
     commands.spawn_bundle(SpriteBundle {
         sprite: Sprite {
             custom_size: Some(Vec2::new(BIGBOY_RADIUS * 2., BIGBOY_RADIUS * 2.)),
             ..default()
         },
         texture: asset_server.load("saltspray.png"),
-        transform: Transform::from_xyz(-200., 200., LAYER_MOB),
+        transform: Transform::from_xyz(-150., 150., LAYER_MOB),
         ..default()
     })
     .insert(MobSaltspray {
-        shoot_cooldown: Timer::from_seconds(1., true),
+        shoot_cooldown,
+        aoe_desc: AoeDesc {
+            mesh: laser_mesh,
+            radius: LASER_RADIUS,
+            material_base: laser_material,
+            material_detonation,
+        }
     })
     .insert(Enemy)
     .insert(Hp(20.))
@@ -1082,15 +1098,20 @@ fn setup_purification_three(
 }
 
 fn setup_purification_four(
-    mut commands: Commands, asset_server: Res<AssetServer>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    orb: Query<(Entity, &Handle<ColorMaterial>), With<MobOrb>>,
     ) {
 
-    let (entity_orb, material_orb) = orb.single();
-    materials.get_mut(material_orb).unwrap().color = Color::rgb(0., 0., 0.);
-
-    commands.entity(entity_orb)
+    commands.spawn_bundle(MaterialMesh2dBundle {
+        mesh: meshes.add(shape::Circle::new(ORB_RADIUS).into()).into(),
+        material: materials.add(ColorMaterial::from(Color::rgb(0., 0., 0.))),
+        transform: Transform::from_xyz(0., 0., LAYER_MOB),
+        ..default()
+    })
+    .insert(MobOrb)
+    .insert(Velocity(Vec3::new(0., 0., 0.)))
     .insert(Enemy)
     .insert(CollisionRadius(ORB_RADIUS))
     .insert(Hp(50.))
@@ -2389,31 +2410,30 @@ fn saltspray_system(
     ) {
     let player = players.single();
     for (mut mob, transform) in &mut saltsprays {
-        let mut vel = player.translation.sub(transform.translation);
-        vel.z = 0.;
-        let bullet_speed = WYVERN_BULLET_SPEED;
-        vel = vel.clamp_length(bullet_speed, bullet_speed);
-
-
         mob.shoot_cooldown.tick(time.delta());
         if mob.shoot_cooldown.finished() {
             mob.shoot_cooldown.reset();
+            let mut to_player = player.translation.sub(transform.translation);
+            to_player.z = 0.;
+            let backbone = to_player.clamp_length(300., 300.);
+            let perp = Vec3::new(-backbone.y, backbone.x, 0.);
 
-            commands.spawn_bundle(SpriteBundle {
-                sprite: Sprite {
-                    color: Color::rgb(1.0, 0., 0.),
-                    custom_size: Some(Vec2::new(BULLET_SIZE, BULLET_SIZE)),
-                    ..default()
-                },
-                transform: Transform::from_translation(transform.translation),
-                ..default()
-            })
-            .insert(Velocity(vel))
-            .insert(EnemyBullet {
-                damage: WYVERN_BULLET_DAMAGE,
-                knockback: 0.,
-            })
-            .insert(CollisionRadius(BULLET_SIZE / 2.));
+
+            for i in 0..32 {
+                let magnitude = i as f32 / 32.;
+                let amount = ((i as f32) / 5.).sin();
+
+                let mut pos = transform.translation + backbone * magnitude;
+                pos = pos.add(perp * amount * magnitude);
+                pos.z = LAYER_AOE;
+
+                spawn_aoe(&mut commands, &mob.aoe_desc, pos, Aoe {
+                    visibility_start: Some(Timer::from_seconds(magnitude / 2., false)),
+                    detonation: Timer::from_seconds(1., false),
+                    damage: 30.,
+                    linger: Some(Timer::from_seconds(1., false)),
+                }, None);
+            }
         }
     }
 }
@@ -2834,7 +2854,6 @@ fn collisions_players_enemy_bullets_system(
 fn game_orb_target_progression_system(
     game: ResMut<Game>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    orb: Query<&MobOrb>,
     orb_targets: Query<(&OrbTarget, &mut Handle<ColorMaterial>)>,
     ) {
     for (orb_target, material) in &orb_targets {
@@ -3280,7 +3299,9 @@ fn main() {
         .add_system_set(build_update_phase(GameState::PurificationThree))
         .add_system_set(build_update_purification_phase(GameState::PurificationThree))
         .add_system_set(SystemSet::on_update(GameState::PurificationThree)
-            .with_system(saltspray_system))
+            .with_system(saltspray_system)
+            .with_system(aoes_system)
+            .with_system(aoes_detonation_system))
 
         .add_system_set(SystemSet::on_enter(GameState::SooWonOne)
                         .with_system(setup_phase)
@@ -3292,8 +3313,11 @@ fn main() {
                         .with_system(setup_phase)
                         .with_system(setup_purification_four.after(setup_phase)))
         .add_system_set(build_update_phase(GameState::PurificationFour))
-        .add_system_set(build_update_purification_phase(GameState::PurificationFour))
-
+        .add_system_set(SystemSet::on_update(GameState::PurificationFour)
+            .with_system(collisions_bullets_orbs_system)
+            .with_system(collisions_orbs_edge_system)
+            .with_system(boss_existence_check_system)
+            .with_system(boss_healthbar_system))
 
         .add_system_set(SystemSet::on_enter(GameState::SooWonTwo)
                         .with_system(setup_phase)
