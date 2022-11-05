@@ -42,6 +42,12 @@
       import init from './dragonfruitvoid.js'
       init()
     </script>
+    <script>
+      document.body.addEventListener('contextmenu', evt => {
+        evt.preventDefault();
+        return false;
+      }); 
+    </script>
   </body>
 </html>
 
