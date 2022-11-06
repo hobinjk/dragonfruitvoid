@@ -176,7 +176,7 @@ const ORB_TARGET_COLOR_ACTIVE: Color = Color::rgb(0.7, 1., 0.7);
 struct CursorMark;
 
 #[derive(Component)]
-struct Bullet;
+struct Bullet(f32);
 
 #[derive(Component)]
 struct Velocity(Vec3);
@@ -248,6 +248,7 @@ const CRAB_SIZE: f32 = 30.;
 const CRAB_SPEED: f32 = 15.;
 const BULLET_SIZE: f32 = 10.;
 const BULLET_DAMAGE: f32 = 0.3;
+const BULLET_SPEED: f32 = 200.0;
 const BULLET_COOLDOWN: f32 = 0.2;
 const ORB_RADIUS: f32 = 190. * GAME_TO_PX;
 const ORB_TARGET_RADIUS: f32 = 190. * GAME_TO_PX;
@@ -2891,6 +2892,15 @@ fn jormag_soup_beam_system(
     }
 }
 
+fn bullet_age_system(
+    time: Res<Time>,
+    mut bullets: Query<&mut Bullet>,
+    ) {
+    for mut bullet in &mut bullets {
+        bullet.0 += time.delta_seconds();
+    }
+}
+
 fn collide(pos_a: Vec3, radius_a: f32, pos_b: Vec3, radius_b: f32) -> bool {
     let mut diff = pos_b.sub(pos_a);
     diff.z = 0.;
@@ -2924,10 +2934,10 @@ fn collisions_bullets_orbs_system(
 
 fn collisions_bullets_enemies_system(
     mut damage_flash_events: EventWriter<DamageFlashEvent>,
-    mut bullets: Query<(&Transform, &mut HasHit), (With<Bullet>, Without<Enemy>)>,
+    mut bullets: Query<(&Bullet, &Transform, &mut HasHit), (With<Bullet>, Without<Enemy>)>,
     mut enemies: Query<(Entity, &Transform, &Visibility, &CollisionRadius, &mut Hp), (With<Enemy>, Without<Bullet>)>,
     ) {
-    for (transform_bullet, mut has_hit) in &mut bullets {
+    for (bullet, transform_bullet, mut has_hit) in &mut bullets {
         let bullet_pos = transform_bullet.translation;
         for (entity_enemy, transform_enemy, visibility, radius_enemy, mut hp) in &mut enemies {
             if has_hit.0.contains(&entity_enemy) || !visibility.is_visible {
@@ -2940,7 +2950,13 @@ fn collisions_bullets_enemies_system(
             }
 
             has_hit.0.insert(entity_enemy);
-            hp.0 -= BULLET_DAMAGE;
+            let dist_traveled = bullet.0 * BULLET_SPEED;
+            // Reward being close to the target with more damage
+            let mut damage_tier = 1.5 - (dist_traveled * PX_TO_GAME / 1200.);
+            if damage_tier < 1. {
+                damage_tier = 1.;
+            }
+            hp.0 -= BULLET_DAMAGE * damage_tier;
             if hp.0 > 0. {
                 damage_flash_events.send(DamageFlashEvent {
                     entity: entity_enemy,
@@ -3237,8 +3253,7 @@ fn handle_mouse_events_system(
         let cursor = cursors.single();
         let mut vel = cursor.translation.sub(player_loc);
         vel.z = 0.;
-        let bullet_speed = 200.0;
-        vel = vel.clamp_length(bullet_speed, bullet_speed);
+        vel = vel.clamp_length(BULLET_SPEED, BULLET_SPEED);
 
         commands.spawn_bundle(SpriteBundle {
             sprite: Sprite {
@@ -3249,7 +3264,7 @@ fn handle_mouse_events_system(
             transform: Transform::from_translation(player_loc),
             ..default()
         }).insert(Velocity(vel))
-          .insert(Bullet)
+          .insert(Bullet(0.))
           .insert(HasHit(HashSet::new()));
         game.player.shoot_cooldown.reset();
     }
@@ -3490,6 +3505,7 @@ fn build_update_phase(phase: GameState) -> SystemSet {
         .with_system(collisions_bullets_enemies_system)
         .with_system(collisions_players_soups_system)
         .with_system(collisions_players_enemy_bullets_system)
+        .with_system(bullet_age_system)
         .with_system(text_system)
         .with_system(enemies_hp_check_system)
         .with_system(damage_flash_system)
