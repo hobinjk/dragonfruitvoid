@@ -26,3 +26,8 @@ infographic](https://cdn.discordapp.com/attachments/1024098233921843241/10269763
 
 Various art is from ArenaNet's Guild Wars 2, various emoji fonts, and (most
 importantly) Ferris the Rustacean.
+
+The whole idea for this is from the absolutely perfect,
+more-fun-than-the-actual-game [Castle
+Pineapplia](https://tacticalairhorse.itch.io/castle-pineapplia) by
+TacticalAirHorse.
