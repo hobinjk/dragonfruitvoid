@@ -254,6 +254,8 @@ const ORB_VELOCITY_DECAY: f32 = 0.5;
 const GREEN_RADIUS: f32 = 160. * GAME_TO_PX;
 const PLAYER_REGEN: f32 = 1.;
 
+const LAYER_MAX: f32 = 110.;
+
 const LAYER_PLAYER: f32 = 100.;
 const LAYER_CURSOR: f32 = LAYER_PLAYER - 5.;
 const LAYER_MOB: f32 = 20.;
@@ -906,7 +908,7 @@ fn spawn_crab(commands: &mut Commands, asset_server: &Res<AssetServer>, crab_pos
 fn setup(mut commands: Commands,
     mut game: ResMut<Game>,
     ) {
-    commands.spawn_bundle(Camera2dBundle::default());
+    commands.spawn_bundle(Camera2dBundle::new_with_far(LAYER_MAX));
 
     game.player.dodge_cooldown.tick(Duration::from_secs_f32(1000.));
     game.player.blink_cooldown.tick(Duration::from_secs_f32(1000.));
