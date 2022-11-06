@@ -24,3 +24,5 @@ Many thanks to every HT CM PoV I watched during this project, leobouilloux's
 green locations where possible, and Minas.4572 for [this outstanding
 infographic](https://cdn.discordapp.com/attachments/1024098233921843241/1026976393810157659/unknown.png).
 
+Various art is from ArenaNet's Guild Wars 2, various emoji fonts, and (most
+importantly) Ferris the Rustacean.
