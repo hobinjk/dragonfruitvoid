@@ -2,6 +2,7 @@ use bevy::{
     prelude::*,
     render::color::Color,
     sprite::{Anchor, MaterialMesh2dBundle, Mesh2dHandle},
+    time::Stopwatch,
     window::CursorMoved,
 };
 use core::f32::consts::PI;
@@ -285,6 +286,7 @@ struct GreenSpawn {
 
 struct Player {
     hp: f32,
+    damage_taken: f32,
     shoot_cooldown: Timer,
     dodge_cooldown: Timer,
     blink_cooldown: Timer,
@@ -300,6 +302,7 @@ impl Default for Player {
     fn default() -> Self {
         Player {
             hp: 100.,
+            damage_taken: 0.,
             shoot_cooldown: Timer::from_seconds(BULLET_COOLDOWN, false),
             dodge_cooldown: Timer::from_seconds(10., false),
             blink_cooldown: Timer::from_seconds(16., false),
@@ -315,6 +318,7 @@ impl Default for Player {
 
 struct Game {
     player: Player,
+    time_elapsed: Stopwatch,
     orb_target: i32,
     continuous: bool,
 }
@@ -679,7 +683,27 @@ fn cleanup_menu_system(mut commands: Commands, containers: Query<(Entity, &MenuC
     }
 }
 
-fn setup_success_system(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup_success_system(
+    game: Res<Game>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>
+    ) {
+    let success_message = if game.continuous {
+        "You win!"
+    } else {
+        "Phase cleared!"
+    };
+
+    setup_result_screen(success_message, Color::rgb(0.3, 1.0, 0.3), game, &mut commands, asset_server);
+}
+
+fn setup_result_screen(
+    result_message: &str,
+    result_color: Color,
+    game: Res<Game>,
+    commands: &mut Commands,
+    asset_server: Res<AssetServer>
+    ) {
     let button_size = Size::new(Val::Px(350.0), Val::Px(65.0));
     let button_margin = UiRect::all(Val::Px(10.));
 
@@ -717,7 +741,7 @@ fn setup_success_system(mut commands: Commands, asset_server: Res<AssetServer>) 
     .with_children(|big_container| {
         big_container.spawn_bundle(NodeBundle {
             style: Style {
-                size: Size::new(Val::Px(WIDTH), Val::Px(100.0)),
+                size: Size::new(Val::Px(WIDTH), Val::Px(240.0)),
                 // horizontally center child text
                 justify_content: JustifyContent::Center,
                 // vertically center child text
@@ -728,109 +752,28 @@ fn setup_success_system(mut commands: Commands, asset_server: Res<AssetServer>) 
             ..default()
         })
         .with_children(|parent| {
-            parent.spawn_bundle(TextBundle::from_section(
-                "Phase cleared!",
-                TextStyle {
-                    font: asset_server.load("trebuchet_ms.ttf"),
-                    font_size: 80.,
-                    color: Color::rgb(0.3, 1.0, 0.3),
-                },
-            ));
-        });
+            let text_style = TextStyle {
+                font: asset_server.load("trebuchet_ms.ttf"),
+                font_size: 80.,
+                color: result_color,
+            };
 
-        big_container.spawn_bundle(NodeBundle {
-            style: Style {
-                size: Size::new(Val::Px(WIDTH), Val::Px(100.)),
-                // horizontally center children
-                justify_content: JustifyContent::Center,
-                // vertically center children
-                align_items: AlignItems::Center,
-                ..default()
-            },
-            color: Color::rgba(0., 0., 0., 0.).into(),
-            ..default()
-        }).with_children(|parent| {
-            let buttons = vec![
-                ("Restart", ButtonNextState::Restart()),
-                ("Exit", ButtonNextState::Exit()),
-            ];
+            let text_style_small = TextStyle {
+                font: text_style.font.clone(),
+                font_size: 40.,
+                color: result_color,
+            };
 
-            for (label, state) in buttons {
-                parent.spawn_bundle(ButtonBundle {
-                    style: button_style.clone(),
-                    color: NORMAL_BUTTON.into(),
-                    ..default()
-                })
-                .with_children(|button| {
-                    button.spawn_bundle(TextBundle::from_section(
-                        label,
-                        text_style.clone(),
-                    ));
-                })
-                .insert(state);
-            }
-        });
-    }).insert(MenuContainer);
+            let minutes = (game.time_elapsed.elapsed_secs() / 60.).floor() as i32;
+            let seconds = (game.time_elapsed.elapsed_secs() % 60.).floor() as i32;
+            let milliseconds = ((game.time_elapsed.elapsed_secs() % 1.) * 1000.).floor() as i32;
 
-}
-
-fn setup_failure_system(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let button_size = Size::new(Val::Px(350.0), Val::Px(65.0));
-    let button_margin = UiRect::all(Val::Px(10.));
-
-    let button_style = Style {
-        size: button_size,
-        // center button
-        margin: button_margin,
-        // horizontally center child text
-        justify_content: JustifyContent::Center,
-        // vertically center child text
-        align_items: AlignItems::Center,
-        ..default()
-    };
-
-    let text_style = TextStyle {
-        font: asset_server.load("trebuchet_ms.ttf"),
-        font_size: 40.0,
-        color: Color::rgb(0.9, 0.9, 0.9),
-    };
-
-    commands.spawn_bundle(NodeBundle {
-        style: Style {
-            size: Size::new(Val::Px(WIDTH), Val::Px(HEIGHT / 2.)),
-            margin: UiRect::all(Val::Auto), // UiRect::new(Val::Px(0.), Val::Px(0.), Val::Px(0.), Val::Px(HEIGHT / 4.)),
-            // horizontally center child text
-            justify_content: JustifyContent::Center,
-            // vertically center child text
-            align_items: AlignItems::Center,
-            flex_direction: FlexDirection::ColumnReverse,
-            ..default()
-        },
-        color: Color::rgba(0., 0., 0., 0.).into(),
-        ..default()
-    })
-    .with_children(|big_container| {
-        big_container.spawn_bundle(NodeBundle {
-            style: Style {
-                size: Size::new(Val::Px(WIDTH), Val::Px(100.0)),
-                // horizontally center child text
-                justify_content: JustifyContent::Center,
-                // vertically center child text
-                align_items: AlignItems::Center,
-                ..default()
-            },
-            color: Color::rgba(0., 0., 0., 0.6).into(),
-            ..default()
-        })
-        .with_children(|parent| {
-            parent.spawn_bundle(TextBundle::from_section(
-                "You died :(",
-                TextStyle {
-                    font: asset_server.load("trebuchet_ms.ttf"),
-                    font_size: 80.,
-                    color: Color::rgb(0.9, 0.2, 0.2),
-                },
-            ));
+            let time_str = format!("{}:{:02}.{:03}", minutes, seconds, milliseconds);
+            parent.spawn_bundle(TextBundle::from_sections([
+                TextSection::new(result_message, text_style.clone()),
+                TextSection::new(format!("\nTime: {}\n", time_str), text_style_small.clone()),
+                TextSection::new(format!("Damage Taken: {}", game.player.damage_taken as i32), text_style_small.clone()),
+            ]));
         });
 
         big_container.spawn_bundle(NodeBundle {
@@ -867,6 +810,11 @@ fn setup_failure_system(mut commands: Commands, asset_server: Res<AssetServer>) 
         });
     }).insert(MenuContainer);
 }
+
+fn setup_failure_system(game: Res<Game>, mut commands: Commands, asset_server: Res<AssetServer>) {
+    setup_result_screen("You died :(", Color::rgb(0.9, 0.2, 0.2), game, &mut commands, asset_server);
+}
+
 
 fn next_game_state(game_state: GameState) -> GameState {
     match game_state {
@@ -2480,6 +2428,7 @@ fn aoes_detonation_system(
 
         if hit {
             game.player.hp -= aoe.damage;
+            game.player.damage_taken += aoe.damage;
             damage_flash_events.send(DamageFlashEvent {
                 entity: entity_player,
             });
@@ -3092,7 +3041,9 @@ fn collisions_players_soups_system(
         if !collide(player_pos, 0., transform_soup.translation, radius.0) {
             continue;
         }
-        game.player.hp -= soup.damage * time.delta_seconds();
+        let damage = soup.damage * time.delta_seconds();
+        game.player.hp -= damage;
+        game.player.damage_taken += damage;
         if soup.damage > 0.1 {
             damage_flash_events.send(DamageFlashEvent {
                 entity: entity_player,
@@ -3129,6 +3080,7 @@ fn collisions_players_waves_system(
         if collide(player_pos, 0., transform.translation, r_outer) {
             if game.player.invuln.finished() && game.player.jump.finished() {
                 game.player.hp -= WAVE_DAMAGE;
+                game.player.damage_taken += WAVE_DAMAGE;
                 damage_flash_events.send(DamageFlashEvent {
                     entity: entity_player,
                 });
@@ -3168,6 +3120,7 @@ fn collisions_players_enemy_bullets_system(
 
         if game.player.invuln.finished() {
             game.player.hp -= bullet.damage;
+            game.player.damage_taken += bullet.damage;
             damage_flash_events.send(DamageFlashEvent {
                 entity: entity_player,
             });
@@ -3264,6 +3217,7 @@ fn handle_mouse_events_system(
         transform.translation
     };
 
+    game.time_elapsed.tick(time.delta());
     game.player.shoot_cooldown.tick(time.delta());
     game.player.dodge_cooldown.tick(time.delta());
     game.player.pull_cooldown.tick(time.delta());
@@ -3577,6 +3531,7 @@ fn main() {
         player: Player {
             ..default()
         },
+        time_elapsed: Stopwatch::new(),
         continuous: false,
         orb_target: -1,
     };
