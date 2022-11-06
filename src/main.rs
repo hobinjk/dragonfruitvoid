@@ -244,7 +244,7 @@ enum ButtonNextState {
     Exit(),
 }
 
-const CRAB_SIZE: f32 = 30.;
+const CRAB_SIZE: f32 = 40.;
 const CRAB_SPEED: f32 = 15.;
 const BULLET_SIZE: f32 = 10.;
 const BULLET_DAMAGE: f32 = 0.3;
@@ -893,6 +893,7 @@ fn setup_phase(
 
     // Reset all cooldowns and invuln timings
     if !game.continuous {
+        game.time_elapsed.reset();
         game.player.hp = 100.;
         game.player.dodge_cooldown.tick(Duration::from_secs_f32(1000.));
         game.player.blink_cooldown.tick(Duration::from_secs_f32(1000.));
@@ -903,6 +904,7 @@ fn setup_phase(
     }
 
     if existing_player.is_empty() {
+        game.time_elapsed.reset();
         game.player.entity = Some(
             commands.spawn_bundle(SpriteBundle {
                 sprite: Sprite {
