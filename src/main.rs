@@ -239,6 +239,7 @@ enum ButtonNextState {
     GoTo(GameState),
     StartContinuous(),
     Resume(),
+    Restart(),
     Exit(),
 }
 
@@ -650,6 +651,11 @@ fn update_menu_system(
                     ButtonNextState::Resume() => {
                         state.pop().unwrap();
                     }
+                    ButtonNextState::Restart() => {
+                        // state.pop().unwrap();
+                        let base_state = state.inactives()[0];
+                        state.replace(base_state).unwrap();
+                    }
                     ButtonNextState::Exit() => {
                         state.replace(GameState::StartMenu).unwrap();
                     }
@@ -672,19 +678,51 @@ fn cleanup_menu_system(mut commands: Commands, containers: Query<(Entity, &MenuC
 }
 
 fn setup_success_system(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands
-        .spawn_bundle(NodeBundle {
+    let button_size = Size::new(Val::Px(350.0), Val::Px(65.0));
+    let button_margin = UiRect::all(Val::Px(10.));
+
+    let button_style = Style {
+        size: button_size,
+        // center button
+        margin: button_margin,
+        // horizontally center child text
+        justify_content: JustifyContent::Center,
+        // vertically center child text
+        align_items: AlignItems::Center,
+        ..default()
+    };
+
+    let text_style = TextStyle {
+        font: asset_server.load("trebuchet_ms.ttf"),
+        font_size: 40.0,
+        color: Color::rgb(0.9, 0.9, 0.9),
+    };
+
+    commands.spawn_bundle(NodeBundle {
+        style: Style {
+            size: Size::new(Val::Px(WIDTH), Val::Px(HEIGHT / 2.)),
+            margin: UiRect::all(Val::Auto), // UiRect::new(Val::Px(0.), Val::Px(0.), Val::Px(0.), Val::Px(HEIGHT / 4.)),
+            // horizontally center child text
+            justify_content: JustifyContent::Center,
+            // vertically center child text
+            align_items: AlignItems::Center,
+            flex_direction: FlexDirection::ColumnReverse,
+            ..default()
+        },
+        color: Color::rgba(0., 0., 0., 0.).into(),
+        ..default()
+    })
+    .with_children(|big_container| {
+        big_container.spawn_bundle(NodeBundle {
             style: Style {
                 size: Size::new(Val::Px(WIDTH), Val::Px(100.0)),
-                // center button
-                margin: UiRect::all(Val::Auto),
                 // horizontally center child text
                 justify_content: JustifyContent::Center,
                 // vertically center child text
                 align_items: AlignItems::Center,
                 ..default()
             },
-            color: Color::rgba(0., 0., 0., 0.2).into(),
+            color: Color::rgba(0., 0., 0., 0.6).into(),
             ..default()
         })
         .with_children(|parent| {
@@ -697,22 +735,89 @@ fn setup_success_system(mut commands: Commands, asset_server: Res<AssetServer>) 
                 },
             ));
         });
+
+        big_container.spawn_bundle(NodeBundle {
+            style: Style {
+                size: Size::new(Val::Px(WIDTH), Val::Px(100.)),
+                // horizontally center children
+                justify_content: JustifyContent::Center,
+                // vertically center children
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            color: Color::rgba(0., 0., 0., 0.).into(),
+            ..default()
+        }).with_children(|parent| {
+            let buttons = vec![
+                ("Restart", ButtonNextState::Restart()),
+                ("Exit", ButtonNextState::Exit()),
+            ];
+
+            for (label, state) in buttons {
+                parent.spawn_bundle(ButtonBundle {
+                    style: button_style.clone(),
+                    color: NORMAL_BUTTON.into(),
+                    ..default()
+                })
+                .with_children(|button| {
+                    button.spawn_bundle(TextBundle::from_section(
+                        label,
+                        text_style.clone(),
+                    ));
+                })
+                .insert(state);
+            }
+        });
+    }).insert(MenuContainer);
+
 }
 
 fn setup_failure_system(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands
-        .spawn_bundle(NodeBundle {
+    let button_size = Size::new(Val::Px(350.0), Val::Px(65.0));
+    let button_margin = UiRect::all(Val::Px(10.));
+
+    let button_style = Style {
+        size: button_size,
+        // center button
+        margin: button_margin,
+        // horizontally center child text
+        justify_content: JustifyContent::Center,
+        // vertically center child text
+        align_items: AlignItems::Center,
+        ..default()
+    };
+
+    let text_style = TextStyle {
+        font: asset_server.load("trebuchet_ms.ttf"),
+        font_size: 40.0,
+        color: Color::rgb(0.9, 0.9, 0.9),
+    };
+
+    commands.spawn_bundle(NodeBundle {
+        style: Style {
+            size: Size::new(Val::Px(WIDTH), Val::Px(HEIGHT / 2.)),
+            margin: UiRect::all(Val::Auto), // UiRect::new(Val::Px(0.), Val::Px(0.), Val::Px(0.), Val::Px(HEIGHT / 4.)),
+            // horizontally center child text
+            justify_content: JustifyContent::Center,
+            // vertically center child text
+            align_items: AlignItems::Center,
+            flex_direction: FlexDirection::ColumnReverse,
+            ..default()
+        },
+        color: Color::rgba(0., 0., 0., 0.).into(),
+        ..default()
+    })
+    .with_children(|big_container| {
+        big_container.spawn_bundle(NodeBundle {
             style: Style {
                 size: Size::new(Val::Px(WIDTH), Val::Px(100.0)),
-                // center button
-                margin: UiRect::all(Val::Auto),
                 // horizontally center child text
                 justify_content: JustifyContent::Center,
                 // vertically center child text
                 align_items: AlignItems::Center,
                 ..default()
             },
-            color: Color::rgba(0., 0., 0., 0.2).into(),
+            color: Color::rgba(0., 0., 0., 0.6).into(),
             ..default()
         })
         .with_children(|parent| {
@@ -725,6 +830,40 @@ fn setup_failure_system(mut commands: Commands, asset_server: Res<AssetServer>) 
                 },
             ));
         });
+
+        big_container.spawn_bundle(NodeBundle {
+            style: Style {
+                size: Size::new(Val::Px(WIDTH), Val::Px(100.)),
+                // horizontally center children
+                justify_content: JustifyContent::Center,
+                // vertically center children
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            color: Color::rgba(0., 0., 0., 0.).into(),
+            ..default()
+        }).with_children(|parent| {
+            let buttons = vec![
+                ("Restart", ButtonNextState::Restart()),
+                ("Exit", ButtonNextState::Exit()),
+            ];
+
+            for (label, state) in buttons {
+                parent.spawn_bundle(ButtonBundle {
+                    style: button_style.clone(),
+                    color: NORMAL_BUTTON.into(),
+                    ..default()
+                })
+                .with_children(|button| {
+                    button.spawn_bundle(TextBundle::from_section(
+                        label,
+                        text_style.clone(),
+                    ));
+                })
+                .insert(state);
+            }
+        });
+    }).insert(MenuContainer);
 }
 
 fn next_game_state(game_state: GameState) -> GameState {
@@ -3465,7 +3604,12 @@ fn main() {
         .add_system_set(SystemSet::on_exit(GameState::Paused).with_system(cleanup_menu_system))
 
         .add_system_set(SystemSet::on_enter(GameState::Success).with_system(setup_success_system))
+        .add_system_set(SystemSet::on_update(GameState::Success).with_system(update_menu_system))
+        .add_system_set(SystemSet::on_exit(GameState::Success).with_system(cleanup_menu_system))
+
         .add_system_set(SystemSet::on_enter(GameState::Failure).with_system(setup_failure_system))
+        .add_system_set(SystemSet::on_update(GameState::Failure).with_system(update_menu_system))
+        .add_system_set(SystemSet::on_exit(GameState::Failure).with_system(cleanup_menu_system))
 
         .add_system_set(SystemSet::on_enter(GameState::PurificationOne)
                         .with_system(setup_phase)
