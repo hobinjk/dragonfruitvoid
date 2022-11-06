@@ -247,7 +247,7 @@ enum ButtonNextState {
 const CRAB_SIZE: f32 = 40.;
 const CRAB_SPEED: f32 = 15.;
 const BULLET_SIZE: f32 = 10.;
-const BULLET_DAMAGE: f32 = 0.3;
+const BULLET_DAMAGE: f32 = 0.3 / 1.2;
 const BULLET_SPEED: f32 = 200.0;
 const BULLET_COOLDOWN: f32 = 0.2;
 const ORB_RADIUS: f32 = 190. * GAME_TO_PX;
