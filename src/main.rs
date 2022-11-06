@@ -486,7 +486,7 @@ const GREEN_SPAWNS_SOOWONONE: [GreenSpawn; 2] = [
     // there's another at 90 :(
 ];
 
-const GREEN_SPAWNS_SOOWONTWO: [GreenSpawn; 2] = [
+const GREEN_SPAWNS_SOOWONTWO: [GreenSpawn; 3] = [
     GreenSpawn {
         start: 12.,
         positions: [
@@ -502,8 +502,25 @@ const GREEN_SPAWNS_SOOWONTWO: [GreenSpawn; 2] = [
             Vec3::new(-47., 351., 0.),
             Vec3::new(-290., -101., 0.),
         ],
+    },
+    GreenSpawn {
+        start: 104.,
+        positions: [
+            Vec3::new(-30., WIDTH / 2. - GREEN_RADIUS * 1.2, 0.),
+            {
+                let r = WIDTH / 2. - GREEN_RADIUS * 1.2;
+                let cos = -0.924;
+                let sin = 0.383;
+                Vec3::new(r * cos, r * sin, 0.)
+            },
+            {
+                let r = WIDTH / 2. - GREEN_RADIUS * 1.2;
+                let cos = -0.809;
+                let sin = -0.588;
+                Vec3::new(r * cos, r * sin, 0.)
+            },
+        ],
     }
-    // there's another around 102
 ];
 
 const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
@@ -2175,7 +2192,7 @@ fn setup_soowontwo(
     ) {
 
     let puddle_starts: Vec<f32> = vec![11., 32., 57., 77., 103.];
-    let spread_starts: Vec<f32> = vec![21., 67.];
+    let spread_starts: Vec<f32> = vec![21., 67., 113.];
 
     setup_boss_phase(
         &mut commands,
@@ -2277,7 +2294,7 @@ fn setup_soowontwo(
         &mut commands,
         &mut meshes,
         &mut materials,
-        vec![22., 62., 107.]
+        vec![22., 68., 114.]
     );
 
     commands.spawn_bundle(SpriteBundle {
