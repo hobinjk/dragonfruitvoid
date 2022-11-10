@@ -33,6 +33,12 @@ struct TextDisplay {
 struct MobOrb;
 
 #[derive(Component)]
+struct MobEcho {
+    retarget: Timer,
+    gottem: bool,
+}
+
+#[derive(Component)]
 struct MobCrab;
 
 #[derive(Component)]
@@ -112,6 +118,10 @@ const BIGBOY_RADIUS: f32 = 120. * GAME_TO_PX;
 
 const NOODLE_RADIUS: f32 = 80. * GAME_TO_PX;
 const NOODLE_SLAM_RADIUS: f32 = 540. * GAME_TO_PX;
+
+const ECHO_RADIUS: f32 = 160. * GAME_TO_PX;
+const ECHO_SPEED: f32 = 160.;
+const ECHO_DAMAGE: f32 = 5.;
 
 const CHOMP_TARGET_Y: f32 = 1024. - 380.;
 const MINICHOMP_TARGET_Y: f32 = 380.;
@@ -244,6 +254,12 @@ enum ButtonNextState {
     Exit(),
 }
 
+#[derive(Component)]
+enum ButtonOnOff {
+    Hints(),
+    Echo(usize),
+}
+
 const CRAB_SIZE: f32 = 40.;
 const CRAB_SPEED: f32 = 15.;
 const BULLET_SIZE: f32 = 10.;
@@ -322,6 +338,8 @@ struct Game {
     time_elapsed: Stopwatch,
     orb_target: i32,
     continuous: bool,
+    echo_enabled: bool,
+    hints_enabled: bool,
 }
 
 #[derive(Component)]
@@ -551,7 +569,7 @@ fn setup_menu_system(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn_bundle(NodeBundle {
         style: Style {
             size: Size::new(Val::Px(WIDTH), Val::Px(HEIGHT)),
-            flex_direction: FlexDirection::ColumnReverse,
+            flex_direction: FlexDirection::Row,
             // horizontally center children
             justify_content: JustifyContent::Center,
             // vertically center children
@@ -559,37 +577,85 @@ fn setup_menu_system(mut commands: Commands, asset_server: Res<AssetServer>) {
             ..default()
         },
         ..default()
-    })
-    .with_children(|container| {
-        let phases = vec![
-            ("The Whole Fight", ButtonNextState::StartContinuous()),
-            ("Purification One", ButtonNextState::GoTo(GameState::PurificationOne)),
-            ("Jormag", ButtonNextState::GoTo(GameState::Jormag)),
-            ("Primordus", ButtonNextState::GoTo(GameState::Primordus)),
-            ("Kralkatorrik", ButtonNextState::GoTo(GameState::Kralkatorrik)),
-            ("Purification Two", ButtonNextState::GoTo(GameState::PurificationTwo)),
-            ("Mordremoth", ButtonNextState::GoTo(GameState::Mordremoth)),
-            ("Zhaitan", ButtonNextState::GoTo(GameState::Zhaitan)),
-            ("Purification Three", ButtonNextState::GoTo(GameState::PurificationThree)),
-            ("Soo-Won One", ButtonNextState::GoTo(GameState::SooWonOne)),
-            ("Purification Four", ButtonNextState::GoTo(GameState::PurificationFour)),
-            ("Soo-Won Two", ButtonNextState::GoTo(GameState::SooWonTwo)),
-        ];
-
-        for (label, state) in phases {
-            container.spawn_bundle(ButtonBundle {
-                style: button_style.clone(),
-                color: NORMAL_BUTTON.into(),
+    }).with_children(|container| {
+       container.spawn_bundle(NodeBundle {
+            style: Style {
+                size: Size::new(Val::Px(WIDTH / 2.), Val::Px(HEIGHT)),
+                flex_direction: FlexDirection::ColumnReverse,
+                // horizontally center children
+                justify_content: JustifyContent::Center,
+                // vertically center children
+                align_items: AlignItems::Center,
                 ..default()
-            })
-            .with_children(|parent| {
-                parent.spawn_bundle(TextBundle::from_section(
-                    label,
-                    text_style.clone(),
-                ));
-            })
-            .insert(state);
-        }
+            },
+            ..default()
+        })
+        .with_children(|container| {
+            let phases = vec![
+                ("The Whole Fight", ButtonNextState::StartContinuous()),
+                ("Purification One", ButtonNextState::GoTo(GameState::PurificationOne)),
+                ("Jormag", ButtonNextState::GoTo(GameState::Jormag)),
+                ("Primordus", ButtonNextState::GoTo(GameState::Primordus)),
+                ("Kralkatorrik", ButtonNextState::GoTo(GameState::Kralkatorrik)),
+                ("Purification Two", ButtonNextState::GoTo(GameState::PurificationTwo)),
+                ("Mordremoth", ButtonNextState::GoTo(GameState::Mordremoth)),
+                ("Zhaitan", ButtonNextState::GoTo(GameState::Zhaitan)),
+                ("Purification Three", ButtonNextState::GoTo(GameState::PurificationThree)),
+                ("Soo-Won One", ButtonNextState::GoTo(GameState::SooWonOne)),
+                ("Purification Four", ButtonNextState::GoTo(GameState::PurificationFour)),
+                ("Soo-Won Two", ButtonNextState::GoTo(GameState::SooWonTwo)),
+            ];
+
+            for (label, state) in phases {
+                container.spawn_bundle(ButtonBundle {
+                    style: button_style.clone(),
+                    color: NORMAL_BUTTON.into(),
+                    ..default()
+                })
+                .with_children(|parent| {
+                    parent.spawn_bundle(TextBundle::from_section(
+                        label,
+                        text_style.clone(),
+                    ));
+                })
+                .insert(state);
+            }
+        });
+
+       container.spawn_bundle(NodeBundle {
+            style: Style {
+                size: Size::new(Val::Px(WIDTH / 2.), Val::Px(HEIGHT)),
+                flex_direction: FlexDirection::ColumnReverse,
+                // horizontally center children
+                justify_content: JustifyContent::Center,
+                // vertically center children
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            ..default()
+        })
+        .with_children(|container| {
+            let phases = vec![
+                // ("Hints", ButtonOnOff::Hints()),
+                ("Linebacker", ButtonOnOff::Echo(17)),
+            ];
+
+            for (label, state) in phases {
+                container.spawn_bundle(ButtonBundle {
+                    style: button_style.clone(),
+                    color: NORMAL_BUTTON.into(),
+                    ..default()
+                })
+                .with_children(|parent| {
+                    parent.spawn_bundle(TextBundle::from_section(
+                        format!("{}: OFF", label),
+                        text_style.clone(),
+                    ));
+                })
+                .insert(state);
+            }
+        });
+
     })
     .insert(MenuContainer);
 }
@@ -694,6 +760,86 @@ fn update_menu_system(
         }
     }
 }
+
+fn update_menu_onoff_system(
+    mut game: ResMut<Game>,
+    mut interaction_query: Query<
+        (&Interaction, &mut UiColor, &Children, &mut ButtonOnOff),
+        (Changed<Interaction>, With<Button>)>,
+    mut texts: Query<&mut Text>,
+    ) {
+    for (interaction, mut color, children, mut button) in &mut interaction_query {
+        match *interaction {
+            Interaction::Clicked => {
+                *color = PRESSED_BUTTON.into();
+
+                match *button {
+                    ButtonOnOff::Hints() => {
+                        game.hints_enabled = !game.hints_enabled;
+                        let onoff = if game.hints_enabled {
+                            "ON"
+                        } else {
+                            "OFF"
+                        };
+
+                        for &child in children.iter() {
+                            if let Ok(mut text) = texts.get_mut(child) {
+                                text.sections[0].value = format!("Hints: {}", onoff);
+                            }
+                        }
+                    },
+                    ButtonOnOff::Echo(ref mut val) => {
+                        let mut label = "Linebacker";
+                        if *val > 0 {
+                            let bonus_labels = [
+                                "Stop",
+                                "No",
+                                "Bad idea",
+                                "Don't!",
+                                "Mortals",
+                                "You believe",
+                                "Yourselves",
+                                "Saviors",
+                                "Naturally",
+                                "You seek",
+                                "To write",
+                                "The conclusion",
+                                "Of your legend",
+                                "But there is",
+                                "No conclusion",
+                                "More natural than",
+                                "DEATH",
+                            ];
+                            label = bonus_labels[17 - *val];
+                            *val -= 1;
+                        } else {
+                            game.echo_enabled = !game.echo_enabled;
+                        }
+
+                        let onoff = if game.echo_enabled {
+                            "ON"
+                        } else {
+                            "OFF"
+                        };
+
+                        for &child in children.iter() {
+                            if let Ok(mut text) = texts.get_mut(child) {
+                                text.sections[0].value = format!("{}: {}", label, onoff);
+                            }
+                        }
+                    },
+                }
+            },
+            Interaction::Hovered => {
+                *color = HOVERED_BUTTON.into();
+            },
+            Interaction::None => {
+                *color = NORMAL_BUTTON.into();
+            },
+        }
+    }
+}
+
 
 fn cleanup_menu_system(mut commands: Commands, containers: Query<(Entity, &MenuContainer)>) {
     for (entity, _) in &containers {
@@ -933,6 +1079,25 @@ fn setup_phase(
                 ..default()
             }).insert(PlayerTag).id()
         );
+    }
+
+    if game.echo_enabled {
+        commands.spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                // color: Color::rgb(0.0, 0.0, 0.0),
+                custom_size: Some(Vec2::new(ECHO_RADIUS * 2., ECHO_RADIUS * 2.)),
+                ..default()
+            },
+            texture: asset_server.load("echo.png"),
+            transform: Transform::from_xyz(-200., -200., LAYER_MOB),
+            ..default()
+        })
+        .insert(MobEcho {
+            gottem: false,
+            retarget: Timer::from_seconds(3., false),
+        })
+        .insert(Velocity(Vec3::new(0., -ECHO_SPEED, 0.)))
+        .insert(CollisionRadius(ECHO_RADIUS));
     }
 
     commands.spawn()
@@ -3062,6 +3227,77 @@ fn collisions_players_edge_system(
     }
 }
 
+fn collisions_players_echo_system(
+    time: Res<Time>,
+    mut game: ResMut<Game>,
+    players: Query<&Transform, With<PlayerTag>>,
+    mut echos: Query<(&mut MobEcho, &Transform, &CollisionRadius), Without<PlayerTag>>,
+    ) {
+
+    for (mut echo, transform_echo, radius) in &mut echos {
+        let transform_player = players.single();
+        let player_pos = transform_player.translation;
+
+        if !collide(player_pos, PLAYER_RADIUS, transform_echo.translation, radius.0) {
+            continue;
+        }
+
+        if !game.player.invuln.finished() {
+            continue;
+        }
+
+        echo.gottem = true;
+
+        game.player.hp -= ECHO_DAMAGE * time.delta_seconds();
+        game.player.damage_taken += ECHO_DAMAGE * time.delta_seconds();
+    }
+}
+
+fn echo_grab_system(
+    mut players: Query<&mut Transform, With<PlayerTag>>,
+    echos: Query<(&MobEcho, &Transform), Without<PlayerTag>>
+    ) {
+    for (echo, transform) in &echos {
+        if !echo.gottem {
+            continue;
+        }
+        let echo_pos = transform.translation;
+
+        for mut transform_player in &mut players {
+            transform_player.translation.x = echo_pos.x;
+            transform_player.translation.y = echo_pos.y;
+        }
+    }
+}
+
+fn echo_retarget_system(
+    time: Res<Time>,
+    players: Query<&Transform, With<PlayerTag>>,
+    mut echos: Query<(&mut MobEcho, &Transform, &mut Velocity, &CollisionRadius)>
+    ) {
+    let transform_player = players.single();
+
+    for (mut echo, transform, mut velocity, radius) in &mut echos {
+        if echo.retarget.finished() {
+            continue;
+        }
+        if collide(transform.translation, 0., Vec3::ZERO, MAP_RADIUS - radius.0) {
+            continue;
+        }
+        echo.retarget.tick(time.delta());
+        if !echo.retarget.finished() {
+            velocity.0 = Vec3::ZERO;
+            continue;
+        }
+        echo.retarget.reset();
+
+        let mut vel = transform_player.translation.sub(transform.translation);
+        vel.z = 0.;
+        vel = vel.clamp_length(ECHO_SPEED, ECHO_SPEED);
+        velocity.0 = vel;
+    }
+}
+
 fn collisions_players_soups_system(
     time: Res<Time>,
     mut game: ResMut<Game>,
@@ -3521,6 +3757,7 @@ fn build_update_phase(phase: GameState) -> SystemSet {
         .with_system(move_rotating_soup_system)
         .with_system(effect_forced_march_system)
         .with_system(collisions_players_edge_system)
+        .with_system(collisions_players_echo_system)
         .with_system(collisions_bullets_enemies_system)
         .with_system(collisions_players_soups_system)
         .with_system(collisions_players_enemy_bullets_system)
@@ -3532,6 +3769,8 @@ fn build_update_phase(phase: GameState) -> SystemSet {
         .with_system(void_zone_growth_system)
         .with_system(player_hp_check_system)
         .with_system(soup_duration_system)
+        .with_system(echo_grab_system)
+        .with_system(echo_retarget_system)
 }
 
 fn build_update_boss_phase(phase: GameState) -> SystemSet {
@@ -3569,6 +3808,8 @@ fn main() {
         time_elapsed: Stopwatch::new(),
         continuous: false,
         orb_target: -1,
+        echo_enabled: false,
+        hints_enabled: false,
     };
 
     App::new()
@@ -3588,7 +3829,9 @@ fn main() {
         .add_startup_system(setup)
 
         .add_system_set(SystemSet::on_enter(GameState::StartMenu).with_system(setup_menu_system))
-        .add_system_set(SystemSet::on_update(GameState::StartMenu).with_system(update_menu_system))
+        .add_system_set(SystemSet::on_update(GameState::StartMenu)
+                        .with_system(update_menu_system)
+                        .with_system(update_menu_onoff_system))
         .add_system_set(SystemSet::on_exit(GameState::StartMenu).with_system(cleanup_menu_system))
 
         .add_system_set(SystemSet::on_enter(GameState::Paused).with_system(setup_pause_menu_system))
