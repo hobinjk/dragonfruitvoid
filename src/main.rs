@@ -637,7 +637,7 @@ fn setup_menu_system(mut commands: Commands, asset_server: Res<AssetServer>) {
         .with_children(|container| {
             let phases = vec![
                 // ("Hints", ButtonOnOff::Hints()),
-                ("Linebacker", ButtonOnOff::Echo(17)),
+                ("Ender's Echo", ButtonOnOff::Echo(17)),
             ];
 
             for (label, state) in phases {
@@ -789,7 +789,7 @@ fn update_menu_onoff_system(
                         }
                     },
                     ButtonOnOff::Echo(ref mut val) => {
-                        let mut label = "Linebacker";
+                        let mut label = "Ender's Echo";
                         if *val > 0 {
                             let bonus_labels = [
                                 "Stop",
