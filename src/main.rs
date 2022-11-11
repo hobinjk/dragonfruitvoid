@@ -1528,6 +1528,7 @@ fn setup_phase(
         ..default()
     });
 
+    /*
     let sprite_portal = commands.spawn_bundle(SpriteBundle {
         texture: asset_server.load("portal.png"),
         transform: Transform::from_xyz(256., -HEIGHT / 2. + 55., LAYER_UI),
@@ -1550,6 +1551,7 @@ fn setup_phase(
         transform: Transform::from_xyz(256., -HEIGHT / 2. + binding_y, LAYER_TEXT),
         ..default()
     });
+    */
 }
 
 fn setup_purification(
