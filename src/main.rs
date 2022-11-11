@@ -802,9 +802,15 @@ fn setup_menu_system(
             ..default()
         })
         .with_children(|container| {
+            let echo_eggs = if game.echo_enabled  {
+                0
+            } else {
+                17
+            };
+
             let phases = vec![
                 ("Hints", ButtonOnOff::Hints(), game.hints_enabled),
-                ("Ender's Echo", ButtonOnOff::Echo(17), game.echo_enabled),
+                ("Ender's Echo", ButtonOnOff::Echo(echo_eggs), game.echo_enabled),
             ];
 
             for (label, state, onoff_enabled) in phases {
@@ -1346,12 +1352,14 @@ fn setup_phase(
 
     hints.extend(phase_hints(state.current()));
 
-    for hint in &hints {
-        commands.spawn()
-        .insert(ScheduledHint {
-            start: Timer::from_seconds(hint.start, false),
-            hint: hint.hint,
-        });
+    if game.hints_enabled {
+        for hint in &hints {
+            commands.spawn()
+            .insert(ScheduledHint {
+                start: Timer::from_seconds(hint.start, false),
+                hint: hint.hint,
+            });
+        }
     }
 
     if existing_player.is_empty() {
