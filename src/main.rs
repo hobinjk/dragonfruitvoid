@@ -568,7 +568,8 @@ const HINTS_ALL_PHASES: [HintTiming; 1] = [
 
 Move with WASD and shoot with left mouse
 button. Your skills are 4: Pull, E: Blink,
-V: Dodge, and Space: Jump.",
+V: Dodge, Space: Jump, and
+R: Portal (advanced).",
     },
 ];
 
