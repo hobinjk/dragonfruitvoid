@@ -898,6 +898,8 @@ fn setup_pause_menu_system(mut commands: Commands, asset_server: Res<AssetServer
 fn update_menu_system(
     mut state: ResMut<State<GameState>>,
     mut game: ResMut<Game>,
+    mut commands: Commands,
+    players: Query<(Entity, &PlayerTag)>,
     mut interaction_query: Query<
         (&Interaction, &mut UiColor, &ButtonNextState),
         (Changed<Interaction>, With<Button>),
@@ -921,6 +923,9 @@ fn update_menu_system(
                     }
                     ButtonNextState::Restart() => {
                         // state.pop().unwrap();
+                        for (entity, _) in &players {
+                            commands.entity(entity).despawn_recursive();
+                        }
                         let base_state = state.inactives()[0].clone();
                         state.replace(base_state).unwrap();
                     }
@@ -1364,6 +1369,7 @@ fn setup_phase(
 
     if existing_player.is_empty() {
         game.time_elapsed.reset();
+        game.player.hp = 100.;
         game.player.entity = Some(
             commands.spawn_bundle(SpriteBundle {
                 sprite: Sprite {
@@ -4060,8 +4066,11 @@ fn scheduled_hint_system(
             continue;
         }
         game.hint = Some(hint.hint);
-        state.push(GameState::PausedShowHint).unwrap();
+        if let Err(_) = state.push(GameState::PausedShowHint) {
+            info!("hint state push failed");
+        }
         commands.entity(entity).despawn_recursive();
+        break;
     }
 }
 
