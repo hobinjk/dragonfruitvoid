@@ -4125,7 +4125,7 @@ fn main() {
         continuous: false,
         orb_target: -1,
         echo_enabled: false,
-        hints_enabled: false,
+        hints_enabled: true,
         hint: None,
     };
 
