@@ -2848,6 +2848,7 @@ fn greens_detonation_system(mut game: ResMut<Game>,
 
             if !any_collide {
                 game.player.hp = 0.;
+                info!("green exploded");
             }
         }
     }
@@ -3457,6 +3458,7 @@ fn collisions_crabs_orbs_system(
             let crab_pos = transform_crab.translation;
             if collide(orb_pos, ORB_RADIUS, crab_pos, CRAB_SIZE / 2.) {
                 game.player.hp = 0.;
+                info!("crab hit orb");
             }
         }
     }
@@ -3520,6 +3522,7 @@ fn collisions_players_edge_system(
     let transform_player = players.single();
     if !collide(transform_player.translation, 0., Vec3::ZERO, MAP_RADIUS) {
         game.player.hp = 0.;
+        info!("player fell off the edge");
     }
 }
 
@@ -3665,6 +3668,7 @@ fn collisions_orbs_edge_system(
     for (_, transform_orb) in &orbs {
         if !collide(transform_orb.translation, 0., Vec3::ZERO, MAP_RADIUS - ORB_RADIUS) {
             game.player.hp = 0.;
+            info!("orb hit the edge");
         }
     }
 }
