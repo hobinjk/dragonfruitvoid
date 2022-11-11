@@ -223,7 +223,7 @@ struct EffectForcedMarch {
     speed: f32,
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
+#[derive(Clone, Eq, PartialEq, Debug, Hash)]
 enum GameState {
     StartMenu,
     PurificationOne,
@@ -240,6 +240,7 @@ enum GameState {
     Failure,
     Success,
     Paused,
+    PausedShowHint,
 }
 
 #[derive(Component)]
@@ -340,6 +341,13 @@ struct Game {
     continuous: bool,
     echo_enabled: bool,
     hints_enabled: bool,
+    hint: Option<&'static str>,
+}
+
+#[derive(Component)]
+struct ScheduledHint {
+    start: Timer,
+    hint: &'static str,
 }
 
 #[derive(Component)]
@@ -541,11 +549,170 @@ const GREEN_SPAWNS_SOOWONTWO: [GreenSpawn; 3] = [
     }
 ];
 
+struct HintTiming {
+    start: f32,
+    hint: &'static str,
+}
+
+const HINTS_ALL_PHASES: [HintTiming; 1] = [
+    HintTiming {
+        start: 0.,
+        hint: "Welcome to The Dragonfruitvoid!
+
+Move with WASD and shoot with left mouse
+button. Your skills are 4: Pull, E: Blink,
+V: Dodge, and Space: Jump.",
+    },
+];
+
+const HINT_INDIVIDUAL_PHASE: HintTiming = HintTiming {
+    start: 0.1,
+    hint: "Previous phases may have hints
+related to this phase",
+};
+
+fn phase_hints(phase: &GameState) -> Vec<HintTiming> {
+    match phase {
+        GameState::PurificationOne => {
+            vec![
+                HintTiming {
+                    start: 1.,
+                    hint: "Push the white orb through the green
+targets with your bullets! Prevent the
+crabs from reaching the orbs by killing
+them (also with your bullets). The black
+circles are THE VOID and will damage you.",
+                },
+            ]
+        },
+        GameState::Jormag => {
+            vec![
+                HintTiming {
+                    start: 1.,
+                    hint: "The big red circle is a boss. Pew pew
+it to victory!",
+                },
+                HintTiming {
+                    start: 5.5,
+                    hint: "Red puddles will follow you for a short
+time before they drop on the ground and
+become a damaging zone. Move quickly to
+drop them out of the way. Dodge out to
+avoid taking too much damage.",
+                },
+                HintTiming {
+                    start: 15.5,
+                    hint: "Green circles need to be soaked. Pick one
+of the three to stand in before it
+explodes",
+                },
+            ]
+        },
+        GameState::Primordus => {
+            vec![
+                HintTiming {
+                    start: 13.5,
+                    hint: "Orange circles are AoEs. Run away!",
+                },
+            ]
+        },
+        GameState::Kralkatorrik => {
+            vec![
+                HintTiming {
+                    start: 5.5,
+                    hint: "Space is limited in this phase. Watch
+out for the lines of VOID.",
+                },
+            ]
+        },
+        GameState::PurificationTwo => {
+            vec![
+                HintTiming {
+                    start: 1.,
+                    hint: "Push the orb to the targets again. Watch
+out, the timecaster is a nasty enemy who
+needs to be removed or they'll push away
+the orb."
+                },
+                HintTiming {
+                    start: 4.,
+                    hint: "The orb shoots bees out now, you
+know how it is with bees.",
+                },
+            ]
+        },
+        GameState::Mordremoth => {
+            vec![
+                HintTiming {
+                    start: 21.,
+                    hint: "Shockwaves incoming! These blue waves
+need to be dodged, jumped over, or blinked
+through to prevent massive damage.",
+                },
+            ]
+        },
+        GameState::Zhaitan => {
+            vec![
+                HintTiming {
+                    start: 5.5,
+                    hint: "Noodles attack the area near them.
+Kill them before they kill you!",
+                },
+            ]
+        },
+        GameState::PurificationThree => {
+            vec![
+                HintTiming {
+                    start: 1.,
+                    hint: "Push the orb to the targets. There is
+now a big saltspray dragon. Do what you do
+to dragons, you heartless monster.",
+                },
+            ]
+        },
+        GameState::SooWonOne => {
+            vec![
+                HintTiming {
+                    start: 1.,
+                    hint: "Get ready for everything from every
+phase all at once!",
+                },
+            ]
+        },
+        GameState::PurificationFour => {
+            vec![
+                HintTiming {
+                    start: 1.,
+                    hint: "Time to get revenge on the orb by
+killing it! Beware, your bullets still push.",
+                },
+            ]
+        },
+        GameState::SooWonTwo => {
+            vec![
+                HintTiming {
+                    start: 1.,
+                    hint: "Everything from every phase all at
+once part two: Electric Boogaloo. Don't
+let the Obliterator or Goliath hit you!",
+                },
+            ]
+        },
+        _ => {
+            vec![]
+        }
+    }
+}
+
 const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
 const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
 
-fn setup_menu_system(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup_menu_system(
+    mut commands: Commands,
+    game: Res<Game>,
+    asset_server: Res<AssetServer>
+    ) {
     let button_size = Size::new(Val::Px(350.0), Val::Px(65.0));
     let button_margin = UiRect::all(Val::Px(10.));
 
@@ -636,19 +803,24 @@ fn setup_menu_system(mut commands: Commands, asset_server: Res<AssetServer>) {
         })
         .with_children(|container| {
             let phases = vec![
-                // ("Hints", ButtonOnOff::Hints()),
-                ("Ender's Echo", ButtonOnOff::Echo(17)),
+                ("Hints", ButtonOnOff::Hints(), game.hints_enabled),
+                ("Ender's Echo", ButtonOnOff::Echo(17), game.echo_enabled),
             ];
 
-            for (label, state) in phases {
+            for (label, state, onoff_enabled) in phases {
                 container.spawn_bundle(ButtonBundle {
                     style: button_style.clone(),
                     color: NORMAL_BUTTON.into(),
                     ..default()
                 })
                 .with_children(|parent| {
+                    let onoff = if onoff_enabled {
+                        "ON"
+                    } else {
+                        "OFF"
+                    };
                     parent.spawn_bundle(TextBundle::from_section(
-                        format!("{}: OFF", label),
+                        format!("{}: {}", label, onoff),
                         text_style.clone(),
                     ));
                 })
@@ -732,7 +904,7 @@ fn update_menu_system(
                 match next_state {
                     ButtonNextState::GoTo(next_state) => {
                         game.continuous = false;
-                        state.set(*next_state).unwrap();
+                        state.set(next_state.clone()).unwrap();
                     }
                     ButtonNextState::StartContinuous() => {
                         game.continuous = true;
@@ -743,7 +915,7 @@ fn update_menu_system(
                     }
                     ButtonNextState::Restart() => {
                         // state.pop().unwrap();
-                        let base_state = state.inactives()[0];
+                        let base_state = state.inactives()[0].clone();
                         state.replace(base_state).unwrap();
                     }
                     ButtonNextState::Exit() => {
@@ -979,6 +1151,95 @@ fn setup_failure_system(game: Res<Game>, mut commands: Commands, asset_server: R
     setup_result_screen("You died :(", Color::rgb(0.9, 0.2, 0.2), game, &mut commands, asset_server);
 }
 
+fn setup_show_hint_system(game: Res<Game>, mut commands: Commands, asset_server: Res<AssetServer>) {
+    let hint_text = game.hint.unwrap();
+
+    let button_size = Size::new(Val::Px(240.0), Val::Px(65.0));
+    let button_margin = UiRect::all(Val::Px(10.));
+
+    let button_style = Style {
+        size: button_size,
+        // center button
+        margin: button_margin,
+        // horizontally center child text
+        justify_content: JustifyContent::Center,
+        // vertically center child text
+        align_items: AlignItems::Center,
+        ..default()
+    };
+
+    let text_style = TextStyle {
+        font: asset_server.load("trebuchet_ms.ttf"),
+        font_size: 28.0,
+        color: Color::rgb(0.9, 0.9, 0.9),
+    };
+
+    commands.spawn_bundle(NodeBundle {
+        style: Style {
+            size: Size::new(Val::Px(WIDTH / 2.), Val::Px(HEIGHT / 2.)),
+            margin: UiRect::all(Val::Auto), // UiRect::new(Val::Px(0.), Val::Px(0.), Val::Px(0.), Val::Px(HEIGHT / 4.)),
+            // horizontally center child text
+            justify_content: JustifyContent::Center,
+            // vertically center child text
+            align_items: AlignItems::Center,
+            flex_direction: FlexDirection::ColumnReverse,
+            ..default()
+        },
+        color: Color::rgba(0., 0., 0., 0.).into(),
+        ..default()
+    })
+    .with_children(|big_container| {
+        big_container.spawn_bundle(NodeBundle {
+            style: Style {
+                size: Size::new(Val::Px(WIDTH / 2. - 20.), Val::Px(240.0)),
+                // horizontally center child text
+                justify_content: JustifyContent::Center,
+                // vertically center child text
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            color: Color::rgba(0., 0., 0., 0.8).into(),
+            ..default()
+        })
+        .with_children(|parent| {
+            parent.spawn_bundle(TextBundle::from_sections([
+                TextSection::new(hint_text, text_style.clone()),
+            ]));
+        });
+
+        big_container.spawn_bundle(NodeBundle {
+            style: Style {
+                size: Size::new(Val::Px(WIDTH), Val::Px(100.)),
+                // horizontally center children
+                justify_content: JustifyContent::Center,
+                // vertically center children
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            color: Color::rgba(0., 0., 0., 0.).into(),
+            ..default()
+        }).with_children(|parent| {
+            let buttons = vec![
+                ("Continue", ButtonNextState::Resume()),
+            ];
+
+            for (label, state) in buttons {
+                parent.spawn_bundle(ButtonBundle {
+                    style: button_style.clone(),
+                    color: NORMAL_BUTTON.into(),
+                    ..default()
+                })
+                .with_children(|button| {
+                    button.spawn_bundle(TextBundle::from_section(
+                        label,
+                        text_style.clone(),
+                    ));
+                })
+                .insert(state);
+            }
+        });
+    }).insert(MenuContainer);
+}
 
 fn next_game_state(game_state: GameState) -> GameState {
     match game_state {
@@ -1050,12 +1311,25 @@ fn cleanup_phase(
 fn setup_phase(
     mut commands: Commands, asset_server: Res<AssetServer>,
     mut game: ResMut<Game>,
+    state: Res<State<GameState>>,
     existing_player: Query<&PlayerTag>,
     mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
     ) {
 
+    let mut hints: Vec<HintTiming> = vec![];
+
     // Reset all cooldowns and invuln timings
     if !game.continuous {
+        hints.extend(HINTS_ALL_PHASES);
+        match *state.current() {
+            GameState::PurificationOne |
+            GameState::Jormag
+                => {
+            }
+            _ => {
+                hints.push(HINT_INDIVIDUAL_PHASE);
+            }
+        }
         game.time_elapsed.reset();
         game.player.hp = 100.;
         game.player.dodge_cooldown.tick(Duration::from_secs_f32(1000.));
@@ -1064,6 +1338,20 @@ fn setup_phase(
         game.player.pull_cooldown.tick(Duration::from_secs_f32(1000.));
         game.player.invuln.tick(Duration::from_secs_f32(1000.));
         game.player.jump.tick(Duration::from_secs_f32(1000.));
+    } else {
+        if *state.current() == GameState::PurificationOne {
+            hints.extend(HINTS_ALL_PHASES);
+        }
+    }
+
+    hints.extend(phase_hints(state.current()));
+
+    for hint in &hints {
+        commands.spawn()
+        .insert(ScheduledHint {
+            start: Timer::from_seconds(hint.start, false),
+            hint: hint.hint,
+        });
     }
 
     if existing_player.is_empty() {
@@ -3739,13 +4027,32 @@ fn void_zone_growth_system(
     }
 }
 
-fn player_hp_check_system(game: ResMut<Game>,
+fn player_hp_check_system(game: Res<Game>,
                           mut state: ResMut<State<GameState>>,
                           ) {
     if game.player.hp <= 0.1 {
         state.push(GameState::Failure).unwrap();
     }
 }
+
+fn scheduled_hint_system(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut game: ResMut<Game>,
+    mut state: ResMut<State<GameState>>,
+    mut hints: Query<(Entity, &mut ScheduledHint)>,
+    ) {
+    for (entity, mut hint) in &mut hints {
+        hint.start.tick(time.delta());
+        if !hint.start.finished() {
+            continue;
+        }
+        game.hint = Some(hint.hint);
+        state.push(GameState::PausedShowHint).unwrap();
+        commands.entity(entity).despawn_recursive();
+    }
+}
+
 
 fn build_update_phase(phase: GameState) -> SystemSet {
     SystemSet::on_update(phase)
@@ -3771,6 +4078,7 @@ fn build_update_phase(phase: GameState) -> SystemSet {
         .with_system(soup_duration_system)
         .with_system(echo_grab_system)
         .with_system(echo_retarget_system)
+        .with_system(scheduled_hint_system)
 }
 
 fn build_update_boss_phase(phase: GameState) -> SystemSet {
@@ -3810,6 +4118,7 @@ fn main() {
         orb_target: -1,
         echo_enabled: false,
         hints_enabled: false,
+        hint: None,
     };
 
     App::new()
@@ -3837,6 +4146,10 @@ fn main() {
         .add_system_set(SystemSet::on_enter(GameState::Paused).with_system(setup_pause_menu_system))
         .add_system_set(SystemSet::on_update(GameState::Paused).with_system(update_menu_system))
         .add_system_set(SystemSet::on_exit(GameState::Paused).with_system(cleanup_menu_system))
+
+        .add_system_set(SystemSet::on_enter(GameState::PausedShowHint).with_system(setup_show_hint_system))
+        .add_system_set(SystemSet::on_update(GameState::PausedShowHint).with_system(update_menu_system))
+        .add_system_set(SystemSet::on_exit(GameState::PausedShowHint).with_system(cleanup_menu_system))
 
         .add_system_set(SystemSet::on_enter(GameState::Success).with_system(setup_success_system))
         .add_system_set(SystemSet::on_update(GameState::Success).with_system(update_menu_system))
