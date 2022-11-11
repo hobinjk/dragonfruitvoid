@@ -1275,7 +1275,7 @@ fn spawn_crab(commands: &mut Commands, asset_server: &Res<AssetServer>, crab_pos
     .insert(MobCrab)
     .insert(Enemy)
     .insert(CollisionRadius(CRAB_SIZE / 2.))
-    .insert(Hp(0.3));
+    .insert(Hp(0.1));
 }
 
 fn setup(mut commands: Commands,
