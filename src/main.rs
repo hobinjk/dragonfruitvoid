@@ -106,6 +106,12 @@ struct TintUntint {
     tint_timer: Timer,
 }
 
+#[derive(Component)]
+struct PortalEntry(Timer);
+
+#[derive(Component)]
+struct PortalExit(Timer);
+
 // 312 - 60 / 2 @ 56 (14 ticks)
 
 const VOID_ZONE_GROWTH_DURATION_SECS: f32 = 4.;
@@ -141,6 +147,7 @@ const TIMECASTER_BULLET_DAMAGE: f32 = 10.;
 const BEE_SPEED: f32 = 50.;
 
 const PLAYER_RADIUS: f32 = 20.;
+const PORTAL_RADIUS: f32 = 24.;
 
 const PUDDLE_RADIUS: f32 = 450. * GAME_TO_PX;
 const PUDDLE_DAMAGE: f32 = 20.;
@@ -1528,7 +1535,6 @@ fn setup_phase(
         ..default()
     });
 
-    /*
     let sprite_portal = commands.spawn_bundle(SpriteBundle {
         texture: asset_server.load("portal.png"),
         transform: Transform::from_xyz(256., -HEIGHT / 2. + 55., LAYER_UI),
@@ -1551,7 +1557,6 @@ fn setup_phase(
         transform: Transform::from_xyz(256., -HEIGHT / 2. + binding_y, LAYER_TEXT),
         ..default()
     });
-    */
 }
 
 fn setup_purification(
@@ -3850,7 +3855,10 @@ fn handle_mouse_events_system(
 fn handle_spellcasts_system(
     keyboard_input: Res<Input<KeyCode>>,
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
     players: Query<&Transform, (With<PlayerTag>, Without<CursorMark>)>,
+    portal_entries: Query<&Transform, With<PortalEntry>>,
+    portal_exits: Query<&Transform, With<PortalExit>>,
     cursors: Query<&Transform, With<CursorMark>>,
     crabs: Query<(Entity, &Transform, &MobCrab)>,
     mut game: ResMut<Game>) {
@@ -3927,6 +3935,88 @@ fn handle_spellcasts_system(
         }
 
         game.player.pull_cooldown.reset();
+    }
+
+    if game.player.portal_cooldown.finished() &&
+        keyboard_input.just_pressed(KeyCode::R) {
+        let portal_loc = player_loc;
+
+        if portal_entries.is_empty() {
+            commands.spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    color: Color::rgb(0., 1., 1.),
+                    custom_size: Some(Vec2::new(PORTAL_RADIUS * 2., PORTAL_RADIUS * 2.)),
+                    ..default()
+                },
+                texture: asset_server.load("ring.png"),
+                transform: Transform::from_translation(portal_loc),
+                ..default()
+            })
+            .insert(PortalEntry(Timer::from_seconds(60., false)));
+
+            game.player.portal_cooldown = Timer::from_seconds(0.5, false);
+        } else if portal_exits.is_empty() {
+            commands.spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    color: Color::rgb(1., 0.7, 0.),
+                    custom_size: Some(Vec2::new(PORTAL_RADIUS * 2., PORTAL_RADIUS * 2.)),
+                    ..default()
+                },
+                texture: asset_server.load("ring.png"),
+                transform: Transform::from_translation(portal_loc),
+                ..default()
+            })
+            .insert(PortalExit(Timer::from_seconds(10., false)));
+
+            game.player.portal_cooldown = Timer::from_seconds(60., false);
+        }
+    }
+
+    if keyboard_input.just_pressed(KeyCode::F) &&
+        !portal_entries.is_empty() &&
+        !portal_exits.is_empty() {
+        let entry = portal_entries.single().translation;
+        let exit = portal_exits.single().translation;
+        if collide(player_loc, PLAYER_RADIUS, entry, PORTAL_RADIUS) {
+            commands.entity(game.player.entity.unwrap()).insert(EffectForcedMarch {
+                target: exit,
+                speed: 20000.,
+            });
+        } else if collide(player_loc, PLAYER_RADIUS, exit, PORTAL_RADIUS) {
+            commands.entity(game.player.entity.unwrap()).insert(EffectForcedMarch {
+                target: entry,
+                speed: 20000.,
+            });
+        }
+    }
+}
+
+fn portal_despawn_system(
+    mut game: ResMut<Game>,
+    mut commands: Commands,
+    time: Res<Time>,
+    mut portal_entries: Query<(Entity, &mut PortalEntry)>,
+    mut portal_exits: Query<(Entity, &mut PortalExit)>,
+    ) {
+    if portal_exits.is_empty() {
+        for (entity, mut entry) in &mut portal_entries {
+            entry.0.tick(time.delta());
+            if entry.0.finished() {
+                game.player.portal_cooldown = Timer::from_seconds(60., false);
+                commands.entity(entity).despawn_recursive();
+            }
+        }
+    }
+
+    for (entity, mut exit) in &mut portal_exits {
+        exit.0.tick(time.delta());
+        if exit.0.finished() {
+            commands.entity(entity).despawn_recursive();
+
+            for (entity, _) in &portal_entries {
+                commands.entity(entity).despawn_recursive();
+            }
+        }
     }
 }
 
@@ -4102,6 +4192,7 @@ fn build_update_phase(phase: GameState) -> SystemSet {
         .with_system(echo_grab_system)
         .with_system(echo_retarget_system)
         .with_system(scheduled_hint_system)
+        .with_system(portal_despawn_system)
 }
 
 fn build_update_boss_phase(phase: GameState) -> SystemSet {
