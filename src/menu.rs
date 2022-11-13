@@ -55,7 +55,7 @@ pub fn setup_menu_system(
         color: Color::rgb(0.9, 0.9, 0.9),
     };
 
-    commands.spawn_bundle(NodeBundle {
+    commands.spawn(NodeBundle {
         style: Style {
             size: Size::new(Val::Px(WIDTH), Val::Px(HEIGHT)),
             flex_direction: FlexDirection::Row,
@@ -67,7 +67,7 @@ pub fn setup_menu_system(
         },
         ..default()
     }).with_children(|container| {
-       container.spawn_bundle(NodeBundle {
+       container.spawn(NodeBundle {
             style: Style {
                 size: Size::new(Val::Px(WIDTH / 2.), Val::Px(HEIGHT)),
                 flex_direction: FlexDirection::ColumnReverse,
@@ -96,13 +96,13 @@ pub fn setup_menu_system(
             ];
 
             for (label, state) in phases {
-                container.spawn_bundle(ButtonBundle {
+                container.spawn(ButtonBundle {
                     style: button_style.clone(),
-                    color: NORMAL_BUTTON.into(),
+                    background_color: NORMAL_BUTTON.into(),
                     ..default()
                 })
                 .with_children(|parent| {
-                    parent.spawn_bundle(TextBundle::from_section(
+                    parent.spawn(TextBundle::from_section(
                         label,
                         text_style.clone(),
                     ));
@@ -111,7 +111,7 @@ pub fn setup_menu_system(
             }
         });
 
-       container.spawn_bundle(NodeBundle {
+       container.spawn(NodeBundle {
             style: Style {
                 size: Size::new(Val::Px(WIDTH / 2.), Val::Px(HEIGHT)),
                 flex_direction: FlexDirection::ColumnReverse,
@@ -136,9 +136,9 @@ pub fn setup_menu_system(
             ];
 
             for (label, state, onoff_enabled) in phases {
-                container.spawn_bundle(ButtonBundle {
+                container.spawn(ButtonBundle {
                     style: button_style.clone(),
-                    color: NORMAL_BUTTON.into(),
+                    background_color: NORMAL_BUTTON.into(),
                     ..default()
                 })
                 .with_children(|parent| {
@@ -147,7 +147,7 @@ pub fn setup_menu_system(
                     } else {
                         "OFF"
                     };
-                    parent.spawn_bundle(TextBundle::from_section(
+                    parent.spawn(TextBundle::from_section(
                         format!("{}: {}", label, onoff),
                         text_style.clone(),
                     ));
@@ -181,7 +181,7 @@ pub fn setup_pause_menu_system(mut commands: Commands, asset_server: Res<AssetSe
         color: Color::rgb(0.9, 0.9, 0.9),
     };
 
-    commands.spawn_bundle(NodeBundle {
+    commands.spawn(NodeBundle {
         style: Style {
             size: Size::new(Val::Px(WIDTH), Val::Px(HEIGHT)),
             flex_direction: FlexDirection::ColumnReverse,
@@ -200,13 +200,13 @@ pub fn setup_pause_menu_system(mut commands: Commands, asset_server: Res<AssetSe
         ];
 
         for (label, state) in buttons {
-            container.spawn_bundle(ButtonBundle {
+            container.spawn(ButtonBundle {
                 style: button_style.clone(),
-                color: NORMAL_BUTTON.into(),
+                background_color: NORMAL_BUTTON.into(),
                 ..default()
             })
             .with_children(|parent| {
-                parent.spawn_bundle(TextBundle::from_section(
+                parent.spawn(TextBundle::from_section(
                     label,
                     text_style.clone(),
                 ));
@@ -223,7 +223,7 @@ pub fn update_menu_system(
     mut commands: Commands,
     players: Query<(Entity, &PlayerTag)>,
     mut interaction_query: Query<
-        (&Interaction, &mut UiColor, &ButtonNextState),
+        (&Interaction, &mut BackgroundColor, &ButtonNextState),
         (Changed<Interaction>, With<Button>),
     >,
 ) {
@@ -269,7 +269,7 @@ pub fn update_menu_system(
 pub fn update_menu_onoff_system(
     mut game: ResMut<Game>,
     mut interaction_query: Query<
-        (&Interaction, &mut UiColor, &Children, &mut ButtonOnOff),
+        (&Interaction, &mut BackgroundColor, &Children, &mut ButtonOnOff),
         (Changed<Interaction>, With<Button>)>,
     mut texts: Query<&mut Text>,
     ) {
@@ -393,7 +393,7 @@ fn setup_result_screen(
         color: Color::rgb(0.9, 0.9, 0.9),
     };
 
-    commands.spawn_bundle(NodeBundle {
+    commands.spawn(NodeBundle {
         style: Style {
             size: Size::new(Val::Px(WIDTH), Val::Px(HEIGHT / 2.)),
             margin: UiRect::all(Val::Auto), // UiRect::new(Val::Px(0.), Val::Px(0.), Val::Px(0.), Val::Px(HEIGHT / 4.)),
@@ -404,11 +404,10 @@ fn setup_result_screen(
             flex_direction: FlexDirection::ColumnReverse,
             ..default()
         },
-        color: Color::rgba(0., 0., 0., 0.).into(),
         ..default()
     })
     .with_children(|big_container| {
-        big_container.spawn_bundle(NodeBundle {
+        big_container.spawn(NodeBundle {
             style: Style {
                 size: Size::new(Val::Px(WIDTH), Val::Px(240.0)),
                 // horizontally center child text
@@ -417,7 +416,7 @@ fn setup_result_screen(
                 align_items: AlignItems::Center,
                 ..default()
             },
-            color: Color::rgba(0., 0., 0., 0.6).into(),
+            background_color: Color::rgba(0., 0., 0., 0.6).into(),
             ..default()
         })
         .with_children(|parent| {
@@ -438,14 +437,14 @@ fn setup_result_screen(
             let milliseconds = ((game.time_elapsed.elapsed_secs() % 1.) * 1000.).floor() as i32;
 
             let time_str = format!("{}:{:02}.{:03}", minutes, seconds, milliseconds);
-            parent.spawn_bundle(TextBundle::from_sections([
+            parent.spawn(TextBundle::from_sections([
                 TextSection::new(result_message, text_style.clone()),
                 TextSection::new(format!("\nTime: {}\n", time_str), text_style_small.clone()),
                 TextSection::new(format!("Damage Taken: {}", game.player.damage_taken as i32), text_style_small.clone()),
             ]));
         });
 
-        big_container.spawn_bundle(NodeBundle {
+        big_container.spawn(NodeBundle {
             style: Style {
                 size: Size::new(Val::Px(WIDTH), Val::Px(100.)),
                 // horizontally center children
@@ -454,7 +453,6 @@ fn setup_result_screen(
                 align_items: AlignItems::Center,
                 ..default()
             },
-            color: Color::rgba(0., 0., 0., 0.).into(),
             ..default()
         }).with_children(|parent| {
             let buttons = vec![
@@ -463,13 +461,13 @@ fn setup_result_screen(
             ];
 
             for (label, state) in buttons {
-                parent.spawn_bundle(ButtonBundle {
+                parent.spawn(ButtonBundle {
                     style: button_style.clone(),
-                    color: NORMAL_BUTTON.into(),
+                    background_color: NORMAL_BUTTON.into(),
                     ..default()
                 })
                 .with_children(|button| {
-                    button.spawn_bundle(TextBundle::from_section(
+                    button.spawn(TextBundle::from_section(
                         label,
                         text_style.clone(),
                     ));
@@ -507,7 +505,7 @@ pub fn setup_show_hint_system(game: Res<Game>, mut commands: Commands, asset_ser
         color: Color::rgb(0.9, 0.9, 0.9),
     };
 
-    commands.spawn_bundle(NodeBundle {
+    commands.spawn(NodeBundle {
         style: Style {
             size: Size::new(Val::Px(WIDTH / 2.), Val::Px(HEIGHT / 2.)),
             margin: UiRect::all(Val::Auto), // UiRect::new(Val::Px(0.), Val::Px(0.), Val::Px(0.), Val::Px(HEIGHT / 4.)),
@@ -518,11 +516,10 @@ pub fn setup_show_hint_system(game: Res<Game>, mut commands: Commands, asset_ser
             flex_direction: FlexDirection::ColumnReverse,
             ..default()
         },
-        color: Color::rgba(0., 0., 0., 0.).into(),
         ..default()
     })
     .with_children(|big_container| {
-        big_container.spawn_bundle(NodeBundle {
+        big_container.spawn(NodeBundle {
             style: Style {
                 size: Size::new(Val::Px(WIDTH / 2. - 20.), Val::Px(240.0)),
                 // horizontally center child text
@@ -531,16 +528,16 @@ pub fn setup_show_hint_system(game: Res<Game>, mut commands: Commands, asset_ser
                 align_items: AlignItems::Center,
                 ..default()
             },
-            color: Color::rgba(0., 0., 0., 0.8).into(),
+            background_color: Color::rgba(0., 0., 0., 0.8).into(),
             ..default()
         })
         .with_children(|parent| {
-            parent.spawn_bundle(TextBundle::from_sections([
+            parent.spawn(TextBundle::from_sections([
                 TextSection::new(hint_text, text_style.clone()),
             ]));
         });
 
-        big_container.spawn_bundle(NodeBundle {
+        big_container.spawn(NodeBundle {
             style: Style {
                 size: Size::new(Val::Px(WIDTH), Val::Px(100.)),
                 // horizontally center children
@@ -549,7 +546,6 @@ pub fn setup_show_hint_system(game: Res<Game>, mut commands: Commands, asset_ser
                 align_items: AlignItems::Center,
                 ..default()
             },
-            color: Color::rgba(0., 0., 0., 0.).into(),
             ..default()
         }).with_children(|parent| {
             let buttons = vec![
@@ -557,13 +553,13 @@ pub fn setup_show_hint_system(game: Res<Game>, mut commands: Commands, asset_ser
             ];
 
             for (label, state) in buttons {
-                parent.spawn_bundle(ButtonBundle {
+                parent.spawn(ButtonBundle {
                     style: button_style.clone(),
-                    color: NORMAL_BUTTON.into(),
+                    background_color: NORMAL_BUTTON.into(),
                     ..default()
                 })
                 .with_children(|button| {
-                    button.spawn_bundle(TextBundle::from_section(
+                    button.spawn(TextBundle::from_section(
                         label,
                         text_style.clone(),
                     ));
