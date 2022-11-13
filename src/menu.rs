@@ -70,7 +70,7 @@ pub fn setup_menu_system(
        container.spawn(NodeBundle {
             style: Style {
                 size: Size::new(Val::Px(WIDTH / 2.), Val::Px(HEIGHT)),
-                flex_direction: FlexDirection::ColumnReverse,
+                flex_direction: FlexDirection::Column,
                 // horizontally center children
                 justify_content: JustifyContent::Center,
                 // vertically center children
@@ -114,7 +114,7 @@ pub fn setup_menu_system(
        container.spawn(NodeBundle {
             style: Style {
                 size: Size::new(Val::Px(WIDTH / 2.), Val::Px(HEIGHT)),
-                flex_direction: FlexDirection::ColumnReverse,
+                flex_direction: FlexDirection::Column,
                 // horizontally center children
                 justify_content: JustifyContent::Center,
                 // vertically center children
@@ -184,7 +184,7 @@ pub fn setup_pause_menu_system(mut commands: Commands, asset_server: Res<AssetSe
     commands.spawn(NodeBundle {
         style: Style {
             size: Size::new(Val::Px(WIDTH), Val::Px(HEIGHT)),
-            flex_direction: FlexDirection::ColumnReverse,
+            flex_direction: FlexDirection::Column,
             // horizontally center children
             justify_content: JustifyContent::Center,
             // vertically center children
@@ -401,7 +401,7 @@ fn setup_result_screen(
             justify_content: JustifyContent::Center,
             // vertically center child text
             align_items: AlignItems::Center,
-            flex_direction: FlexDirection::ColumnReverse,
+            flex_direction: FlexDirection::Column,
             ..default()
         },
         ..default()
@@ -513,7 +513,7 @@ pub fn setup_show_hint_system(game: Res<Game>, mut commands: Commands, asset_ser
             justify_content: JustifyContent::Center,
             // vertically center child text
             align_items: AlignItems::Center,
-            flex_direction: FlexDirection::ColumnReverse,
+            flex_direction: FlexDirection::Column,
             ..default()
         },
         ..default()
