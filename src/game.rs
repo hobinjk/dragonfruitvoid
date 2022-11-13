@@ -92,14 +92,14 @@ impl Default for Player {
         Player {
             hp: 100.,
             damage_taken: 0.,
-            shoot_cooldown: Timer::from_seconds(BULLET_COOLDOWN, false),
-            dodge_cooldown: Timer::from_seconds(10., false),
-            blink_cooldown: Timer::from_seconds(16., false),
-            portal_cooldown: Timer::from_seconds(60., false),
-            jump_cooldown: Timer::from_seconds(0.6, false),
-            pull_cooldown: Timer::from_seconds(20., false),
-            invuln: Timer::from_seconds(0.75, false),
-            jump: Timer::from_seconds(0.75, false),
+            shoot_cooldown: Timer::from_seconds(BULLET_COOLDOWN, TimerMode::Once),
+            dodge_cooldown: Timer::from_seconds(10., TimerMode::Once),
+            blink_cooldown: Timer::from_seconds(16., TimerMode::Once),
+            portal_cooldown: Timer::from_seconds(60., TimerMode::Once),
+            jump_cooldown: Timer::from_seconds(0.6, TimerMode::Once),
+            pull_cooldown: Timer::from_seconds(20., TimerMode::Once),
+            invuln: Timer::from_seconds(0.75, TimerMode::Once),
+            jump: Timer::from_seconds(0.75, TimerMode::Once),
             entity: None,
         }
     }

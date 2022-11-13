@@ -10,8 +10,8 @@ pub struct Wave {
 impl Default for Wave {
     fn default() -> Wave {
         Wave {
-            visibility_start: Timer::from_seconds(0., false),
-            growth: Timer::from_seconds(WAVE_GROWTH_DURATION, false),
+            visibility_start: Timer::from_seconds(0., TimerMode::Once),
+            growth: Timer::from_seconds(WAVE_GROWTH_DURATION, TimerMode::Once),
         }
     }
 }

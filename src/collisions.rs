@@ -247,7 +247,7 @@ pub fn collisions_players_waves_system(
                     entity: entity_player,
                 });
                 // Brief invuln from being knocked (not actually knocked because Reasons)
-                game.player.invuln = Timer::from_seconds(1., false);
+                game.player.invuln = Timer::from_seconds(1., TimerMode::Once);
             }
         }
     }
@@ -297,7 +297,7 @@ pub fn collisions_players_enemy_bullets_system(
                 });
             }
             // Brief invuln from being damaged
-            game.player.invuln = Timer::from_seconds(0.1, false);
+            game.player.invuln = Timer::from_seconds(0.1, TimerMode::Once);
         }
 
         commands.entity(entity_bullet).despawn_recursive();

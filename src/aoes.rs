@@ -204,9 +204,9 @@ pub fn spawn_spew_aoe(
             let aoe_delay = dist / 2000.;
 
             let aoe = Aoe {
-                visibility_start: Some(Timer::from_seconds(start + aoe_delay, false)),
-                // detonation: Timer::from_seconds(1.5, false),
-                detonation: Timer::from_seconds(detonation, false),
+                visibility_start: Some(Timer::from_seconds(start + aoe_delay, TimerMode::Once)),
+                // detonation: Timer::from_seconds(1.5, TimerMode::Once),
+                detonation: Timer::from_seconds(detonation, TimerMode::Once),
                 damage: SPEW_DAMAGE,
                 linger: linger.clone(),
             };

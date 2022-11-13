@@ -133,7 +133,7 @@ fn setup_purification_two(
     let bee_material = materials.add(ColorMaterial::from(Color::rgba(0.9, 0.0, 0.0, 0.7)));
 
     commands.spawn().insert(OhNoNotTheBees {
-        bees_cooldown: Timer::from_seconds(5., false),
+        bees_cooldown: Timer::from_seconds(5., TimerMode::Once),
         mesh: bee_mesh,
         material: bee_material,
     });
@@ -179,7 +179,7 @@ fn setup_purification_two(
         ..default()
     })
     .insert(MobTimeCaster {
-        shoot_cooldown: Timer::from_seconds(0.5, true),
+        shoot_cooldown: Timer::from_seconds(0.5, TimerMode::Repeating),
     })
     .insert(Enemy)
     .insert(Hp(10.))
@@ -271,7 +271,7 @@ fn setup_purification_three(
         ..default()
     }).insert(OrbTarget(1));
 
-    let mut shoot_cooldown = Timer::from_seconds(6., false);
+    let mut shoot_cooldown = Timer::from_seconds(6., TimerMode::Once);
     shoot_cooldown.tick(Duration::from_secs_f32(3.));
 
     commands.spawn_bundle(SpriteBundle {
@@ -383,11 +383,11 @@ fn setup_claw_swipes(
     };
 
     for claw_swipe_start in claw_swipe_starts {
-        let chonk_start = Timer::from_seconds(claw_swipe_start, false);
+        let chonk_start = Timer::from_seconds(claw_swipe_start, TimerMode::Once;
         let chonk_pos = SWIPE_CENTER;
         spawn_aoe(commands, &aoe_desc_chonk, chonk_pos, Aoe {
             visibility_start: Some(chonk_start),
-            detonation: Timer::from_seconds(SWIPE_DETONATION, false),
+            detonation: Timer::from_seconds(SWIPE_DETONATION, TimerMode::Once),
             damage: SWIPE_DAMAGE,
             linger: None,
         }, None);
@@ -403,11 +403,11 @@ fn setup_claw_swipes(
                     LAYER_WAVE,
                 ).add(chonk_pos);
 
-                let timer = Timer::from_seconds(claw_swipe_start + 0.6 * (bounce as f32 + 1.), false);
+                let timer = Timer::from_seconds(claw_swipe_start + 0.6 * (bounce as f32 + 1.), TimerMode::Once);
 
                 spawn_aoe(commands, &aoe_desc, pos, Aoe {
                     visibility_start: Some(timer),
-                    detonation: Timer::from_seconds(SWIPE_DETONATION, false),
+                    detonation: Timer::from_seconds(SWIPE_DETONATION, TimerMode::Once),
                     damage: SWIPE_DAMAGE,
                     linger: None,
                 }, None);
@@ -513,8 +513,8 @@ fn setup_boss_phase(
             transform: Transform::from_xyz(0., 0., 0.,),
             ..default()
         }).insert(Puddle {
-            visibility_start: Timer::from_seconds(puddle_start, false),
-            drop: Timer::from_seconds(6., false),
+            visibility_start: Timer::from_seconds(puddle_start, TimerMode::Once),
+            drop: Timer::from_seconds(6., TimerMode::Once),
         })
         .insert(CollisionRadius(PUDDLE_RADIUS))
         .insert(Soup {
@@ -526,18 +526,17 @@ fn setup_boss_phase(
     let spread_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(SPREAD_RADIUS).into()).into();
     let spread_material_base = materials.add(ColorMaterial::from(AOE_BASE_COLOR));
     let spread_material_detonation = materials.add(ColorMaterial::from(AOE_DETONATION_COLOR));
-    commands.spawn()
-        .insert(SpreadAoeSpawn {
-            timers: spread_starts.iter().map(|start| {
-                Timer::from_seconds(*start, false)
-            }).collect(),
-            aoe_desc: AoeDesc {
-                mesh: spread_mesh,
-                material_base: spread_material_base,
-                material_detonation: spread_material_detonation,
-                radius: SPREAD_RADIUS,
-            }
-        });
+    commands.spawn(SpreadAoeSpawn {
+        timers: spread_starts.iter().map(|start| {
+            Timer::from_seconds(*start, TimerMode::Once)
+        }).collect(),
+        aoe_desc: AoeDesc {
+            mesh: spread_mesh,
+            material_base: spread_material_base,
+            material_detonation: spread_material_detonation,
+            radius: SPREAD_RADIUS,
+        }
+    });
 }
 
 fn setup_jormag(
@@ -637,17 +636,17 @@ fn setup_primordus(
 
     for chomp_start in chomp_starts {
         spawn_aoe(&mut commands, &aoe_desc_chomp, Vec3::new(0., chomp_y, LAYER_AOE), Aoe {
-            visibility_start: Some(Timer::from_seconds(chomp_start, false)),
-            detonation: Timer::from_seconds(7., false),
+            visibility_start: Some(Timer::from_seconds(chomp_start, TimerMode::Once)),
+            detonation: Timer::from_seconds(7., TimerMode::Once),
             damage: 100.,
-            linger: Some(Timer::from_seconds(5., false)),
+            linger: Some(Timer::from_seconds(5., TimerMode::Once)),
         }, None);
     }
 
     for minichomp_start in minichomp_starts {
         spawn_aoe(&mut commands, &aoe_desc_minichomp, Vec3::new(0., chomp_y, LAYER_AOE), Aoe {
-            visibility_start: Some(Timer::from_seconds(minichomp_start, false)),
-            detonation: Timer::from_seconds(3., false),
+            visibility_start: Some(Timer::from_seconds(minichomp_start, TimerMode::Once)),
+            detonation: Timer::from_seconds(3., TimerMode::Once),
             damage: 90.,
             linger: None,
         }, None);
@@ -701,18 +700,18 @@ fn setup_kralkatorrik(
             let mut pos = Vec3::new(line_x, i as f32 * line_spacing - GAME_WIDTH / 2., LAYER_AOE);
 
             spawn_aoe(&mut commands, &aoe_desc, pos, Aoe {
-                visibility_start: Some(Timer::from_seconds(line_start + delay, false)),
-                detonation: Timer::from_seconds(line_delay, false),
+                visibility_start: Some(Timer::from_seconds(line_start + delay, TimerMode::Once)),
+                detonation: Timer::from_seconds(line_delay, TimerMode::Once),
                 damage: SPREAD_DAMAGE,
-                linger: Some(Timer::from_seconds(line_duration, false)),
+                linger: Some(Timer::from_seconds(line_duration, TimerMode::Once)),
             }, None);
 
             pos.x *= -1.;
             spawn_aoe(&mut commands, &aoe_desc, pos, Aoe {
-                visibility_start: Some(Timer::from_seconds(line_start + delay, false)),
-                detonation: Timer::from_seconds(line_delay, false),
+                visibility_start: Some(Timer::from_seconds(line_start + delay, TimerMode::Once)),
+                detonation: Timer::from_seconds(line_delay, TimerMode::Once),
                 damage: SPREAD_DAMAGE,
-                linger: Some(Timer::from_seconds(line_duration, false)),
+                linger: Some(Timer::from_seconds(line_duration, TimerMode::Once)),
             }, None);
         }
     }
@@ -723,10 +722,10 @@ fn setup_kralkatorrik(
             let pos = Vec3::new(0., i as f32 * line_spacing - GAME_WIDTH / 2., LAYER_AOE);
 
             spawn_aoe(&mut commands, &aoe_desc, pos, Aoe {
-                visibility_start: Some(Timer::from_seconds(line_start + delay, false)),
-                detonation: Timer::from_seconds(line_delay, false),
+                visibility_start: Some(Timer::from_seconds(line_start + delay, TimerMode::Once)),
+                detonation: Timer::from_seconds(line_delay, TimerMode::Once),
                 damage: SPREAD_DAMAGE,
-                linger: Some(Timer::from_seconds(line_duration, false)),
+                linger: Some(Timer::from_seconds(line_duration, TimerMode::Once)),
             }, None);
         }
     }
@@ -769,7 +768,7 @@ fn setup_mordremoth(
                 transform: Transform::from_xyz(0., 0., LAYER_WAVE).with_scale(Vec3::ZERO),
                 ..default()
             }).insert(Wave {
-                visibility_start: Timer::from_seconds(boop_start + boop_delay, false),
+                visibility_start: Timer::from_seconds(boop_start + boop_delay, TimerMode::Once),
                 ..default()
             });
         }
@@ -828,7 +827,7 @@ fn setup_zhaitan(
     };
 
     for spew_start in spew_starts {
-        spawn_spew_aoe(&mut commands, spew_start, 3., &aoe_desc_spew, Some(Timer::from_seconds(10., false)));
+        spawn_spew_aoe(&mut commands, spew_start, 3., &aoe_desc_spew, Some(Timer::from_seconds(10., TimerMode::Once)));
     }
 
     let aoe_desc_fear = AoeDesc {
@@ -840,8 +839,8 @@ fn setup_zhaitan(
 
     for fear_start in fear_starts {
         spawn_aoe(&mut commands, &aoe_desc_fear, Vec3::new(0., 0., LAYER_AOE), Aoe {
-            visibility_start: Some(Timer::from_seconds(fear_start, false)),
-            detonation: Timer::from_seconds(2.5, false),
+            visibility_start: Some(Timer::from_seconds(fear_start, TimerMode::Once)),
+            detonation: Timer::from_seconds(2.5, TimerMode::Once),
             damage: 30.,
             linger: None,
         }, None);
@@ -881,8 +880,8 @@ fn setup_zhaitan(
                 ..default()
             })
             .insert(MobNoodle {
-                visibility_start: Timer::from_seconds(visibility_start, false),
-                slam_cooldown: Timer::from_seconds(5., true),
+                visibility_start: Timer::from_seconds(visibility_start, TimerMode::Once),
+                slam_cooldown: Timer::from_seconds(5., TimerMode::Repeating),
                 aoe_desc: aoe_desc_noodle.clone(),
             })
             .insert(Enemy)
@@ -924,7 +923,7 @@ fn setup_soowonone(
         transform: Transform::from_xyz(-140., 300., LAYER_WAVE).with_scale(Vec3::ZERO),
         ..default()
     }).insert(Wave {
-        visibility_start: Timer::from_seconds(7., false),
+        visibility_start: Timer::from_seconds(7., TimerMode::Once),
         ..default()
     });
 
@@ -934,7 +933,7 @@ fn setup_soowonone(
         transform: Transform::from_xyz(0., 0., LAYER_WAVE).with_scale(Vec3::ZERO),
         ..default()
     }).insert(Wave {
-        visibility_start: Timer::from_seconds(32., false),
+        visibility_start: Timer::from_seconds(32., TimerMode::Once),
         ..default()
     });
 
@@ -944,7 +943,7 @@ fn setup_soowonone(
         transform: Transform::from_xyz(-140., 300., LAYER_WAVE).with_scale(Vec3::ZERO),
         ..default()
     }).insert(Wave {
-        visibility_start: Timer::from_seconds(52., false),
+        visibility_start: Timer::from_seconds(52., TimerMode::Once),
         ..default()
     });
 
@@ -954,7 +953,7 @@ fn setup_soowonone(
         transform: Transform::from_xyz(0., 0., LAYER_WAVE).with_scale(Vec3::ZERO),
         ..default()
     }).insert(Wave {
-        visibility_start: Timer::from_seconds(77., false),
+        visibility_start: Timer::from_seconds(77., TimerMode::Once),
         ..default()
     });
 
@@ -964,7 +963,7 @@ fn setup_soowonone(
         transform: Transform::from_xyz(-140., 300., LAYER_WAVE).with_scale(Vec3::ZERO),
         ..default()
     }).insert(Wave {
-        visibility_start: Timer::from_seconds(97., false),
+        visibility_start: Timer::from_seconds(97., TimerMode::Once),
         ..default()
     });
 
@@ -1037,7 +1036,7 @@ fn setup_soowontwo(
         transform: Transform::from_xyz(-140., 300., LAYER_WAVE).with_scale(Vec3::ZERO),
         ..default()
     }).insert(Wave {
-        visibility_start: Timer::from_seconds(13.5, false),
+        visibility_start: Timer::from_seconds(13.5, TimerMode::Once),
         ..default()
     });
 
@@ -1047,7 +1046,7 @@ fn setup_soowontwo(
         transform: Transform::from_xyz(0., 0., LAYER_WAVE).with_scale(Vec3::ZERO),
         ..default()
     }).insert(Wave {
-        visibility_start: Timer::from_seconds(38.5, false),
+        visibility_start: Timer::from_seconds(38.5, TimerMode::Once),
         ..default()
     });
 
@@ -1057,7 +1056,7 @@ fn setup_soowontwo(
         transform: Transform::from_xyz(-140., 300., LAYER_WAVE).with_scale(Vec3::ZERO),
         ..default()
     }).insert(Wave {
-        visibility_start: Timer::from_seconds(54., false),
+        visibility_start: Timer::from_seconds(54., TimerMode::Once),
         ..default()
     });
 
@@ -1067,7 +1066,7 @@ fn setup_soowontwo(
         transform: Transform::from_xyz(0., 0., LAYER_WAVE).with_scale(Vec3::ZERO),
         ..default()
     }).insert(Wave {
-        visibility_start: Timer::from_seconds(79., false),
+        visibility_start: Timer::from_seconds(79., TimerMode::Once),
         ..default()
     });
 
@@ -1077,7 +1076,7 @@ fn setup_soowontwo(
         transform: Transform::from_xyz(-140., 300., LAYER_WAVE).with_scale(Vec3::ZERO),
         ..default()
     }).insert(Wave {
-        visibility_start: Timer::from_seconds(99.5, false),
+        visibility_start: Timer::from_seconds(99.5, TimerMode::Once),
         ..default()
     });
 
@@ -1127,9 +1126,9 @@ fn setup_soowontwo(
         ..default()
     })
     .insert(MobWyvern {
-        shoot_cooldown: Timer::from_seconds(1., true),
-        shockwave_cooldown: Timer::from_seconds(18., true),
-        charge_cooldown: Timer::from_seconds(11., true),
+        shoot_cooldown: Timer::from_seconds(1., TimerMode::Repeating),
+        shockwave_cooldown: Timer::from_seconds(18., TimerMode::Repeating),
+        charge_cooldown: Timer::from_seconds(11., TimerMode::Repeating),
     })
     .insert(Enemy)
     .insert(Hp(20.))
@@ -1145,7 +1144,7 @@ fn setup_soowontwo(
         ..default()
     })
     .insert(MobGoliath {
-        shoot_cooldown: Timer::from_seconds(5., true),
+        shoot_cooldown: Timer::from_seconds(5., TimerMode::Repeating),
     })
     .insert(Enemy)
     .insert(Hp(20.))

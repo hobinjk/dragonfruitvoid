@@ -177,7 +177,7 @@ fn handle_spellcasts_system(
     if game.player.jump_cooldown.finished() &&
         keyboard_input.pressed(KeyCode::Space) {
 
-        game.player.jump = Timer::from_seconds(0.5, false);
+        game.player.jump = Timer::from_seconds(0.5, TimerMode::Once);
         game.player.jump_cooldown.reset();
     }
 
@@ -194,7 +194,7 @@ fn handle_spellcasts_system(
             speed: dodge_speed,
         });
 
-        game.player.invuln = Timer::from_seconds(0.75, false);
+        game.player.invuln = Timer::from_seconds(0.75, TimerMode::Once);
         game.player.dodge_cooldown.reset();
     }
 
@@ -213,7 +213,7 @@ fn handle_spellcasts_system(
             speed: blink_speed,
         });
 
-        game.player.invuln = Timer::from_seconds(0.1, false);
+        game.player.invuln = Timer::from_seconds(0.1, TimerMode::Once);
         game.player.blink_cooldown.reset();
     }
 
@@ -256,9 +256,9 @@ fn handle_spellcasts_system(
                 transform: Transform::from_translation(portal_loc),
                 ..default()
             })
-            .insert(PortalEntry(Timer::from_seconds(60., false)));
+            .insert(PortalEntry(Timer::from_seconds(60., TimerMode::Once)));
 
-            game.player.portal_cooldown = Timer::from_seconds(0.5, false);
+            game.player.portal_cooldown = Timer::from_seconds(0.5, TimerMode::Once);
         } else if portal_exits.is_empty() {
             commands.spawn_bundle(SpriteBundle {
                 sprite: Sprite {
@@ -270,9 +270,9 @@ fn handle_spellcasts_system(
                 transform: Transform::from_translation(portal_loc),
                 ..default()
             })
-            .insert(PortalExit(Timer::from_seconds(10., false)));
+            .insert(PortalExit(Timer::from_seconds(10., TimerMode::Once)));
 
-            game.player.portal_cooldown = Timer::from_seconds(60., false);
+            game.player.portal_cooldown = Timer::from_seconds(60., TimerMode::Once);
         }
     }
 
@@ -306,7 +306,7 @@ fn portal_despawn_system(
         for (entity, mut entry) in &mut portal_entries {
             entry.0.tick(time.delta());
             if entry.0.finished() {
-                game.player.portal_cooldown = Timer::from_seconds(60., false);
+                game.player.portal_cooldown = Timer::from_seconds(60., TimerMode::Once);
                 commands.entity(entity).despawn_recursive();
             }
         }
@@ -550,15 +550,15 @@ pub fn setup_phase(
         })
         .insert(MobEcho {
             gottem: false,
-            retarget: Timer::from_seconds(3., false),
+            retarget: Timer::from_seconds(3., TimerMode::Once),
         })
         .insert(Velocity(Vec3::new(0., -ECHO_SPEED, 0.)))
         .insert(CollisionRadius(ECHO_RADIUS));
     }
 
     commands.spawn()
-        .insert(VoidZoneGrowth(Timer::from_seconds(VOID_ZONE_GROWTH_DURATION_SECS, true)))
-        .insert(VoidZoneCrabSpawn(Timer::from_seconds(VOID_ZONE_CRAB_SPAWN_DURATION_SECS, true)));
+        .insert(VoidZoneGrowth(Timer::from_seconds(VOID_ZONE_GROWTH_DURATION_SECS, TimerMode::Repeating)))
+        .insert(VoidZoneCrabSpawn(Timer::from_seconds(VOID_ZONE_CRAB_SPAWN_DURATION_SECS, TimerMode::Repeating)));
 
     commands.spawn_bundle(SpriteBundle {
         sprite: Sprite {

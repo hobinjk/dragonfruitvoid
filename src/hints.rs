@@ -200,7 +200,7 @@ pub fn setup_hints(
     for hint in &hints {
         commands.spawn()
         .insert(ScheduledHint {
-            start: Timer::from_seconds(hint.start, false),
+            start: Timer::from_seconds(hint.start, TimerMode::Once),
             hint: hint.hint,
         });
     }

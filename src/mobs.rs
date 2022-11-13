@@ -239,7 +239,7 @@ pub fn noodle_system(
 
             spawn_aoe(&mut commands, &noodle.aoe_desc, Vec3::new(pos.x, pos.y, LAYER_AOE), Aoe {
                 visibility_start: None,
-                detonation: Timer::from_seconds(2., false),
+                detonation: Timer::from_seconds(2., TimerMode::Once),
                 damage: 20.,
                 linger: None,
             }, None);
@@ -273,10 +273,10 @@ pub fn saltspray_system(
                 pos.z = LAYER_AOE;
 
                 spawn_aoe(&mut commands, &mob.aoe_desc, pos, Aoe {
-                    visibility_start: Some(Timer::from_seconds(magnitude / 2., false)),
-                    detonation: Timer::from_seconds(1., false),
+                    visibility_start: Some(Timer::from_seconds(magnitude / 2., TimerMode::Once)),
+                    detonation: Timer::from_seconds(1., TimerMode::Once),
                     damage: 30.,
-                    linger: Some(Timer::from_seconds(1., false)),
+                    linger: Some(Timer::from_seconds(1., TimerMode::Once)),
                 }, None);
             }
         }

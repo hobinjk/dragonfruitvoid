@@ -46,7 +46,7 @@ fn spread_aoe_spawn_system(
         if do_spawn {
             spawn_aoe(&mut commands, &spread_aoe_spawn.aoe_desc, Vec3::new(0., 0., LAYER_WAVE), Aoe {
                 visibility_start: None,
-                detonation: Timer::from_seconds(SPREAD_DETONATION, false),
+                detonation: Timer::from_seconds(SPREAD_DETONATION, TimerMode::Once),
                 damage: SPREAD_DAMAGE,
                 linger: None,
             }, Some(AoeFollow { target: players.single() }));

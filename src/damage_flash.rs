@@ -31,8 +31,8 @@ pub fn damage_flash_system(
             commands.entity(event.entity).insert(TintUntint {
                 color: prev_color,
                 tint_color: Color::rgba(1.0, 0., 0., 0.7),
-                tint_timer: Timer::from_seconds(0.2, false),
-                untint_timer: Timer::from_seconds(0.5, false),
+                tint_timer: Timer::from_seconds(0.2, TimerMode::Once),
+                untint_timer: Timer::from_seconds(0.5, TimerMode::Once),
             });
         }
     }

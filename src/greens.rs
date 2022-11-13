@@ -243,8 +243,8 @@ pub fn setup_greens(
                 }).insert(StackGreenIndicator);
             }
         }).insert(StackGreen {
-            visibility_start: Timer::from_seconds(green_spawn.start, false),
-            detonation: Timer::from_seconds(5., false),
+            visibility_start: Timer::from_seconds(green_spawn.start, TimerMode::Once),
+            detonation: Timer::from_seconds(5., TimerMode::Once),
         });
     }
 }
