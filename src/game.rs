@@ -105,6 +105,7 @@ impl Default for Player {
     }
 }
 
+#[derive(Resource)]
 pub struct Game {
     pub player: Player,
     pub time_elapsed: Stopwatch,
