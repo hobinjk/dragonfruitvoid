@@ -66,7 +66,7 @@ avoid taking too much damage.",
                     start: 15.5,
                     hint: "Green circles need to be soaked. Pick one
 of the three to stand in before it
-explodes",
+explodes.",
                 },
             ]
         },
