@@ -198,8 +198,7 @@ pub fn setup_hints(
     hints.extend(phase_hints(state.current()));
 
     for hint in &hints {
-        commands.spawn()
-        .insert(ScheduledHint {
+        commands.spawn(ScheduledHint {
             start: Timer::from_seconds(hint.start, TimerMode::Once),
             hint: hint.hint,
         });

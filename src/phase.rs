@@ -127,7 +127,7 @@ fn handle_mouse_events_system(
         vel.z = 0.;
         vel = vel.clamp_length(BULLET_SPEED, BULLET_SPEED);
 
-        commands.spawn_bundle(SpriteBundle {
+        commands.spawn(SpriteBundle {
             sprite: Sprite {
                 color: Color::rgb(0.89, 0.39, 0.95),
                 custom_size: Some(Vec2::new(BULLET_SIZE, BULLET_SIZE)),
@@ -246,7 +246,7 @@ fn handle_spellcasts_system(
         let portal_loc = player_loc;
 
         if portal_entries.is_empty() {
-            commands.spawn_bundle(SpriteBundle {
+            commands.spawn(SpriteBundle {
                 sprite: Sprite {
                     color: Color::rgb(0., 1., 1.),
                     custom_size: Some(Vec2::new(PORTAL_RADIUS * 2., PORTAL_RADIUS * 2.)),
@@ -260,7 +260,7 @@ fn handle_spellcasts_system(
 
             game.player.portal_cooldown = Timer::from_seconds(0.5, TimerMode::Once);
         } else if portal_exits.is_empty() {
-            commands.spawn_bundle(SpriteBundle {
+            commands.spawn(SpriteBundle {
                 sprite: Sprite {
                     color: Color::rgb(1., 0.7, 0.),
                     custom_size: Some(Vec2::new(PORTAL_RADIUS * 2., PORTAL_RADIUS * 2.)),
@@ -525,7 +525,7 @@ pub fn setup_phase(
         game.time_elapsed.reset();
         game.player.hp = 100.;
         game.player.entity = Some(
-            commands.spawn_bundle(SpriteBundle {
+            commands.spawn(SpriteBundle {
                 sprite: Sprite {
                     custom_size: Some(Vec2::new(PLAYER_RADIUS * 2., PLAYER_RADIUS * 2.)),
                     ..default()
@@ -538,7 +538,7 @@ pub fn setup_phase(
     }
 
     if game.echo_enabled {
-        commands.spawn_bundle(SpriteBundle {
+        commands.spawn(SpriteBundle {
             sprite: Sprite {
                 // color: Color::rgb(0.0, 0.0, 0.0),
                 custom_size: Some(Vec2::new(ECHO_RADIUS * 2., ECHO_RADIUS * 2.)),
@@ -556,11 +556,12 @@ pub fn setup_phase(
         .insert(CollisionRadius(ECHO_RADIUS));
     }
 
-    commands.spawn()
-        .insert(VoidZoneGrowth(Timer::from_seconds(VOID_ZONE_GROWTH_DURATION_SECS, TimerMode::Repeating)))
-        .insert(VoidZoneCrabSpawn(Timer::from_seconds(VOID_ZONE_CRAB_SPAWN_DURATION_SECS, TimerMode::Repeating)));
+    commands.spawn((
+        VoidZoneGrowth(Timer::from_seconds(VOID_ZONE_GROWTH_DURATION_SECS, TimerMode::Repeating)),
+        VoidZoneCrabSpawn(Timer::from_seconds(VOID_ZONE_CRAB_SPAWN_DURATION_SECS, TimerMode::Repeating)),
+    ));
 
-    commands.spawn_bundle(SpriteBundle {
+    commands.spawn(SpriteBundle {
         sprite: Sprite {
             color: Color::rgb(0.9, 0., 0.),
             custom_size: Some(Vec2::new(4., 4.)),
@@ -570,7 +571,7 @@ pub fn setup_phase(
         ..default()
     }).insert(CursorMark);
 
-    commands.spawn_bundle(SpriteBundle {
+    commands.spawn(SpriteBundle {
         texture: asset_server.load("map.png"),
         transform: Transform::from_xyz(0., 0., LAYER_MAP),
         ..default()
@@ -589,7 +590,7 @@ pub fn setup_phase(
     };
     let binding_y = 18.;
 
-    commands.spawn_bundle(Text2dBundle {
+    commands.spawn(Text2dBundle {
         text: Text::from_section("hp", text_style.clone())
             .with_alignment(TextAlignment::CENTER),
         transform: Transform::from_xyz(0., -HEIGHT / 2. + 55., LAYER_TEXT),
@@ -599,14 +600,14 @@ pub fn setup_phase(
         sprite: None,
     });
 
-    commands.spawn_bundle(MaterialMesh2dBundle {
+    commands.spawn(MaterialMesh2dBundle {
         mesh: meshes.add(shape::Circle::new(50.).into()).into(),
         material: materials.add(ColorMaterial::from(Color::rgb(0.6, 0.1, 0.1))),
         transform: Transform::from_xyz(0., -HEIGHT / 2. + 55., LAYER_UI),
         ..default()
     });
 
-    commands.spawn_bundle(Text2dBundle {
+    commands.spawn(Text2dBundle {
         text: Text::from_section("0",
             TextStyle {
                 font: asset_server.load("trebuchet_ms.ttf"),
@@ -621,7 +622,7 @@ pub fn setup_phase(
         sprite: None,
     });
 
-    commands.spawn_bundle(Text2dBundle {
+    commands.spawn(Text2dBundle {
         text: Text::from_section("0",
             TextStyle {
                 font: asset_server.load("trebuchet_ms.ttf"),
@@ -636,13 +637,13 @@ pub fn setup_phase(
         sprite: None,
     });
 
-    let sprite_pull = commands.spawn_bundle(SpriteBundle {
+    let sprite_pull = commands.spawn(SpriteBundle {
         texture: asset_server.load("pull.png"),
         transform: Transform::from_xyz(-128., -HEIGHT / 2. + 55., LAYER_UI),
         ..default()
     }).id();
 
-    commands.spawn_bundle(Text2dBundle {
+    commands.spawn(Text2dBundle {
         text: Text::from_section("", text_style.clone())
             .with_alignment(TextAlignment::CENTER),
         transform: Transform::from_xyz(-128., -HEIGHT / 2. + 55., LAYER_TEXT),
@@ -652,20 +653,20 @@ pub fn setup_phase(
         sprite: Some(sprite_pull),
     });
 
-    commands.spawn_bundle(Text2dBundle {
+    commands.spawn(Text2dBundle {
         text: Text::from_section("4", text_binding_style.clone())
             .with_alignment(TextAlignment::CENTER),
         transform: Transform::from_xyz(-128., -HEIGHT / 2. + binding_y, LAYER_TEXT),
         ..default()
     });
 
-    let sprite_blink = commands.spawn_bundle(SpriteBundle {
+    let sprite_blink = commands.spawn(SpriteBundle {
         texture: asset_server.load("blink.png"),
         transform: Transform::from_xyz(128., -HEIGHT / 2. + 55., LAYER_UI),
         ..default()
     }).id();
 
-    commands.spawn_bundle(Text2dBundle {
+    commands.spawn(Text2dBundle {
         text: Text::from_section("", text_style.clone())
             .with_alignment(TextAlignment::CENTER),
         transform: Transform::from_xyz(128., -HEIGHT / 2. + 55., LAYER_TEXT),
@@ -675,20 +676,20 @@ pub fn setup_phase(
         sprite: Some(sprite_blink),
     });
 
-    commands.spawn_bundle(Text2dBundle {
+    commands.spawn(Text2dBundle {
         text: Text::from_section("E", text_binding_style.clone())
             .with_alignment(TextAlignment::CENTER),
         transform: Transform::from_xyz(128., -HEIGHT / 2. + binding_y, LAYER_TEXT),
         ..default()
     });
 
-    let sprite_portal = commands.spawn_bundle(SpriteBundle {
+    let sprite_portal = commands.spawn(SpriteBundle {
         texture: asset_server.load("portal.png"),
         transform: Transform::from_xyz(256., -HEIGHT / 2. + 55., LAYER_UI),
         ..default()
     }).id();
 
-    commands.spawn_bundle(Text2dBundle {
+    commands.spawn(Text2dBundle {
         text: Text::from_section("", text_style.clone())
             .with_alignment(TextAlignment::CENTER),
         transform: Transform::from_xyz(256., -HEIGHT / 2. + 55., LAYER_TEXT),
@@ -698,7 +699,7 @@ pub fn setup_phase(
         sprite: Some(sprite_portal),
     });
 
-    commands.spawn_bundle(Text2dBundle {
+    commands.spawn(Text2dBundle {
         text: Text::from_section("R", text_binding_style.clone())
             .with_alignment(TextAlignment::CENTER),
         transform: Transform::from_xyz(256., -HEIGHT / 2. + binding_y, LAYER_TEXT),
