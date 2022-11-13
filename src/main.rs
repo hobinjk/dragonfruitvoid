@@ -1160,7 +1160,7 @@ fn jormag_soup_beam_system(
     ) {
 
     for mut soup in &mut soups {
-        let radius = (WIDTH / 2. - 70.) * ((time.seconds_since_startup() as f32 / 8.).cos() + 1.) / 2. + 35.;
+        let radius = (WIDTH / 2. - 70.) * ((time.elapsed_seconds() / 8.).cos() + 1.) / 2. + 35.;
         soup.radius = radius;
     }
 }
