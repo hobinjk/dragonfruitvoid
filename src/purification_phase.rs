@@ -79,7 +79,7 @@ pub fn setup_purification(
     ) {
     game.orb_target = 0;
 
-    commands.spawn_bundle(MaterialMesh2dBundle {
+    commands.spawn(MaterialMesh2dBundle {
         mesh: meshes.add(shape::Circle::new(ORB_RADIUS).into()).into(),
         material: materials.add(ColorMaterial::from(Color::rgb(0.9, 1.0, 1.0))),
         transform: Transform::from_xyz(0., 0., LAYER_MOB),
@@ -98,7 +98,7 @@ pub fn setup_purification(
     let void_zone_material = ColorMaterial::from(Color::rgba(0.0, 0.0, 0.0, 0.9));
 
     for pos in void_zone_positions {
-        commands.spawn_bundle(MaterialMesh2dBundle {
+        commands.spawn(MaterialMesh2dBundle {
             mesh: void_zone_mesh.clone(),
             material: materials.add(void_zone_material.clone()),
             transform: Transform::from_translation(pos),

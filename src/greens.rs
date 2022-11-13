@@ -218,7 +218,7 @@ pub fn setup_greens(
     let green_dull_material = ColorMaterial::from(Color::rgba(0., 0.7, 0., 0.5));
 
     for green_spawn in &green_spawns {
-        commands.spawn_bundle(SpriteBundle {
+        commands.spawn(SpriteBundle {
             transform: Transform::from_xyz(0., 0., LAYER_TARGET),
             visibility: Visibility { is_visible: false },
             ..default()
@@ -227,7 +227,7 @@ pub fn setup_greens(
                 // let mut position = position_absolute.sub(Vec3::new(WIDTH / 2., HEIGHT / 2., 0.));
                 // position.x *= -1.;
                 // position.y *= -1.;
-                parent.spawn_bundle(MaterialMesh2dBundle {
+                parent.spawn(MaterialMesh2dBundle {
                     mesh: green_mesh.clone(),
                     transform: Transform::from_translation(position),
                     material: materials.add(green_dull_material.clone()),
@@ -235,7 +235,7 @@ pub fn setup_greens(
                 });
 
                 let position_above = position.add(Vec3::new(0., 0., 0.1));
-                parent.spawn_bundle(MaterialMesh2dBundle {
+                parent.spawn(MaterialMesh2dBundle {
                     mesh: green_mesh.clone(),
                     transform: Transform::from_translation(position_above).with_scale(Vec3::ZERO),
                     material: materials.add(green_bright_material.clone()),

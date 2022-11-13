@@ -153,14 +153,14 @@ pub fn spawn_aoe(
     commands: &mut Commands,
     aoe_desc: &AoeDesc,
     position: Vec3, aoe: Aoe, aoe_follow: Option<AoeFollow>) -> Entity {
-    let id = commands.spawn_bundle(MaterialMesh2dBundle {
+    let id = commands.spawn(MaterialMesh2dBundle {
         transform: Transform::from_translation(position),
         mesh: aoe_desc.mesh.clone(),
         material: aoe_desc.material_base.clone(),
         ..default()
     }).with_children(|parent| {
         let position_above = Vec3::new(0., 0., 0.1);
-        parent.spawn_bundle(MaterialMesh2dBundle {
+        parent.spawn(MaterialMesh2dBundle {
             mesh: aoe_desc.mesh.clone(),
             transform: Transform::from_translation(position_above).with_scale(Vec3::ZERO),
             material: aoe_desc.material_detonation.clone(),

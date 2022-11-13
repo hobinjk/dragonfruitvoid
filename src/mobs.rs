@@ -85,7 +85,7 @@ pub struct MobSaltspray {
 }
 
 pub fn spawn_crab(commands: &mut Commands, asset_server: &Res<AssetServer>, crab_pos: Vec3) {
-    commands.spawn_bundle(SpriteBundle {
+    commands.spawn(SpriteBundle {
         sprite: Sprite {
             // color: Color::rgb(0.0, 0.0, 0.0),
             custom_size: Some(Vec2::new(CRAB_SIZE, CRAB_SIZE * 80. / 120.)),
@@ -122,7 +122,7 @@ pub fn goliath_system(
         if goliath.shoot_cooldown.finished() {
             goliath.shoot_cooldown.reset();
 
-            commands.spawn_bundle(SpriteBundle {
+            commands.spawn(SpriteBundle {
                 sprite: Sprite {
                     color: Color::rgb(0.4, 0., 0.4),
                     custom_size: Some(Vec2::new(bullet_radius * 2., bullet_radius * 2.)),
@@ -159,7 +159,7 @@ pub fn wyvern_system(
         if wyvern.shoot_cooldown.finished() {
             wyvern.shoot_cooldown.reset();
 
-            commands.spawn_bundle(SpriteBundle {
+            commands.spawn(SpriteBundle {
                 sprite: Sprite {
                     color: Color::rgb(1.0, 0., 0.),
                     custom_size: Some(Vec2::new(BULLET_SIZE, BULLET_SIZE)),
@@ -185,7 +185,7 @@ pub fn wyvern_system(
                 let vel = Vec3::new(theta.cos() * WYVERN_BULLET_SPEED, theta.sin() * WYVERN_BULLET_SPEED, 0.);
                 let bullet_radius = BULLET_SIZE / 3.;
 
-                commands.spawn_bundle(SpriteBundle {
+                commands.spawn(SpriteBundle {
                     sprite: Sprite {
                         color: Color::rgb(0.8, 0., 0.4),
                         custom_size: Some(Vec2::new(bullet_radius * 2., bullet_radius * 2.)),
@@ -301,7 +301,7 @@ pub fn timecaster_system(
                     0.,
                 );
 
-                commands.spawn_bundle(SpriteBundle {
+                commands.spawn(SpriteBundle {
                     sprite: Sprite {
                         color: Color::rgb(1.0, 0., 0.),
                         custom_size: Some(Vec2::new(BULLET_SIZE, BULLET_SIZE)),
