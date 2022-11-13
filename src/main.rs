@@ -72,7 +72,7 @@ const SWIPE_DAMAGE: f32 = 40.;
 fn setup(mut commands: Commands,
     mut game: ResMut<Game>,
     ) {
-    commands.spawn_bundle(Camera2dBundle::new_with_far(LAYER_MAX));
+    commands.spawn(Camera2dBundle::new_with_far(LAYER_MAX));
 
     game.player.dodge_cooldown.tick(Duration::from_secs_f32(1000.));
     game.player.blink_cooldown.tick(Duration::from_secs_f32(1000.));
@@ -102,21 +102,21 @@ fn setup_purification_one(
     let orb_target_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(ORB_TARGET_RADIUS).into()).into();
     let orb_target_material = ColorMaterial::from(Color::rgb(0.5, 0.5, 0.5));
 
-    commands.spawn_bundle(MaterialMesh2dBundle {
+    commands.spawn(MaterialMesh2dBundle {
         mesh: orb_target_mesh.clone(),
         material: materials.add(orb_target_material.clone()),
         transform: Transform::from_xyz(-240., 240., LAYER_TARGET),
         ..default()
     }).insert(OrbTarget(0));
 
-    commands.spawn_bundle(MaterialMesh2dBundle {
+    commands.spawn(MaterialMesh2dBundle {
         mesh: orb_target_mesh.clone(),
         material: materials.add(orb_target_material.clone()),
         transform: Transform::from_xyz(-240., -240., LAYER_TARGET),
         ..default()
     }).insert(OrbTarget(1));
 
-    commands.spawn_bundle(MaterialMesh2dBundle {
+    commands.spawn(MaterialMesh2dBundle {
         mesh: orb_target_mesh.clone(),
         material: materials.add(orb_target_material.clone()),
         transform: Transform::from_xyz(240., -240., LAYER_TARGET),
@@ -132,7 +132,7 @@ fn setup_purification_two(
     let bee_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(ORB_RADIUS).into()).into();
     let bee_material = materials.add(ColorMaterial::from(Color::rgba(0.9, 0.0, 0.0, 0.7)));
 
-    commands.spawn().insert(OhNoNotTheBees {
+    commands.spawn(OhNoNotTheBees {
         bees_cooldown: Timer::from_seconds(5., TimerMode::Once),
         mesh: bee_mesh,
         material: bee_material,
@@ -155,21 +155,21 @@ fn setup_purification_two(
     let orb_target_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(ORB_TARGET_RADIUS).into()).into();
     let orb_target_material = ColorMaterial::from(Color::rgb(0.5, 0.5, 0.5));
 
-    commands.spawn_bundle(MaterialMesh2dBundle {
+    commands.spawn(MaterialMesh2dBundle {
         mesh: orb_target_mesh.clone(),
         material: materials.add(orb_target_material.clone()),
         transform: Transform::from_xyz(-240., 240., LAYER_TARGET),
         ..default()
     }).insert(OrbTarget(0));
 
-    commands.spawn_bundle(MaterialMesh2dBundle {
+    commands.spawn(MaterialMesh2dBundle {
         mesh: orb_target_mesh.clone(),
         material: materials.add(orb_target_material.clone()),
         transform: Transform::from_xyz(240., -240., LAYER_TARGET),
         ..default()
     }).insert(OrbTarget(1));
 
-    commands.spawn_bundle(SpriteBundle {
+    commands.spawn(SpriteBundle {
         sprite: Sprite {
             custom_size: Some(Vec2::new(BIGBOY_RADIUS * 2., BIGBOY_RADIUS * 2.)),
             ..default()
@@ -217,7 +217,7 @@ fn unleash_the_bees(
         LAYER_AOE,
     );
 
-    commands.spawn_bundle(MaterialMesh2dBundle {
+    commands.spawn(MaterialMesh2dBundle {
         mesh: bees.mesh.clone(),
         material: bees.material.clone(),
         transform: Transform::from_translation(pos),
@@ -257,14 +257,14 @@ fn setup_purification_three(
     let orb_target_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(ORB_TARGET_RADIUS).into()).into();
     let orb_target_material = ColorMaterial::from(Color::rgb(0.5, 0.5, 0.5));
 
-    commands.spawn_bundle(MaterialMesh2dBundle {
+    commands.spawn(MaterialMesh2dBundle {
         mesh: orb_target_mesh.clone(),
         material: materials.add(orb_target_material.clone()),
         transform: Transform::from_xyz(-240., 240., LAYER_TARGET),
         ..default()
     }).insert(OrbTarget(0));
 
-    commands.spawn_bundle(MaterialMesh2dBundle {
+    commands.spawn(MaterialMesh2dBundle {
         mesh: orb_target_mesh.clone(),
         material: materials.add(orb_target_material.clone()),
         transform: Transform::from_xyz(-240., -240., LAYER_TARGET),
@@ -274,7 +274,7 @@ fn setup_purification_three(
     let mut shoot_cooldown = Timer::from_seconds(6., TimerMode::Once);
     shoot_cooldown.tick(Duration::from_secs_f32(3.));
 
-    commands.spawn_bundle(SpriteBundle {
+    commands.spawn(SpriteBundle {
         sprite: Sprite {
             custom_size: Some(Vec2::new(BIGBOY_RADIUS * 2., BIGBOY_RADIUS * 2.)),
             ..default()
@@ -304,7 +304,7 @@ fn setup_purification_four(
     mut materials: ResMut<Assets<ColorMaterial>>,
     ) {
 
-    commands.spawn_bundle(MaterialMesh2dBundle {
+    commands.spawn(MaterialMesh2dBundle {
         mesh: meshes.add(shape::Circle::new(ORB_RADIUS).into()).into(),
         material: materials.add(ColorMaterial::from(Color::rgb(0., 0., 0.))),
         transform: Transform::from_xyz(0., 0., LAYER_MOB),
@@ -319,7 +319,7 @@ fn setup_purification_four(
         max_hp: 50.,
     });
 
-    commands.spawn_bundle(SpriteBundle {
+    commands.spawn(SpriteBundle {
         sprite: Sprite {
             color: Color::rgb(1., 0., 0.),
             custom_size: Some(Vec2::new(256., 32.)),
@@ -330,7 +330,7 @@ fn setup_purification_four(
         ..default()
     }).insert(BossHealthbar);
 
-    commands.spawn_bundle(Text2dBundle {
+    commands.spawn(Text2dBundle {
         text: Text::from_section(
             "100",
             TextStyle {
@@ -343,7 +343,7 @@ fn setup_purification_four(
         ..default()
     }).insert(BossHealthbarText);
 
-    commands.spawn_bundle(Text2dBundle {
+    commands.spawn(Text2dBundle {
         text: Text::from_section(
             "Dark Orb",
             TextStyle {
@@ -426,7 +426,7 @@ fn setup_boss_phase(
     puddle_starts: Vec<f32>,
     spread_starts: Vec<f32>,
     ) {
-    commands.spawn_bundle(MaterialMesh2dBundle {
+    commands.spawn(MaterialMesh2dBundle {
         mesh: meshes.add(shape::Circle::new(BOSS_RADIUS).into()).into(),
         material: materials.add(ColorMaterial::from(Color::rgba(1.0, 0.0, 0.0, 0.5))),
         transform: Transform::from_xyz(0., HEIGHT / 2. + 20., LAYER_MOB),
@@ -444,7 +444,7 @@ fn setup_boss_phase(
         green_spawns.to_vec()
     );
 
-    commands.spawn_bundle(SpriteBundle {
+    commands.spawn(SpriteBundle {
         sprite: Sprite {
             color: Color::rgb(1., 0., 0.),
             custom_size: Some(Vec2::new(256., 32.)),
@@ -455,7 +455,7 @@ fn setup_boss_phase(
         ..default()
     }).insert(BossHealthbar);
 
-    commands.spawn_bundle(Text2dBundle {
+    commands.spawn(Text2dBundle {
         text: Text::from_section(
             "100",
             TextStyle {
@@ -468,7 +468,7 @@ fn setup_boss_phase(
         ..default()
     }).insert(BossHealthbarText);
 
-    commands.spawn_bundle(Text2dBundle {
+    commands.spawn(Text2dBundle {
         text: Text::from_section(
             boss_name,
             TextStyle {
@@ -489,7 +489,7 @@ fn setup_boss_phase(
     let void_zone_material = ColorMaterial::from(Color::rgba(0.0, 0.0, 0.0, 0.9));
 
     for pos in void_zone_positions {
-        commands.spawn_bundle(MaterialMesh2dBundle {
+        commands.spawn(MaterialMesh2dBundle {
             mesh: void_zone_mesh.clone(),
             material: materials.add(void_zone_material.clone()),
             transform: Transform::from_translation(pos),
@@ -506,7 +506,7 @@ fn setup_boss_phase(
     let puddle_material = ColorMaterial::from(Color::rgba(0.5, 0.0, 0.0, 0.3));
 
     for puddle_start in puddle_starts {
-        commands.spawn_bundle(MaterialMesh2dBundle {
+        commands.spawn(MaterialMesh2dBundle {
             mesh: puddle_mesh.clone(),
             material: materials.add(puddle_material.clone()),
             visibility: Visibility { is_visible: false },
@@ -569,7 +569,7 @@ fn setup_jormag(
         let theta = i as f32 * PI / 2.;
         let dtheta = 0.5;
 
-        commands.spawn_bundle(MaterialMesh2dBundle {
+        commands.spawn(MaterialMesh2dBundle {
             mesh: rotating_soup_mesh.clone(),
             material: rotating_soup_material.clone(),
             transform: Transform::from_xyz(0., radius, LAYER_ROTATING_SOUP),
@@ -762,7 +762,7 @@ fn setup_mordremoth(
 
     for boop_start in &boop_starts {
         for boop_delay in &boop_delays {
-            commands.spawn_bundle(SpriteBundle {
+            commands.spawn(SpriteBundle {
                 sprite: wave_sprite.clone(),
                 texture: wave_texture.clone(),
                 transform: Transform::from_xyz(0., 0., LAYER_WAVE).with_scale(Vec3::ZERO),
@@ -869,7 +869,7 @@ fn setup_zhaitan(
 
     for (visibility_start, noodle_positions) in noodle_spawns {
         for noodle_pos in noodle_positions {
-            commands.spawn_bundle(SpriteBundle {
+            commands.spawn(SpriteBundle {
                 sprite: Sprite {
                     custom_size: Some(Vec2::new(NOODLE_RADIUS * 2., NOODLE_RADIUS * 2.)),
                     ..default()
@@ -917,7 +917,7 @@ fn setup_soowonone(
     };
     let wave_texture = asset_server.load("wave.png");
 
-    commands.spawn_bundle(SpriteBundle {
+    commands.spawn(SpriteBundle {
         sprite: wave_sprite.clone(),
         texture: wave_texture.clone(),
         transform: Transform::from_xyz(-140., 300., LAYER_WAVE).with_scale(Vec3::ZERO),
@@ -927,7 +927,7 @@ fn setup_soowonone(
         ..default()
     });
 
-    commands.spawn_bundle(SpriteBundle {
+    commands.spawn(SpriteBundle {
         sprite: wave_sprite.clone(),
         texture: wave_texture.clone(),
         transform: Transform::from_xyz(0., 0., LAYER_WAVE).with_scale(Vec3::ZERO),
@@ -937,7 +937,7 @@ fn setup_soowonone(
         ..default()
     });
 
-    commands.spawn_bundle(SpriteBundle {
+    commands.spawn(SpriteBundle {
         sprite: wave_sprite.clone(),
         texture: wave_texture.clone(),
         transform: Transform::from_xyz(-140., 300., LAYER_WAVE).with_scale(Vec3::ZERO),
@@ -947,7 +947,7 @@ fn setup_soowonone(
         ..default()
     });
 
-    commands.spawn_bundle(SpriteBundle {
+    commands.spawn(SpriteBundle {
         sprite: wave_sprite.clone(),
         texture: wave_texture.clone(),
         transform: Transform::from_xyz(0., 0., LAYER_WAVE).with_scale(Vec3::ZERO),
@@ -957,7 +957,7 @@ fn setup_soowonone(
         ..default()
     });
 
-    commands.spawn_bundle(SpriteBundle {
+    commands.spawn(SpriteBundle {
         sprite: wave_sprite.clone(),
         texture: wave_texture.clone(),
         transform: Transform::from_xyz(-140., 300., LAYER_WAVE).with_scale(Vec3::ZERO),
@@ -978,7 +978,7 @@ fn setup_soowonone(
             dtheta = -dtheta;
         }
 
-        commands.spawn_bundle(MaterialMesh2dBundle {
+        commands.spawn(MaterialMesh2dBundle {
             mesh: rotating_soup_mesh.clone(),
             material: rotating_soup_material.clone(),
             transform: Transform::from_xyz(0., radius, LAYER_ROTATING_SOUP),
@@ -1030,7 +1030,7 @@ fn setup_soowontwo(
     };
     let wave_texture = asset_server.load("wave.png");
 
-    commands.spawn_bundle(SpriteBundle {
+    commands.spawn(SpriteBundle {
         sprite: wave_sprite.clone(),
         texture: wave_texture.clone(),
         transform: Transform::from_xyz(-140., 300., LAYER_WAVE).with_scale(Vec3::ZERO),
@@ -1040,7 +1040,7 @@ fn setup_soowontwo(
         ..default()
     });
 
-    commands.spawn_bundle(SpriteBundle {
+    commands.spawn(SpriteBundle {
         sprite: wave_sprite.clone(),
         texture: wave_texture.clone(),
         transform: Transform::from_xyz(0., 0., LAYER_WAVE).with_scale(Vec3::ZERO),
@@ -1050,7 +1050,7 @@ fn setup_soowontwo(
         ..default()
     });
 
-    commands.spawn_bundle(SpriteBundle {
+    commands.spawn(SpriteBundle {
         sprite: wave_sprite.clone(),
         texture: wave_texture.clone(),
         transform: Transform::from_xyz(-140., 300., LAYER_WAVE).with_scale(Vec3::ZERO),
@@ -1060,7 +1060,7 @@ fn setup_soowontwo(
         ..default()
     });
 
-    commands.spawn_bundle(SpriteBundle {
+    commands.spawn(SpriteBundle {
         sprite: wave_sprite.clone(),
         texture: wave_texture.clone(),
         transform: Transform::from_xyz(0., 0., LAYER_WAVE).with_scale(Vec3::ZERO),
@@ -1070,7 +1070,7 @@ fn setup_soowontwo(
         ..default()
     });
 
-    commands.spawn_bundle(SpriteBundle {
+    commands.spawn(SpriteBundle {
         sprite: wave_sprite.clone(),
         texture: wave_texture.clone(),
         transform: Transform::from_xyz(-140., 300., LAYER_WAVE).with_scale(Vec3::ZERO),
@@ -1091,7 +1091,7 @@ fn setup_soowontwo(
             dtheta = -dtheta;
         }
 
-        commands.spawn_bundle(MaterialMesh2dBundle {
+        commands.spawn(MaterialMesh2dBundle {
             mesh: rotating_soup_mesh.clone(),
             material: rotating_soup_material.clone(),
             transform: Transform::from_xyz(0., radius, LAYER_ROTATING_SOUP),
@@ -1116,7 +1116,7 @@ fn setup_soowontwo(
         vec![22., 68., 114.]
     );
 
-    commands.spawn_bundle(SpriteBundle {
+    commands.spawn(SpriteBundle {
         sprite: Sprite {
             custom_size: Some(Vec2::new(BIGBOY_RADIUS * 2., BIGBOY_RADIUS * 2.)),
             ..default()
@@ -1134,7 +1134,7 @@ fn setup_soowontwo(
     .insert(Hp(20.))
     .insert(CollisionRadius(BIGBOY_RADIUS));
 
-    commands.spawn_bundle(SpriteBundle {
+    commands.spawn(SpriteBundle {
         sprite: Sprite {
             custom_size: Some(Vec2::new(BIGBOY_RADIUS * 2., BIGBOY_RADIUS * 2.)),
             ..default()
