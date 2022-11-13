@@ -383,7 +383,7 @@ fn setup_claw_swipes(
     };
 
     for claw_swipe_start in claw_swipe_starts {
-        let chonk_start = Timer::from_seconds(claw_swipe_start, TimerMode::Once;
+        let chonk_start = Timer::from_seconds(claw_swipe_start, TimerMode::Once);
         let chonk_pos = SWIPE_CENTER;
         spawn_aoe(commands, &aoe_desc_chonk, chonk_pos, Aoe {
             visibility_start: Some(chonk_start),
