@@ -1179,13 +1179,15 @@ fn main() {
     };
 
     App::new()
-        .insert_resource(WindowDescriptor {
-            width: WIDTH,
-            height: HEIGHT,
-            scale_factor_override: Some(1.),
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            window: WindowDescriptor {
+                width: WIDTH,
+                height: HEIGHT,
+                scale_factor_override: Some(1.),
+                ..default()
+            },
             ..default()
-        })
-        .add_plugins(DefaultPlugins)
+        }))
         .add_state(GameState::StartMenu)
 
         .add_event::<DamageFlashEvent>()
