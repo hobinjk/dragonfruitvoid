@@ -710,14 +710,13 @@ pub fn setup_phase(
 pub fn cleanup_phase(
     mut commands: Commands,
     game: Res<Game>,
-    state: Res<State<GameState>>,
     entities: Query<Entity, (Without<PlayerTag>, Without<Camera>)>,
     player_entity: Query<Entity, With<PlayerTag>>,
     ) {
     for entity in &entities {
         commands.entity(entity).despawn_recursive();
     }
-    if !game.continuous || *state.current() == GameState::StartMenu {
+    if !game.continuous {
         for entity in &player_entity {
             commands.entity(entity).despawn_recursive();
         }

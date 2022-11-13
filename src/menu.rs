@@ -33,7 +33,8 @@ const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
 pub fn setup_menu_system(
     mut commands: Commands,
     game: Res<Game>,
-    asset_server: Res<AssetServer>
+    asset_server: Res<AssetServer>,
+    player_entity: Query<Entity, With<PlayerTag>>,
     ) {
     let button_size = Size::new(Val::Px(350.0), Val::Px(65.0));
     let button_margin = UiRect::all(Val::Px(10.));
@@ -158,6 +159,10 @@ pub fn setup_menu_system(
 
     })
     .insert(MenuContainer);
+
+    for entity in &player_entity {
+        commands.entity(entity).despawn_recursive();
+    }
 }
 
 pub fn setup_pause_menu_system(mut commands: Commands, asset_server: Res<AssetServer>) {
