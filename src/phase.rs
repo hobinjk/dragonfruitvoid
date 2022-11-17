@@ -133,7 +133,7 @@ fn handle_mouse_events_system(
                 custom_size: Some(Vec2::new(BULLET_SIZE, BULLET_SIZE)),
                 ..default()
             },
-            transform: Transform::from_translation(player_loc),
+            transform: Transform::from_xyz(player_loc.x, player_loc.y, LAYER_BULLET),
             ..default()
         }).insert(Velocity(vel))
           .insert(Bullet(0.))

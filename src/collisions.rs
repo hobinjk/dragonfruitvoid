@@ -28,15 +28,19 @@ pub fn collide(pos_a: Vec3, radius_a: f32, pos_b: Vec3, radius_b: f32) -> bool {
 pub fn collisions_bullets_orbs_system(
     mut commands: Commands,
     players: Query<&Transform, With<PlayerTag>>,
-    bullets: Query<(Entity, &Transform), (With<Bullet>, Without<MobOrb>)>,
-    mut orbs: Query<(&Transform, &mut Velocity), (With<MobOrb>, Without<Bullet>)>,
+    mut bullets: Query<(&Transform, &mut HasHit), (With<Bullet>, Without<MobOrb>)>,
+    mut orbs: Query<(Entity, &Transform, &mut Velocity), (With<MobOrb>, Without<Bullet>)>,
     ) {
-    for (entity_bullet, transform_bullet) in &bullets {
+    for (transform_bullet, mut has_hit) in &mut bullets {
         let bullet_pos = transform_bullet.translation;
-        for (transform_orb, mut velocity_orb) in &mut orbs {
+        for (entity_orb, transform_orb, mut velocity_orb) in &mut orbs {
+            if has_hit.0.contains(&entity_orb) {
+                continue;
+            }
+
             let orb_pos = transform_orb.translation;
             if collide(bullet_pos, BULLET_SIZE / 2., orb_pos, ORB_RADIUS) {
-                commands.entity(entity_bullet).despawn_recursive();
+                has_hit.0.insert(entity_orb);
                 let transform_player = players.single();
                 let push_str = 4.;
                 let orb_max_vel = 60.;

@@ -28,6 +28,7 @@ pub const LAYER_MAX: f32 = 110.;
 pub const LAYER_PLAYER: f32 = 100.;
 pub const LAYER_CURSOR: f32 = LAYER_PLAYER - 5.;
 pub const LAYER_MOB: f32 = 20.;
+pub const LAYER_BULLET: f32 = 19.;
 pub const LAYER_WAVE: f32 = 15.;
 pub const LAYER_AOE: f32 = 12.;
 pub const LAYER_TARGET: f32 = 10.;
