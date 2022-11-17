@@ -34,8 +34,8 @@ pub const LAYER_TARGET: f32 = 10.;
 pub const LAYER_ROTATING_SOUP: f32 = 11.;
 pub const LAYER_MAP: f32 = 0.;
 pub const LAYER_VOID: f32 = 0.5;
-pub const LAYER_UI: f32 = 1.;
-pub const LAYER_TEXT: f32 = 2.;
+pub const LAYER_UI: f32 = 91.;
+pub const LAYER_TEXT: f32 = 92.;
 
 pub const WIDTH: f32 = 1024.;
 pub const HEIGHT: f32 = 1024.;
