@@ -26,7 +26,6 @@ pub fn collide(pos_a: Vec3, radius_a: f32, pos_b: Vec3, radius_b: f32) -> bool {
 }
 
 pub fn collisions_bullets_orbs_system(
-    mut commands: Commands,
     players: Query<&Transform, With<PlayerTag>>,
     mut bullets: Query<(&Transform, &mut HasHit), (With<Bullet>, Without<MobOrb>)>,
     mut orbs: Query<(Entity, &Transform, &mut Velocity), (With<MobOrb>, Without<Bullet>)>,
