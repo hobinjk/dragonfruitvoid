@@ -408,10 +408,17 @@ fn player_hp_check_system(game: Res<Game>,
 
 fn bullet_age_system(
     time: Res<Time>,
-    mut bullets: Query<&mut Bullet>,
+    game: Res<Game>,
+    mut commands: Commands,
+    mut bullets: Query<(Entity, &mut Bullet)>,
     ) {
-    for mut bullet in &mut bullets {
+    for (entity, mut bullet) in &mut bullets {
         bullet.0 += time.delta_seconds();
+        if !game.unlimited_range_enabled {
+            if bullet.0 * BULLET_SPEED > BULLET_RANGE {
+                commands.entity(entity).despawn_recursive();
+            }
+        }
     }
 }
 

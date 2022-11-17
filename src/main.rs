@@ -419,6 +419,7 @@ fn setup_claw_swipes(
 fn setup_boss_phase(
     commands: &mut Commands,
     asset_server: &Res<AssetServer>,
+    game: &Res<Game>,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<ColorMaterial>>,
     boss_name: String,
@@ -505,22 +506,24 @@ fn setup_boss_phase(
     let puddle_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(PUDDLE_RADIUS).into()).into();
     let puddle_material = ColorMaterial::from(Color::rgba(0.5, 0.0, 0.0, 0.3));
 
-    for puddle_start in puddle_starts {
-        commands.spawn(MaterialMesh2dBundle {
-            mesh: puddle_mesh.clone(),
-            material: materials.add(puddle_material.clone()),
-            visibility: Visibility { is_visible: false },
-            transform: Transform::from_xyz(0., 0., 0.,),
-            ..default()
-        }).insert(Puddle {
-            visibility_start: Timer::from_seconds(puddle_start, TimerMode::Once),
-            drop: Timer::from_seconds(6., TimerMode::Once),
-        })
-        .insert(CollisionRadius(PUDDLE_RADIUS))
-        .insert(Soup {
-            damage: 0.,
-            duration: None,
-        });
+    if game.puddles_enabled {
+        for puddle_start in puddle_starts {
+            commands.spawn(MaterialMesh2dBundle {
+                mesh: puddle_mesh.clone(),
+                material: materials.add(puddle_material.clone()),
+                visibility: Visibility { is_visible: false },
+                transform: Transform::from_xyz(0., 0., 0.,),
+                ..default()
+            }).insert(Puddle {
+                visibility_start: Timer::from_seconds(puddle_start, TimerMode::Once),
+                drop: Timer::from_seconds(6., TimerMode::Once),
+            })
+            .insert(CollisionRadius(PUDDLE_RADIUS))
+            .insert(Soup {
+                damage: 0.,
+                duration: None,
+            });
+        }
     }
 
     let spread_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(SPREAD_RADIUS).into()).into();
@@ -542,6 +545,7 @@ fn setup_boss_phase(
 fn setup_jormag(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    game: Res<Game>,
     mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
     ) {
 
@@ -551,6 +555,7 @@ fn setup_jormag(
     setup_boss_phase(
         &mut commands,
         &asset_server,
+        &game,
         &mut meshes,
         &mut materials,
         "Jormag".to_string(),
@@ -592,6 +597,7 @@ fn setup_jormag(
 fn setup_primordus(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    game: Res<Game>,
     mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
     ) {
 
@@ -603,6 +609,7 @@ fn setup_primordus(
     setup_boss_phase(
         &mut commands,
         &asset_server,
+        &game,
         &mut meshes,
         &mut materials,
         "Primordus".to_string(),
@@ -657,6 +664,7 @@ fn setup_primordus(
 fn setup_kralkatorrik(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    game: Res<Game>,
     mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
     ) {
 
@@ -670,6 +678,7 @@ fn setup_kralkatorrik(
     setup_boss_phase(
         &mut commands,
         &asset_server,
+        &game,
         &mut meshes,
         &mut materials,
         "Kralkatorrik".to_string(),
@@ -734,6 +743,7 @@ fn setup_kralkatorrik(
 fn setup_mordremoth(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    game: Res<Game>,
     mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
     ) {
 
@@ -746,6 +756,7 @@ fn setup_mordremoth(
     setup_boss_phase(
         &mut commands,
         &asset_server,
+        &game,
         &mut meshes,
         &mut materials,
         "Mordremoth".to_string(),
@@ -793,6 +804,7 @@ fn setup_mordremoth(
 fn setup_zhaitan(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    game: Res<Game>,
     mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
     ) {
 
@@ -805,6 +817,7 @@ fn setup_zhaitan(
     setup_boss_phase(
         &mut commands,
         &asset_server,
+        &game,
         &mut meshes,
         &mut materials,
         "Zhaitan".to_string(),
@@ -894,6 +907,7 @@ fn setup_zhaitan(
 fn setup_soowonone(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    game: Res<Game>,
     mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
     ) {
 
@@ -903,6 +917,7 @@ fn setup_soowonone(
     setup_boss_phase(
         &mut commands,
         &asset_server,
+        &game,
         &mut meshes,
         &mut materials,
         "Soo-Won 1".to_string(),
@@ -1007,6 +1022,7 @@ fn setup_soowonone(
 fn setup_soowontwo(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    game: Res<Game>,
     mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
     ) {
 
@@ -1016,6 +1032,7 @@ fn setup_soowontwo(
     setup_boss_phase(
         &mut commands,
         &asset_server,
+        &game,
         &mut meshes,
         &mut materials,
         "Soo-Won 2".to_string(),
@@ -1176,6 +1193,9 @@ fn main() {
         echo_enabled: false,
         hints_enabled: true,
         hint: None,
+        greens_enabled: true,
+        puddles_enabled: true,
+        unlimited_range_enabled: true,
     };
 
     App::new()

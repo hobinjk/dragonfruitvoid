@@ -199,7 +199,9 @@ pub fn greens_detonation_system(mut game: ResMut<Game>,
             }
 
             if !any_collide {
-                game.player.hp = 0.;
+                if game.greens_enabled {
+                    game.player.hp = 0.;
+                }
                 info!("green exploded");
             }
         }

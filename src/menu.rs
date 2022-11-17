@@ -24,6 +24,9 @@ pub enum ButtonNextState {
 pub enum ButtonOnOff {
     Hints(),
     Echo(usize),
+    UnlimitedRange(),
+    Puddles(),
+    Greens(),
 }
 
 const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
@@ -133,6 +136,9 @@ pub fn setup_menu_system(
 
             let phases = vec![
                 ("Hints", ButtonOnOff::Hints(), game.hints_enabled),
+                ("Require Greens", ButtonOnOff::Greens(), game.greens_enabled),
+                ("Spawn Reds", ButtonOnOff::Puddles(), game.puddles_enabled),
+                ("Unlimited Range", ButtonOnOff::UnlimitedRange(), game.unlimited_range_enabled),
                 ("Ender's Echo", ButtonOnOff::Echo(echo_eggs), game.echo_enabled),
             ];
 
@@ -298,6 +304,49 @@ pub fn update_menu_onoff_system(
                             }
                         }
                     },
+                    ButtonOnOff::Greens() => {
+                        game.greens_enabled = !game.greens_enabled;
+                        let onoff = if game.greens_enabled {
+                            "ON"
+                        } else {
+                            "OFF"
+                        };
+
+                        for &child in children.iter() {
+                            if let Ok(mut text) = texts.get_mut(child) {
+                                text.sections[0].value = format!("Require Greens: {}", onoff);
+                            }
+                        }
+                    },
+                    ButtonOnOff::Puddles() => {
+                        game.puddles_enabled = !game.puddles_enabled;
+                        let onoff = if game.puddles_enabled {
+                            "ON"
+                        } else {
+                            "OFF"
+                        };
+
+                        for &child in children.iter() {
+                            if let Ok(mut text) = texts.get_mut(child) {
+                                text.sections[0].value = format!("Spawn Reds: {}", onoff);
+                            }
+                        }
+                    },
+                    ButtonOnOff::UnlimitedRange() => {
+                        game.unlimited_range_enabled = !game.unlimited_range_enabled;
+                        let onoff = if game.unlimited_range_enabled {
+                            "ON"
+                        } else {
+                            "OFF"
+                        };
+
+                        for &child in children.iter() {
+                            if let Ok(mut text) = texts.get_mut(child) {
+                                text.sections[0].value = format!("Unlimited Range: {}", onoff);
+                            }
+                        }
+                    },
+
                     ButtonOnOff::Echo(ref mut val) => {
                         let mut label = "Ender's Echo";
                         if *val > 0 {

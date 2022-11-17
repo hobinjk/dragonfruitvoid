@@ -50,6 +50,7 @@ pub const BULLET_COOLDOWN: f32 = 0.2;
 pub const BULLET_SIZE: f32 = 10.;
 pub const BULLET_DAMAGE: f32 = 0.3 / 1.2;
 pub const BULLET_SPEED: f32 = 200.0;
+pub const BULLET_RANGE: f32 = 1200. * GAME_TO_PX;
 
 pub const PLAYER_RADIUS: f32 = 20.;
 pub const PLAYER_REGEN: f32 = 1.;
@@ -114,6 +115,9 @@ pub struct Game {
     pub echo_enabled: bool,
     pub hints_enabled: bool,
     pub hint: Option<&'static str>,
+    pub puddles_enabled: bool,
+    pub greens_enabled: bool,
+    pub unlimited_range_enabled: bool,
 }
 
 pub fn next_game_state(game_state: GameState) -> GameState {
