@@ -1,7 +1,10 @@
-use bevy::prelude::*;
+use bevy::{
+    prelude::*,
+    sprite::{Mesh2dHandle, MaterialMesh2dBundle},
+};
 
 use crate::game::*;
-use crate::collisions::collisions_players_waves_system;
+use crate::collisions::{collisions_players_waves_system, CollisionRadius};
 use crate::aoes::*;
 use crate::mobs::*;
 use crate::greens::*;
@@ -22,14 +25,21 @@ pub struct SpreadAoeSpawn {
 }
 
 #[derive(Component)]
-pub struct Puddle {
+pub struct PuddleSpawn {
     pub visibility_start: Timer,
+    pub mesh: Mesh2dHandle,
+    pub material: ColorMaterial,
+}
+
+#[derive(Component)]
+pub struct Puddle {
     pub drop: Timer,
+    pub target: Entity,
 }
 
 fn spread_aoe_spawn_system(
     time: ResMut<Time>,
-    players: Query<Entity, With<PlayerTag>>,
+    players: Query<Entity, With<Player>>,
     mut commands: Commands,
     mut spread_aoe_spawns: Query<&mut SpreadAoeSpawn>,
     ) {
@@ -44,12 +54,14 @@ fn spread_aoe_spawn_system(
         }
 
         if do_spawn {
-            spawn_aoe(&mut commands, &spread_aoe_spawn.aoe_desc, Vec3::new(0., 0., LAYER_WAVE), Aoe {
-                visibility_start: None,
-                detonation: Timer::from_seconds(SPREAD_DETONATION, TimerMode::Once),
-                damage: SPREAD_DAMAGE,
-                linger: None,
-            }, Some(AoeFollow { target: players.single() }));
+            for player in &players {
+                spawn_aoe(&mut commands, &spread_aoe_spawn.aoe_desc, Vec3::new(0., 0., LAYER_WAVE), Aoe {
+                    visibility_start: None,
+                    detonation: Timer::from_seconds(SPREAD_DETONATION, TimerMode::Once),
+                    damage: SPREAD_DAMAGE,
+                    linger: None,
+                }, Some(AoeFollow { target: player }));
+            }
         }
     }
 }
@@ -71,29 +83,73 @@ pub fn boss_existence_check_system(
     }
 }
 
-fn puddles_system(time: Res<Time>,
-    players: Query<&Transform, (With<PlayerTag>, Without<Puddle>)>,
-    mut puddles: Query<(&mut Puddle, &mut Soup, &mut Transform, &mut Visibility, &Handle<ColorMaterial>)>,
+
+fn get_puddle_target_sorted_players(
+    players: &Query<(Entity, &Transform), With<Player>>,
+    ) -> Vec<Entity> {
+
+    let mut players_by_dist: Vec<(Entity, &Transform)> = vec![];
+    for player in players {
+        players_by_dist.push(player)
+    }
+
+    players_by_dist.sort_by(|a, b| {
+        let pos_a = a.1.translation;
+        let pos_b = b.1.translation;
+        pos_a.length_squared().total_cmp(&pos_b.length_squared())
+    });
+    players_by_dist.iter().map(|a| a.0).collect()
+}
+
+fn puddle_spawns_system(
+    time: Res<Time>,
+    players: Query<(Entity, &Transform), With<Player>>,
+    mut puddle_spawns: Query<(Entity, &mut PuddleSpawn)>,
+    mut commands: Commands,
     mut materials: ResMut<Assets<ColorMaterial>>,
     ) {
-    for (mut puddle, mut soup, mut transform, mut visibility, material) in &mut puddles {
+    for (entity, mut puddle_spawn) in &mut puddle_spawns {
+        puddle_spawn.visibility_start.tick(time.delta());
+        if !puddle_spawn.visibility_start.finished() {
+            continue;
+        }
+
+        commands.entity(entity).despawn_recursive();
+
+        for &entity_player in get_puddle_target_sorted_players(&players).iter().take(2) {
+            commands.spawn(MaterialMesh2dBundle {
+                mesh: puddle_spawn.mesh.clone(),
+                material: materials.add(puddle_spawn.material.clone()),
+                transform: Transform::from_xyz(0., 0., 0.,),
+                ..default()
+            }).insert(Puddle {
+                drop: Timer::from_seconds(6., TimerMode::Once),
+                target: entity_player,
+            })
+            .insert(CollisionRadius(PUDDLE_RADIUS))
+            .insert(Soup {
+                damage: 0.,
+                duration: None,
+            });
+        }
+    }
+}
+
+fn puddles_system(time: Res<Time>,
+    players: Query<&Transform, (With<Player>, Without<Puddle>)>,
+    mut puddles: Query<(&mut Puddle, &mut Soup, &mut Transform, &Handle<ColorMaterial>)>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    ) {
+    for (mut puddle, mut soup, mut transform, material) in &mut puddles {
         if puddle.drop.finished() {
             continue;
         }
 
-        if !puddle.visibility_start.finished() {
-            puddle.visibility_start.tick(time.delta());
-        } else {
-            puddle.drop.tick(time.delta());
-
-            if puddle.drop.percent() < 4. / 6. {
-                let transform_player = players.single();
+        puddle.drop.tick(time.delta());
+        if puddle.drop.percent() < 4. / 6. {
+            if let Ok(transform_player) = players.get(puddle.target) {
                 transform.translation = transform_player.translation;
             }
-        }
-
-        if puddle.visibility_start.just_finished() {
-            visibility.is_visible = true;
         }
 
         if puddle.drop.just_finished() {
@@ -117,6 +173,7 @@ pub fn build_update_boss_phase(phase: GameState) -> SystemSet {
         .with_system(waves_system)
         .with_system(boss_existence_check_system)
         .with_system(boss_healthbar_system)
+        .with_system(puddle_spawns_system)
         .with_system(puddles_system)
 }
 

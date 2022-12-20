@@ -179,28 +179,31 @@ pub fn greens_system(time: Res<Time>,
     }
 }
 
-pub fn greens_detonation_system(mut game: ResMut<Game>,
-                 players: Query<&Transform, With<PlayerTag>>,
-                 greens: Query<(&StackGreen, &Children)>,
-                 indicators: Query<(&StackGreenIndicator, &Transform)>,
-                 ) {
+pub fn greens_detonation_system(
+    game: ResMut<Game>,
+    mut players: Query<(&mut Player, &Transform)>,
+    greens: Query<(&StackGreen, &Children)>,
+    indicators: Query<(&StackGreenIndicator, &Transform)>,
+    ) {
     for (green, children) in &greens {
         if green.detonation.just_finished() {
-            let transform_player = players.single();
             let mut any_collide = false;
-
-            for &child in children.iter() {
-                if let Ok((_, transform_indicator)) = indicators.get(child) {
-                    any_collide = any_collide || collide(transform_player.translation, 0., transform_indicator.translation, GREEN_RADIUS);
-                }
-                if any_collide {
-                    break;
+            for (_, transform_player) in &players {
+                for &child in children.iter() {
+                    if let Ok((_, transform_indicator)) = indicators.get(child) {
+                        any_collide = any_collide || collide(transform_player.translation, 0., transform_indicator.translation, GREEN_RADIUS);
+                    }
+                    if any_collide {
+                        break;
+                    }
                 }
             }
 
             if !any_collide {
                 if game.greens_enabled {
-                    game.player.hp = 0.;
+                    for (mut player, _) in &mut players {
+                        player.hp = 0.;
+                    }
                 }
                 info!("green exploded");
             }

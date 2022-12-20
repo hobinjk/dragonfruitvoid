@@ -41,10 +41,16 @@ pub struct VoidZoneGrowth(pub Timer);
 pub struct VoidZoneCrabSpawn(pub Timer);
 
 #[derive(Component)]
-pub struct PortalEntry(Timer);
+pub struct PortalEntry {
+    despawn_timer: Timer,
+    owner: Entity,
+}
 
 #[derive(Component)]
-pub struct PortalExit(Timer);
+pub struct PortalExit {
+    despawn_timer: Timer,
+    owner: Entity,
+}
 
 #[derive(Component)]
 pub struct Velocity(pub Vec3);
@@ -90,64 +96,82 @@ fn effect_forced_march_system(time: Res<Time>, mut commands: Commands, mut pulle
     }
 }
 
+fn game_player_time_system(
+    mut game: ResMut<Game>,
+    time: Res<Time>,
+    mut players: Query<&mut Player>,
+    ) {
+
+    game.time_elapsed.tick(time.delta());
+
+    for mut player in &mut players {
+        player.shoot_cooldown.tick(time.delta());
+        player.dodge_cooldown.tick(time.delta());
+        player.pull_cooldown.tick(time.delta());
+        player.blink_cooldown.tick(time.delta());
+        player.portal_cooldown.tick(time.delta());
+        player.jump_cooldown.tick(time.delta());
+        player.invuln.tick(time.delta());
+        player.jump.tick(time.delta());
+        player.hp += time.delta_seconds() * PLAYER_REGEN;
+        if player.hp > 100. {
+            player.hp = 100.;
+        }
+    }
+}
+
+fn game_player_damage_system(
+    mut game: ResMut<Game>,
+    players: Query<&Player>,
+    ) {
+
+    let mut player_damage_taken = 0.;
+
+    for player in &players {
+        player_damage_taken += player.damage_taken;
+    }
+
+    game.player_damage_taken = f32::max(game.player_damage_taken, player_damage_taken);
+}
+
 fn handle_mouse_events_system(
     mouse_button_input: Res<Input<MouseButton>>,
     keyboard_input: Res<Input<KeyCode>>,
     mut commands: Commands,
     mut cursor_moved_events: EventReader<CursorMoved>,
-    players: Query<&Transform, (With<PlayerTag>, Without<CursorMark>)>,
+    mut players: Query<(Entity, &Transform, &mut Player), Without<CursorMark>>,
     mut cursors: Query<&mut Transform, With<CursorMark>>,
-    mut game: ResMut<Game>,
-    time: Res<Time>) {
+    ) {
 
-    let player_loc = {
-        let transform = players.single();
-        transform.translation
-    };
+    for (entity_player, transform_player, mut player) in &mut players {
+        let player_loc = transform_player.translation;
+        if player.is_human {
+            if player.shoot_cooldown.finished() &&
+               (mouse_button_input.pressed(MouseButton::Left) ||
+                keyboard_input.pressed(KeyCode::Key1)) {
+                let cursor = cursors.single();
+                let mut vel = cursor.translation.sub(player_loc);
+                vel.z = 0.;
+                vel = vel.clamp_length(BULLET_SPEED, BULLET_SPEED);
 
-    game.time_elapsed.tick(time.delta());
-    game.player.shoot_cooldown.tick(time.delta());
-    game.player.dodge_cooldown.tick(time.delta());
-    game.player.pull_cooldown.tick(time.delta());
-    game.player.blink_cooldown.tick(time.delta());
-    game.player.portal_cooldown.tick(time.delta());
-    game.player.jump_cooldown.tick(time.delta());
-    game.player.invuln.tick(time.delta());
-    game.player.jump.tick(time.delta());
-    game.player.hp += time.delta_seconds() * PLAYER_REGEN;
-    if game.player.hp > 100. {
-        game.player.hp = 100.;
+                commands.spawn(SpriteBundle {
+                    sprite: Sprite {
+                        color: Color::rgb(0.89, 0.39, 0.95),
+                        custom_size: Some(Vec2::new(BULLET_SIZE, BULLET_SIZE)),
+                        ..default()
+                    },
+                    transform: Transform::from_xyz(player_loc.x, player_loc.y, LAYER_BULLET),
+                    ..default()
+                }).insert(Velocity(vel))
+                  .insert(Bullet {
+                      age: 0.,
+                      firer: entity_player,
+                  })
+                  .insert(HasHit(HashSet::new()));
+                player.shoot_cooldown.reset();
+            }
+        }
     }
-
-    if game.player.shoot_cooldown.finished() &&
-       (mouse_button_input.pressed(MouseButton::Left) ||
-        keyboard_input.pressed(KeyCode::Key1)) {
-        let cursor = cursors.single();
-        let mut vel = cursor.translation.sub(player_loc);
-        vel.z = 0.;
-        vel = vel.clamp_length(BULLET_SPEED, BULLET_SPEED);
-
-        commands.spawn(SpriteBundle {
-            sprite: Sprite {
-                color: Color::rgb(0.89, 0.39, 0.95),
-                custom_size: Some(Vec2::new(BULLET_SIZE, BULLET_SIZE)),
-                ..default()
-            },
-            transform: Transform::from_xyz(player_loc.x, player_loc.y, LAYER_BULLET),
-            ..default()
-        }).insert(Velocity(vel))
-          .insert(Bullet(0.))
-          .insert(HasHit(HashSet::new()));
-        game.player.shoot_cooldown.reset();
-    }
-
-    // {
-    //     let cursor = cursors.single();
-    //     // info!("{:?}", event);
-    //     if mouse_button_input.just_pressed(MouseButton::Left) {
-    //         info!("{:?}", cursor.translation);
-    //     }
-    // }
 
     for event in cursor_moved_events.iter() {
         let mut cursor = cursors.single_mut();
@@ -160,161 +184,192 @@ fn handle_spellcasts_system(
     keyboard_input: Res<Input<KeyCode>>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    players: Query<&Transform, (With<PlayerTag>, Without<CursorMark>)>,
-    portal_entries: Query<&Transform, With<PortalEntry>>,
-    portal_exits: Query<&Transform, With<PortalExit>>,
+    mut players: Query<(Entity, &Transform, &mut Player), Without<CursorMark>>,
+    portal_entries: Query<(&Transform, &PortalEntry)>,
+    portal_exits: Query<(&Transform, &PortalExit)>,
     cursors: Query<&Transform, With<CursorMark>>,
     crabs: Query<(Entity, &Transform, &MobCrab)>,
-    mut game: ResMut<Game>) {
-
-    let player_loc = {
-        let transform = players.single();
-        transform.translation
-    };
+    ) {
 
     let cursor_loc = cursors.single().translation;
 
-    if game.player.jump_cooldown.finished() &&
-        keyboard_input.pressed(KeyCode::Space) {
+    for (entity_player, transform_player, mut player) in &mut players {
+        if !player.is_human {
+            continue;
+        }
 
-        game.player.jump = Timer::from_seconds(0.5, TimerMode::Once);
-        game.player.jump_cooldown.reset();
-    }
+        let player_loc = transform_player.translation;
 
-    if game.player.dodge_cooldown.finished() &&
-        keyboard_input.pressed(KeyCode::V) {
-        let dodge_range = 300. * GAME_TO_PX;
-        let dodge_speed = dodge_range / 0.75;
-        let diff = cursor_loc.sub(player_loc).clamp_length(dodge_range, dodge_range);
-        let target = player_loc.add(diff);
+        if player.jump_cooldown.finished() &&
+            keyboard_input.pressed(KeyCode::Space) {
 
+            player.jump = Timer::from_seconds(0.5, TimerMode::Once);
+            player.jump_cooldown.reset();
+        }
 
-        commands.entity(game.player.entity.unwrap()).insert(EffectForcedMarch {
-            target,
-            speed: dodge_speed,
-        });
-
-        game.player.invuln = Timer::from_seconds(0.75, TimerMode::Once);
-        game.player.dodge_cooldown.reset();
-    }
-
-    if game.player.blink_cooldown.finished() &&
-        keyboard_input.pressed(KeyCode::E) {
-        let blink_range = 1200.0 * GAME_TO_PX;
-        let blink_speed = blink_range / 0.1;
-        let mut diff = cursor_loc.sub(player_loc);
-        diff.z = 0.;
-        diff = diff.clamp_length(0., blink_range);
-        let target = player_loc.add(diff);
+        if player.dodge_cooldown.finished() &&
+            keyboard_input.pressed(KeyCode::V) {
+            let dodge_range = 300. * GAME_TO_PX;
+            let dodge_speed = dodge_range / 0.75;
+            let diff = cursor_loc.sub(player_loc).clamp_length(dodge_range, dodge_range);
+            let target = player_loc.add(diff);
 
 
-        commands.entity(game.player.entity.unwrap()).insert(EffectForcedMarch {
-            target,
-            speed: blink_speed,
-        });
+            commands.entity(entity_player).insert(EffectForcedMarch {
+                target,
+                speed: dodge_speed,
+            });
 
-        game.player.invuln = Timer::from_seconds(0.1, TimerMode::Once);
-        game.player.blink_cooldown.reset();
-    }
+            player.invuln = Timer::from_seconds(0.75, TimerMode::Once);
+            player.dodge_cooldown.reset();
+        }
 
-    if game.player.pull_cooldown.finished() &&
-        keyboard_input.pressed(KeyCode::Key4) {
-        let pull_loc = cursor_loc;
-        let pull_range = 600.0 * GAME_TO_PX;
-        let pull_speed = pull_range / 0.3;
-
-        for (entity_crab, transform_crab, _) in &crabs {
-            let crab_loc = transform_crab.translation;
-            let mut diff = crab_loc.sub(pull_loc);
+        if player.blink_cooldown.finished() &&
+            keyboard_input.pressed(KeyCode::E) {
+            let blink_range = 1200.0 * GAME_TO_PX;
+            let blink_speed = blink_range / 0.1;
+            let mut diff = cursor_loc.sub(player_loc);
             diff.z = 0.;
-            if diff.length_squared() > pull_range * pull_range {
-                continue;
+            diff = diff.clamp_length(0., blink_range);
+            let target = player_loc.add(diff);
+
+
+            commands.entity(entity_player).insert(EffectForcedMarch {
+                target,
+                speed: blink_speed,
+            });
+
+            player.invuln = Timer::from_seconds(0.1, TimerMode::Once);
+            player.blink_cooldown.reset();
+        }
+
+        if player.pull_cooldown.finished() &&
+            keyboard_input.pressed(KeyCode::Key4) {
+            let pull_loc = cursor_loc;
+            let pull_range = 600.0 * GAME_TO_PX;
+            let pull_speed = pull_range / 0.3;
+
+            for (entity_crab, transform_crab, _) in &crabs {
+                let crab_loc = transform_crab.translation;
+                let mut diff = crab_loc.sub(pull_loc);
+                diff.z = 0.;
+                if diff.length_squared() > pull_range * pull_range {
+                    continue;
+                }
+
+                let target = pull_loc;
+                commands.entity(entity_crab).insert(EffectForcedMarch {
+                    target,
+                    speed: pull_speed,
+                });
             }
 
-            let target = pull_loc;
-            commands.entity(entity_crab).insert(EffectForcedMarch {
-                target,
-                speed: pull_speed,
-            });
+            player.pull_cooldown.reset();
         }
 
-        game.player.pull_cooldown.reset();
-    }
+        if player.portal_cooldown.finished() &&
+            keyboard_input.just_pressed(KeyCode::R) {
+            let portal_loc = player_loc;
 
-    if game.player.portal_cooldown.finished() &&
-        keyboard_input.just_pressed(KeyCode::R) {
-        let portal_loc = player_loc;
-
-        if portal_entries.is_empty() {
-            commands.spawn(SpriteBundle {
-                sprite: Sprite {
-                    color: Color::rgb(0., 1., 1.),
-                    custom_size: Some(Vec2::new(PORTAL_RADIUS * 2., PORTAL_RADIUS * 2.)),
+            if portal_entries.is_empty() {
+                commands.spawn(SpriteBundle {
+                    sprite: Sprite {
+                        color: Color::rgb(0., 1., 1.),
+                        custom_size: Some(Vec2::new(PORTAL_RADIUS * 2., PORTAL_RADIUS * 2.)),
+                        ..default()
+                    },
+                    texture: asset_server.load("ring.png"),
+                    transform: Transform::from_translation(portal_loc),
                     ..default()
-                },
-                texture: asset_server.load("ring.png"),
-                transform: Transform::from_translation(portal_loc),
-                ..default()
-            })
-            .insert(PortalEntry(Timer::from_seconds(60., TimerMode::Once)));
+                })
+                .insert(PortalEntry {
+                    despawn_timer: Timer::from_seconds(60., TimerMode::Once),
+                    owner: entity_player,
+                });
 
-            game.player.portal_cooldown = Timer::from_seconds(0.5, TimerMode::Once);
-        } else if portal_exits.is_empty() {
-            commands.spawn(SpriteBundle {
-                sprite: Sprite {
-                    color: Color::rgb(1., 0.7, 0.),
-                    custom_size: Some(Vec2::new(PORTAL_RADIUS * 2., PORTAL_RADIUS * 2.)),
+                player.portal_cooldown = Timer::from_seconds(0.5, TimerMode::Once);
+            } else if portal_exits.is_empty() {
+                commands.spawn(SpriteBundle {
+                    sprite: Sprite {
+                        color: Color::rgb(1., 0.7, 0.),
+                        custom_size: Some(Vec2::new(PORTAL_RADIUS * 2., PORTAL_RADIUS * 2.)),
+                        ..default()
+                    },
+                    texture: asset_server.load("ring.png"),
+                    transform: Transform::from_translation(portal_loc),
                     ..default()
-                },
-                texture: asset_server.load("ring.png"),
-                transform: Transform::from_translation(portal_loc),
-                ..default()
-            })
-            .insert(PortalExit(Timer::from_seconds(10., TimerMode::Once)));
+                })
+                .insert(PortalExit {
+                    despawn_timer: Timer::from_seconds(10., TimerMode::Once),
+                    owner: entity_player,
+                });
 
-            game.player.portal_cooldown = Timer::from_seconds(60., TimerMode::Once);
+                player.portal_cooldown = Timer::from_seconds(60., TimerMode::Once);
+            }
         }
-    }
 
-    if keyboard_input.just_pressed(KeyCode::F) &&
-        !portal_entries.is_empty() &&
-        !portal_exits.is_empty() {
-        let entry = portal_entries.single().translation;
-        let exit = portal_exits.single().translation;
-        if collide(player_loc, PLAYER_RADIUS, entry, PORTAL_RADIUS) {
-            commands.entity(game.player.entity.unwrap()).insert(EffectForcedMarch {
-                target: exit,
-                speed: 20000.,
-            });
-        } else if collide(player_loc, PLAYER_RADIUS, exit, PORTAL_RADIUS) {
-            commands.entity(game.player.entity.unwrap()).insert(EffectForcedMarch {
-                target: entry,
-                speed: 20000.,
-            });
+        if keyboard_input.just_pressed(KeyCode::F) &&
+            !portal_entries.is_empty() &&
+            !portal_exits.is_empty() {
+            for (transform_entry, entry) in &portal_entries {
+                if !collide(player_loc, PLAYER_RADIUS, transform_entry.translation, PORTAL_RADIUS) {
+                    continue;
+                }
+
+                for (transform_exit, exit) in &portal_exits {
+                    if exit.owner != entry.owner {
+                        continue;
+                    }
+                    commands.entity(entity_player).insert(EffectForcedMarch {
+                        target: transform_exit.translation,
+                        speed: 20000.,
+                    });
+                    break;
+                }
+            }
+
+            for (transform_exit, exit) in &portal_exits {
+                if !collide(player_loc, PLAYER_RADIUS, transform_exit.translation, PORTAL_RADIUS) {
+                    continue;
+                }
+
+                for (transform_entry, entry) in &portal_entries {
+                    if exit.owner != entry.owner {
+                        continue;
+                    }
+                    commands.entity(entity_player).insert(EffectForcedMarch {
+                        target: transform_entry.translation,
+                        speed: 20000.,
+                    });
+                    break;
+                }
+            }
         }
     }
 }
 
 fn portal_despawn_system(
-    mut game: ResMut<Game>,
     mut commands: Commands,
     time: Res<Time>,
+    mut players: Query<&mut Player>,
     mut portal_entries: Query<(Entity, &mut PortalEntry)>,
     mut portal_exits: Query<(Entity, &mut PortalExit)>,
     ) {
     if portal_exits.is_empty() {
         for (entity, mut entry) in &mut portal_entries {
-            entry.0.tick(time.delta());
-            if entry.0.finished() {
-                game.player.portal_cooldown = Timer::from_seconds(60., TimerMode::Once);
+            entry.despawn_timer.tick(time.delta());
+            if entry.despawn_timer.finished() {
+                if let Ok(mut player) = players.get_mut(entry.owner) {
+                    player.portal_cooldown = Timer::from_seconds(60., TimerMode::Once);
+                }
                 commands.entity(entity).despawn_recursive();
             }
         }
     }
 
     for (entity, mut exit) in &mut portal_exits {
-        exit.0.tick(time.delta());
-        if exit.0.finished() {
+        exit.despawn_timer.tick(time.delta());
+        if exit.despawn_timer.finished() {
             commands.entity(entity).despawn_recursive();
 
             for (entity, _) in &portal_entries {
@@ -355,10 +410,14 @@ fn move_rotating_soup_system(
 }
 
 fn move_player_system(time: Res<Time>, keyboard_input: Res<Input<KeyCode>>,
-               mut transforms: Query<&mut Transform, (With<PlayerTag>, Without<EffectForcedMarch>)>) {
+               mut transforms: Query<(&mut Transform, &Player), Without<EffectForcedMarch>>) {
     // Much slower than actual movement
     let speed = 250.0 * GAME_TO_PX * time.delta_seconds();
-    for mut transform in &mut transforms {
+    for (mut transform, player) in &mut transforms {
+        if !player.is_human {
+            continue;
+        }
+
         let mut movement = Vec3::ZERO;
         if keyboard_input.pressed(KeyCode::Up) || keyboard_input.pressed(KeyCode::W) {
             movement.y += speed;
@@ -398,10 +457,22 @@ fn void_zone_growth_system(
     }
 }
 
-fn player_hp_check_system(game: Res<Game>,
-                          mut state: ResMut<State<GameState>>,
-                          ) {
-    if game.player.hp <= 0.1 {
+fn player_hp_check_system(
+    players: Query<(Entity, &Player)>,
+    mut commands: Commands,
+    ) {
+    for (entity_player, player) in &players {
+        if player.hp <= 0.1 {
+            commands.entity(entity_player).despawn_recursive();
+        }
+    }
+}
+
+fn player_count_system(
+    players: Query<&Player>,
+    mut state: ResMut<State<GameState>>,
+    ) {
+    if players.is_empty() {
         state.push(GameState::Failure).unwrap();
     }
 }
@@ -413,9 +484,9 @@ fn bullet_age_system(
     mut bullets: Query<(Entity, &mut Bullet)>,
     ) {
     for (entity, mut bullet) in &mut bullets {
-        bullet.0 += time.delta_seconds();
+        bullet.age += time.delta_seconds();
         if !game.unlimited_range_enabled {
-            if bullet.0 * BULLET_SPEED > BULLET_RANGE {
+            if bullet.age * BULLET_SPEED > BULLET_RANGE {
                 commands.entity(entity).despawn_recursive();
             }
         }
@@ -423,8 +494,8 @@ fn bullet_age_system(
 }
 
 fn echo_grab_system(
-    mut players: Query<&mut Transform, With<PlayerTag>>,
-    echos: Query<(&MobEcho, &Transform), Without<PlayerTag>>
+    mut players: Query<&mut Transform, With<Player>>,
+    echos: Query<(&MobEcho, &Transform), Without<Player>>
     ) {
     for (echo, transform) in &echos {
         if !echo.gottem {
@@ -441,29 +512,29 @@ fn echo_grab_system(
 
 fn echo_retarget_system(
     time: Res<Time>,
-    players: Query<&Transform, With<PlayerTag>>,
+    players: Query<&Transform, With<Player>>,
     mut echos: Query<(&mut MobEcho, &Transform, &mut Velocity, &CollisionRadius)>
     ) {
-    let transform_player = players.single();
+    for transform_player in &players {
+        for (mut echo, transform, mut velocity, radius) in &mut echos {
+            if echo.retarget.finished() {
+                continue;
+            }
+            if collide(transform.translation, 0., Vec3::ZERO, MAP_RADIUS - radius.0) {
+                continue;
+            }
+            echo.retarget.tick(time.delta());
+            if !echo.retarget.finished() {
+                velocity.0 = Vec3::ZERO;
+                continue;
+            }
+            echo.retarget.reset();
 
-    for (mut echo, transform, mut velocity, radius) in &mut echos {
-        if echo.retarget.finished() {
-            continue;
+            let mut vel = transform_player.translation.sub(transform.translation);
+            vel.z = 0.;
+            vel = vel.clamp_length(ECHO_SPEED, ECHO_SPEED);
+            velocity.0 = vel;
         }
-        if collide(transform.translation, 0., Vec3::ZERO, MAP_RADIUS - radius.0) {
-            continue;
-        }
-        echo.retarget.tick(time.delta());
-        if !echo.retarget.finished() {
-            velocity.0 = Vec3::ZERO;
-            continue;
-        }
-        echo.retarget.reset();
-
-        let mut vel = transform_player.translation.sub(transform.translation);
-        vel.z = 0.;
-        vel = vel.clamp_length(ECHO_SPEED, ECHO_SPEED);
-        velocity.0 = vel;
     }
 }
 
@@ -504,13 +575,16 @@ pub fn build_update_phase(phase: GameState) -> SystemSet {
         .with_system(echo_retarget_system)
         .with_system(scheduled_hint_system)
         .with_system(portal_despawn_system)
+        .with_system(game_player_time_system)
+        .with_system(game_player_damage_system)
+        .with_system(player_count_system)
 }
 
 pub fn setup_phase(
     mut commands: Commands, asset_server: Res<AssetServer>,
     mut game: ResMut<Game>,
     state: Res<State<GameState>>,
-    existing_player: Query<&PlayerTag>,
+    mut players: Query<&mut Player>,
     mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>,
     ) {
 
@@ -519,29 +593,31 @@ pub fn setup_phase(
     // Reset all cooldowns and invuln timings
     if !game.continuous {
         game.time_elapsed.reset();
-        game.player.hp = 100.;
-        game.player.dodge_cooldown.tick(Duration::from_secs_f32(1000.));
-        game.player.blink_cooldown.tick(Duration::from_secs_f32(1000.));
-        game.player.portal_cooldown.tick(Duration::from_secs_f32(1000.));
-        game.player.pull_cooldown.tick(Duration::from_secs_f32(1000.));
-        game.player.invuln.tick(Duration::from_secs_f32(1000.));
-        game.player.jump.tick(Duration::from_secs_f32(1000.));
+        game.player_damage_taken = 0.;
+        for mut player in &mut players {
+            player.hp = 100.;
+            player.dodge_cooldown.tick(Duration::from_secs_f32(1000.));
+            player.blink_cooldown.tick(Duration::from_secs_f32(1000.));
+            player.portal_cooldown.tick(Duration::from_secs_f32(1000.));
+            player.pull_cooldown.tick(Duration::from_secs_f32(1000.));
+            player.invuln.tick(Duration::from_secs_f32(1000.));
+            player.jump.tick(Duration::from_secs_f32(1000.));
+        }
     }
 
-    if existing_player.is_empty() {
+    if players.is_empty() {
         game.time_elapsed.reset();
-        game.player.hp = 100.;
-        game.player.entity = Some(
-            commands.spawn(SpriteBundle {
-                sprite: Sprite {
-                    custom_size: Some(Vec2::new(PLAYER_RADIUS * 2., PLAYER_RADIUS * 2.)),
-                    ..default()
-                },
-                texture: asset_server.load("virt.png"),
-                transform: Transform::from_xyz(0., 200., LAYER_PLAYER),
+        commands.spawn(SpriteBundle {
+            sprite: Sprite {
+                custom_size: Some(Vec2::new(PLAYER_RADIUS * 2., PLAYER_RADIUS * 2.)),
                 ..default()
-            }).insert(PlayerTag).id()
-        );
+            },
+            texture: asset_server.load("virt.png"),
+            transform: Transform::from_xyz(0., 200., LAYER_PLAYER),
+            ..default()
+        }).insert(Player {
+            ..default()
+        });
     }
 
     if game.echo_enabled {
@@ -717,8 +793,8 @@ pub fn setup_phase(
 pub fn cleanup_phase(
     mut commands: Commands,
     game: Res<Game>,
-    entities: Query<Entity, (Without<PlayerTag>, Without<Camera>)>,
-    player_entity: Query<Entity, With<PlayerTag>>,
+    entities: Query<Entity, (Without<Player>, Without<Camera>)>,
+    player_entity: Query<Entity, With<Player>>,
     ) {
     for entity in &entities {
         commands.entity(entity).despawn_recursive();

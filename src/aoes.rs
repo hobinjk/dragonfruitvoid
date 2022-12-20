@@ -4,7 +4,7 @@ use bevy::{
 };
 use std::ops::Add;
 
-use crate::game::{GAME_TO_PX, GAME_RADIUS, LAYER_AOE, PlayerTag, Game};
+use crate::game::{GAME_TO_PX, GAME_RADIUS, LAYER_AOE, Player};
 use crate::damage_flash::DamageFlashEvent;
 use crate::collisions::{CollisionRadius, collide};
 
@@ -85,9 +85,8 @@ pub fn aoes_system(
 
 pub fn aoes_detonation_system(
     mut commands: Commands,
-    mut game: ResMut<Game>,
     mut damage_flash_events: EventWriter<DamageFlashEvent>,
-    players: Query<(Entity, &Transform), With<PlayerTag>>,
+    mut players: Query<(Entity, &Transform, &mut Player)>,
     aoes: Query<(Entity, &Aoe, &Transform, &CollisionRadius)>,
     ) {
 
@@ -96,17 +95,19 @@ pub fn aoes_detonation_system(
             continue;
         }
 
-        let (entity_player, transform_player) = players.single();
-        let player_pos = transform_player.translation;
-        let hit = collide(transform.translation, radius.0, player_pos, 0.);
+        for (entity_player, transform_player, mut player) in &mut players {
+            let player_pos = transform_player.translation;
+            let hit = collide(transform.translation, radius.0, player_pos, 0.);
 
-        if hit {
-            game.player.hp -= aoe.damage;
-            game.player.damage_taken += aoe.damage;
-            damage_flash_events.send(DamageFlashEvent {
-                entity: entity_player,
-            });
+            if hit {
+                player.hp -= aoe.damage;
+                player.damage_taken += aoe.damage;
+                damage_flash_events.send(DamageFlashEvent {
+                    entity: entity_player,
+                });
+            }
         }
+
         if let Some(linger) = &aoe.linger {
             commands.entity(entity_aoe).remove::<Aoe>();
             commands.entity(entity_aoe).insert(Soup {

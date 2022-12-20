@@ -70,16 +70,18 @@ const SWIPE_DETONATION: f32 = 2.;
 const SWIPE_DAMAGE: f32 = 40.;
 
 fn setup(mut commands: Commands,
-    mut game: ResMut<Game>,
+    mut players: Query<&mut Player>,
     ) {
     commands.spawn(Camera2dBundle::new_with_far(LAYER_MAX));
 
-    game.player.dodge_cooldown.tick(Duration::from_secs_f32(1000.));
-    game.player.blink_cooldown.tick(Duration::from_secs_f32(1000.));
-    game.player.portal_cooldown.tick(Duration::from_secs_f32(1000.));
-    game.player.pull_cooldown.tick(Duration::from_secs_f32(1000.));
-    game.player.invuln.tick(Duration::from_secs_f32(1000.));
-    game.player.jump.tick(Duration::from_secs_f32(1000.));
+    for mut player in &mut players {
+        player.dodge_cooldown.tick(Duration::from_secs_f32(1000.));
+        player.blink_cooldown.tick(Duration::from_secs_f32(1000.));
+        player.portal_cooldown.tick(Duration::from_secs_f32(1000.));
+        player.pull_cooldown.tick(Duration::from_secs_f32(1000.));
+        player.invuln.tick(Duration::from_secs_f32(1000.));
+        player.jump.tick(Duration::from_secs_f32(1000.));
+    }
 }
 
 fn setup_purification_one(
@@ -508,20 +510,10 @@ fn setup_boss_phase(
 
     if game.puddles_enabled {
         for puddle_start in puddle_starts {
-            commands.spawn(MaterialMesh2dBundle {
+            commands.spawn(PuddleSpawn {
                 mesh: puddle_mesh.clone(),
-                material: materials.add(puddle_material.clone()),
-                visibility: Visibility { is_visible: false },
-                transform: Transform::from_xyz(0., 0., 0.,),
-                ..default()
-            }).insert(Puddle {
+                material: puddle_material.clone(),
                 visibility_start: Timer::from_seconds(puddle_start, TimerMode::Once),
-                drop: Timer::from_seconds(6., TimerMode::Once),
-            })
-            .insert(CollisionRadius(PUDDLE_RADIUS))
-            .insert(Soup {
-                damage: 0.,
-                duration: None,
             });
         }
     }
@@ -1184,10 +1176,8 @@ fn jormag_soup_beam_system(
 
 fn main() {
     let game = Game {
-        player: Player {
-            ..default()
-        },
         time_elapsed: Stopwatch::new(),
+        player_damage_taken: 0.,
         continuous: false,
         orb_target: -1,
         echo_enabled: false,

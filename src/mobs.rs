@@ -101,15 +101,36 @@ pub fn spawn_crab(commands: &mut Commands, asset_server: &Res<AssetServer>, crab
     .insert(Hp(0.1));
 }
 
+fn get_closest_pos(
+    players: &Query<&Transform, With<Player>>,
+    pos: Vec3,
+    ) -> Option<Vec3> {
+    let mut closest = None;
+    let mut closest_dist: f32 = 0.;
+    for player in players {
+        let diff = player.translation.sub(pos);
+        if closest.is_none() || diff.length_squared() < closest_dist {
+            closest_dist = diff.length_squared();
+            closest = Some(player.translation);
+        }
+    }
+    closest
+}
+
 pub fn goliath_system(
     time: Res<Time>,
     mut commands: Commands,
     mut goliaths: Query<(&mut MobGoliath, &Transform, &mut Velocity), Without<EffectForcedMarch>>,
-    players: Query<&Transform, With<PlayerTag>>,
+    players: Query<&Transform, With<Player>>,
     ) {
-    let player = players.single();
     for (mut goliath, transform, mut velocity) in &mut goliaths {
-        let mut vel = player.translation.sub(transform.translation);
+        let player_pos = get_closest_pos(&players, transform.translation);
+        if player_pos.is_none() {
+            continue;
+        }
+        let player_pos = player_pos.unwrap();
+
+        let mut vel = player_pos.sub(transform.translation);
         vel.z = 0.;
         vel = vel.clamp_length(0., GOLIATH_MOVE_SPEED);
         velocity.0 = vel;
@@ -145,11 +166,15 @@ pub fn wyvern_system(
     time: Res<Time>,
     mut commands: Commands,
     mut wyverns: Query<(Entity, &mut MobWyvern, &Transform), Without<EffectForcedMarch>>,
-    players: Query<&Transform, With<PlayerTag>>,
+    players: Query<&Transform, With<Player>>,
     ) {
-    let player = players.single();
     for (entity, mut wyvern, transform) in &mut wyverns {
-        let mut vel = player.translation.sub(transform.translation);
+        let player_pos = get_closest_pos(&players, transform.translation);
+        if player_pos.is_none() {
+            continue;
+        }
+        let player_pos = player_pos.unwrap();
+        let mut vel = player_pos.sub(transform.translation);
         vel.z = 0.;
         let bullet_speed = WYVERN_BULLET_SPEED;
         vel = vel.clamp_length(bullet_speed, bullet_speed);
@@ -208,7 +233,7 @@ pub fn wyvern_system(
         if wyvern.charge_cooldown.finished() {
             wyvern.charge_cooldown.reset();
             let speed = WYVERN_CHARGE_RANGE / 0.75;
-            let diff = player.translation.sub(transform.translation).clamp_length(0., WYVERN_CHARGE_RANGE);
+            let diff = player_pos.sub(transform.translation).clamp_length(0., WYVERN_CHARGE_RANGE);
             let target = transform.translation.add(diff);
 
             commands.entity(entity).insert(EffectForcedMarch {
@@ -251,14 +276,20 @@ pub fn saltspray_system(
     time: Res<Time>,
     mut commands: Commands,
     mut saltsprays: Query<(&mut MobSaltspray, &Transform)>,
-    players: Query<&Transform, With<PlayerTag>>,
+    players: Query<&Transform, With<Player>>,
     ) {
-    let player = players.single();
     for (mut mob, transform) in &mut saltsprays {
         mob.shoot_cooldown.tick(time.delta());
         if mob.shoot_cooldown.finished() {
             mob.shoot_cooldown.reset();
-            let mut to_player = player.translation.sub(transform.translation);
+
+            let player_pos = get_closest_pos(&players, transform.translation);
+            if player_pos.is_none() {
+                continue;
+            }
+            let player_pos = player_pos.unwrap();
+
+            let mut to_player = player_pos.sub(transform.translation);
             to_player.z = 0.;
             let backbone = to_player.clamp_length(300., 300.);
             let perp = Vec3::new(-backbone.y, backbone.x, 0.);

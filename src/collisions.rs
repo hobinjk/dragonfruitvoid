@@ -1,6 +1,5 @@
-use bevy::{
-    prelude::*,
-};
+use bevy::prelude::*;
+
 use std::ops::{Add, Mul, Sub};
 use std::collections::HashSet;
 
@@ -26,11 +25,11 @@ pub fn collide(pos_a: Vec3, radius_a: f32, pos_b: Vec3, radius_b: f32) -> bool {
 }
 
 pub fn collisions_bullets_orbs_system(
-    players: Query<&Transform, With<PlayerTag>>,
-    mut bullets: Query<(&Transform, &mut HasHit), (With<Bullet>, Without<MobOrb>)>,
+    players: Query<&Transform, With<Player>>,
+    mut bullets: Query<(&Transform, &Bullet, &mut HasHit), (With<Bullet>, Without<MobOrb>)>,
     mut orbs: Query<(Entity, &Transform, &mut Velocity), (With<MobOrb>, Without<Bullet>)>,
     ) {
-    for (transform_bullet, mut has_hit) in &mut bullets {
+    for (transform_bullet, bullet, mut has_hit) in &mut bullets {
         let bullet_pos = transform_bullet.translation;
         for (entity_orb, transform_orb, mut velocity_orb) in &mut orbs {
             if has_hit.0.contains(&entity_orb) {
@@ -40,7 +39,7 @@ pub fn collisions_bullets_orbs_system(
             let orb_pos = transform_orb.translation;
             if collide(bullet_pos, BULLET_SIZE / 2., orb_pos, ORB_RADIUS) {
                 has_hit.0.insert(entity_orb);
-                let transform_player = players.single();
+                let transform_player = players.get(bullet.firer).unwrap();
                 let push_str = 4.;
                 let orb_max_vel = 60.;
                 let mut diff = orb_pos.sub(transform_player.translation);
@@ -71,7 +70,7 @@ pub fn collisions_bullets_enemies_system(
             }
 
             has_hit.0.insert(entity_enemy);
-            let dist_traveled = bullet.0 * BULLET_SPEED;
+            let dist_traveled = bullet.age * BULLET_SPEED;
             // Reward being close to the target with more damage
             let mut damage_tier = 1.5 - (dist_traveled * PX_TO_GAME / 1200.);
             if damage_tier < 1. {
@@ -88,7 +87,7 @@ pub fn collisions_bullets_enemies_system(
 }
 
 pub fn collisions_crabs_orbs_system(
-    mut game: ResMut<Game>,
+    mut players: Query<&mut Player>,
     crabs: Query<&Transform, With<MobCrab>>,
     orbs: Query<&Transform, With<MobOrb>>,
     ) {
@@ -97,7 +96,9 @@ pub fn collisions_crabs_orbs_system(
         for transform_crab in &crabs {
             let crab_pos = transform_crab.translation;
             if collide(orb_pos, ORB_RADIUS, crab_pos, CRAB_SIZE / 2.) {
-                game.player.hp = 0.;
+                for mut player in &mut players {
+                    player.hp = 0.;
+                }
                 info!("crab hit orb");
             }
         }
@@ -156,153 +157,155 @@ pub fn collisions_orb_targets_system(
 }
 
 pub fn collisions_players_edge_system(
-    mut game: ResMut<Game>,
-    players: Query<&Transform, (With<PlayerTag>, Without<MobOrb>)>,
+    mut players: Query<(&mut Player, &Transform)>,
     ) {
-    let transform_player = players.single();
-    if !collide(transform_player.translation, 0., Vec3::ZERO, MAP_RADIUS) {
-        game.player.hp = 0.;
-        info!("player fell off the edge");
+    for (mut player, transform_player) in &mut players {
+        if !collide(transform_player.translation, 0., Vec3::ZERO, MAP_RADIUS) {
+            player.hp = 0.;
+            info!("player fell off the edge");
+        }
     }
 }
 
 pub fn collisions_players_echo_system(
     time: Res<Time>,
-    mut game: ResMut<Game>,
-    players: Query<&Transform, With<PlayerTag>>,
-    mut echos: Query<(&mut MobEcho, &Transform, &CollisionRadius), Without<PlayerTag>>,
+    mut players: Query<(&mut Player, &Transform)>,
+    mut echos: Query<(&mut MobEcho, &Transform, &CollisionRadius), Without<Player>>,
     ) {
 
     for (mut echo, transform_echo, radius) in &mut echos {
-        let transform_player = players.single();
-        let player_pos = transform_player.translation;
+        for (mut player, transform_player) in &mut players {
+            let player_pos = transform_player.translation;
 
-        if !collide(player_pos, PLAYER_RADIUS, transform_echo.translation, radius.0) {
-            continue;
+            if !collide(player_pos, PLAYER_RADIUS, transform_echo.translation, radius.0) {
+                continue;
+            }
+
+            if !player.invuln.finished() {
+                continue;
+            }
+
+            echo.gottem = true;
+
+            player.hp -= ECHO_DAMAGE * time.delta_seconds();
+            player.damage_taken += ECHO_DAMAGE * time.delta_seconds();
         }
-
-        if !game.player.invuln.finished() {
-            continue;
-        }
-
-        echo.gottem = true;
-
-        game.player.hp -= ECHO_DAMAGE * time.delta_seconds();
-        game.player.damage_taken += ECHO_DAMAGE * time.delta_seconds();
     }
 }
 
 pub fn collisions_players_soups_system(
     time: Res<Time>,
-    mut game: ResMut<Game>,
     mut damage_flash_events: EventWriter<DamageFlashEvent>,
-    players: Query<(Entity, &Transform), With<PlayerTag>>,
+    mut players: Query<(Entity, &Transform, &mut Player)>,
     soups: Query<(&Soup, &Transform, &CollisionRadius)>,
     ) {
 
-    let (entity_player, transform_player) = players.single();
-    let player_pos = transform_player.translation;
-    for (soup, transform_soup, radius) in &soups {
-        if !collide(player_pos, 0., transform_soup.translation, radius.0) {
-            continue;
-        }
-        let damage = soup.damage * time.delta_seconds();
-        game.player.hp -= damage;
-        game.player.damage_taken += damage;
-        if soup.damage > 0.1 {
-            damage_flash_events.send(DamageFlashEvent {
-                entity: entity_player,
-            });
+    for (entity_player, transform_player, mut player) in &mut players {
+        let player_pos = transform_player.translation;
+        for (soup, transform_soup, radius) in &soups {
+            if !collide(player_pos, 0., transform_soup.translation, radius.0) {
+                continue;
+            }
+            let damage = soup.damage * time.delta_seconds();
+            player.hp -= damage;
+            player.damage_taken += damage;
+            if soup.damage > 0.1 {
+                damage_flash_events.send(DamageFlashEvent {
+                    entity: entity_player,
+                });
+            }
         }
     }
 }
 
 pub fn collisions_players_waves_system(
-    mut game: ResMut<Game>,
     mut damage_flash_events: EventWriter<DamageFlashEvent>,
-    players: Query<(Entity, &Transform), (With<PlayerTag>, Without<EffectForcedMarch>)>,
+    mut players: Query<(Entity, &Transform, &mut Player), Without<EffectForcedMarch>>,
     waves: Query<(&Wave, &Visibility, &Transform)>,
     ) {
     if players.is_empty() {
         return;
     }
 
-    let (entity_player, transform_player) = players.single();
-    let player_pos = transform_player.translation;
+    for (entity_player, transform_player, mut player) in &mut players {
+        let player_pos = transform_player.translation;
 
-    for (_, visibility, transform) in &waves {
-        if !visibility.is_visible {
-            continue;
-        }
+        for (_, visibility, transform) in &waves {
+            if !visibility.is_visible {
+                continue;
+            }
 
-        let r_outer = transform.scale.x * WAVE_MAX_RADIUS;
-        let r_inner = r_outer - 20.;
+            let r_outer = transform.scale.x * WAVE_MAX_RADIUS;
+            let r_inner = r_outer - 20.;
 
-        // Safe because we're in the "eye" of the wave
-        if collide(player_pos, 0., transform.translation, r_inner) {
-            continue;
-        }
-        if collide(player_pos, 0., transform.translation, r_outer) {
-            if game.player.invuln.finished() && game.player.jump.finished() {
-                game.player.hp -= WAVE_DAMAGE;
-                game.player.damage_taken += WAVE_DAMAGE;
-                damage_flash_events.send(DamageFlashEvent {
-                    entity: entity_player,
-                });
-                // Brief invuln from being knocked (not actually knocked because Reasons)
-                game.player.invuln = Timer::from_seconds(1., TimerMode::Once);
+            // Safe because we're in the "eye" of the wave
+            if collide(player_pos, 0., transform.translation, r_inner) {
+                continue;
+            }
+            if collide(player_pos, 0., transform.translation, r_outer) {
+                if player.invuln.finished() && player.jump.finished() {
+                    player.hp -= WAVE_DAMAGE;
+                    player.damage_taken += WAVE_DAMAGE;
+                    damage_flash_events.send(DamageFlashEvent {
+                        entity: entity_player,
+                    });
+                    // Brief invuln from being knocked (not actually knocked because Reasons)
+                    player.invuln = Timer::from_seconds(1., TimerMode::Once);
+                }
             }
         }
     }
 }
 
 pub fn collisions_orbs_edge_system(
-    mut game: ResMut<Game>,
+    mut players: Query<&mut Player>,
     orbs: Query<(&MobOrb, &Transform)>,
     ) {
     for (_, transform_orb) in &orbs {
         if !collide(transform_orb.translation, 0., Vec3::ZERO, MAP_RADIUS - ORB_RADIUS) {
-            game.player.hp = 0.;
+            for mut player in &mut players {
+                player.hp = 0.;
+            }
             info!("orb hit the edge");
         }
     }
 }
 
 pub fn collisions_players_enemy_bullets_system(
-    mut game: ResMut<Game>,
     mut damage_flash_events: EventWriter<DamageFlashEvent>,
     mut commands: Commands,
-    players: Query<(Entity, &Transform), With<PlayerTag>>,
+    mut players: Query<(Entity, &Transform, &mut Player)>,
     bullets: Query<(Entity, &EnemyBullet, &Transform, &Velocity, &CollisionRadius)>,
     ) {
 
     for (entity_bullet, bullet, transform_bullet, velocity, radius) in &bullets {
-        let (entity_player, transform_player) = players.single();
-        let player_pos = transform_player.translation;
+        for (entity_player, transform_player, mut player) in &mut players {
+            let player_pos = transform_player.translation;
 
-        if !collide(player_pos, PLAYER_RADIUS, transform_bullet.translation, radius.0) {
-            continue;
-        }
-
-        if game.player.invuln.finished() {
-            game.player.hp -= bullet.damage;
-            game.player.damage_taken += bullet.damage;
-            damage_flash_events.send(DamageFlashEvent {
-                entity: entity_player,
-            });
-
-            if bullet.knockback.abs() > 0.1 {
-                let target = player_pos.add(velocity.0.clamp_length(bullet.knockback, bullet.knockback));
-                let speed = bullet.knockback / 0.2;
-                commands.entity(entity_player).insert(EffectForcedMarch {
-                    target,
-                    speed,
-                });
+            if !collide(player_pos, PLAYER_RADIUS, transform_bullet.translation, radius.0) {
+                continue;
             }
-            // Brief invuln from being damaged
-            game.player.invuln = Timer::from_seconds(0.1, TimerMode::Once);
-        }
 
-        commands.entity(entity_bullet).despawn_recursive();
+            if player.invuln.finished() {
+                player.hp -= bullet.damage;
+                player.damage_taken += bullet.damage;
+                damage_flash_events.send(DamageFlashEvent {
+                    entity: entity_player,
+                });
+
+                if bullet.knockback.abs() > 0.1 {
+                    let target = player_pos.add(velocity.0.clamp_length(bullet.knockback, bullet.knockback));
+                    let speed = bullet.knockback / 0.2;
+                    commands.entity(entity_player).insert(EffectForcedMarch {
+                        target,
+                        speed,
+                    });
+                }
+                // Brief invuln from being damaged
+                player.invuln = Timer::from_seconds(0.1, TimerMode::Once);
+            }
+
+            commands.entity(entity_bullet).despawn_recursive();
+        }
     }
 }

@@ -3,6 +3,8 @@ use bevy::{
     time::Stopwatch,
 };
 
+use std::time::Duration;
+
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
 pub enum GameState {
     StartMenu,
@@ -62,9 +64,8 @@ pub const CRAB_SIZE: f32 = 40.;
 pub struct CursorMark;
 
 #[derive(Component)]
-pub struct PlayerTag;
-
 pub struct Player {
+    pub is_human: bool,
     pub hp: f32,
     pub damage_taken: f32,
     pub shoot_cooldown: Timer,
@@ -75,11 +76,13 @@ pub struct Player {
     pub jump_cooldown: Timer,
     pub invuln: Timer,
     pub jump: Timer,
-    pub entity: Option<Entity>,
 }
 
 #[derive(Component)]
-pub struct Bullet(pub f32);
+pub struct Bullet {
+    pub age: f32,
+    pub firer: Entity,
+}
 
 #[derive(Component)]
 pub struct EnemyBullet {
@@ -87,11 +90,10 @@ pub struct EnemyBullet {
     pub knockback: f32,
 }
 
-
-
 impl Default for Player {
     fn default() -> Self {
-        Player {
+        let mut player = Player {
+            is_human: true,
             hp: 100.,
             damage_taken: 0.,
             shoot_cooldown: Timer::from_seconds(BULLET_COOLDOWN, TimerMode::Once),
@@ -102,15 +104,23 @@ impl Default for Player {
             pull_cooldown: Timer::from_seconds(20., TimerMode::Once),
             invuln: Timer::from_seconds(0.75, TimerMode::Once),
             jump: Timer::from_seconds(0.75, TimerMode::Once),
-            entity: None,
-        }
+        };
+
+        player.dodge_cooldown.tick(Duration::from_secs_f32(1000.));
+        player.blink_cooldown.tick(Duration::from_secs_f32(1000.));
+        player.portal_cooldown.tick(Duration::from_secs_f32(1000.));
+        player.pull_cooldown.tick(Duration::from_secs_f32(1000.));
+        player.invuln.tick(Duration::from_secs_f32(1000.));
+        player.jump.tick(Duration::from_secs_f32(1000.));
+
+        player
     }
 }
 
 #[derive(Resource)]
 pub struct Game {
-    pub player: Player,
     pub time_elapsed: Stopwatch,
+    pub player_damage_taken: f32,
     pub orb_target: i32,
     pub continuous: bool,
     pub echo_enabled: bool,

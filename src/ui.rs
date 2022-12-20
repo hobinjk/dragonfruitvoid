@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::game::Game;
+use crate::game::Player;
 use crate::mobs::{
     Hp,
     Boss,
@@ -54,29 +54,37 @@ fn set_cooldown_text_display(timer: &Timer, text: &mut Text, text_display: &Text
     }
 }
 
-pub fn text_system(game: Res<Game>,
-               mut text_displays: Query<(&mut Text, &TextDisplay)>,
-               mut sprites: Query<&mut Sprite>) {
-    for (mut text, text_display) in &mut text_displays {
-        match text_display.value {
-            TextValue::Hp => {
-                let hp = game.player.hp;
-                text.sections[0].value = format!("{hp:.0}");
-            },
-            TextValue::CooldownBlink => {
-                set_cooldown_text_display(&game.player.blink_cooldown, &mut text, &text_display, &mut sprites);
-            },
-            TextValue::CooldownDodge => {
-                set_cooldown_text_display(&game.player.dodge_cooldown, &mut text, &text_display, &mut sprites);
-            },
-            TextValue::StatusJump => {
-                set_cooldown_text_display(&game.player.jump, &mut text, &text_display, &mut sprites);
-            },
-            TextValue::CooldownPortal => {
-                set_cooldown_text_display(&game.player.portal_cooldown, &mut text, &text_display, &mut sprites);
-            },
-            TextValue::CooldownPull => {
-                set_cooldown_text_display(&game.player.pull_cooldown, &mut text, &text_display, &mut sprites);
+pub fn text_system(
+    players: Query<&Player>,
+    mut text_displays: Query<(&mut Text, &TextDisplay)>,
+    mut sprites: Query<&mut Sprite>,
+    ) {
+    for player in &players {
+        if !player.is_human {
+            continue;
+        }
+
+        for (mut text, text_display) in &mut text_displays {
+            match text_display.value {
+                TextValue::Hp => {
+                    let hp = player.hp;
+                    text.sections[0].value = format!("{hp:.0}");
+                },
+                TextValue::CooldownBlink => {
+                    set_cooldown_text_display(&player.blink_cooldown, &mut text, &text_display, &mut sprites);
+                },
+                TextValue::CooldownDodge => {
+                    set_cooldown_text_display(&player.dodge_cooldown, &mut text, &text_display, &mut sprites);
+                },
+                TextValue::StatusJump => {
+                    set_cooldown_text_display(&player.jump, &mut text, &text_display, &mut sprites);
+                },
+                TextValue::CooldownPortal => {
+                    set_cooldown_text_display(&player.portal_cooldown, &mut text, &text_display, &mut sprites);
+                },
+                TextValue::CooldownPull => {
+                    set_cooldown_text_display(&player.pull_cooldown, &mut text, &text_display, &mut sprites);
+                }
             }
         }
     }

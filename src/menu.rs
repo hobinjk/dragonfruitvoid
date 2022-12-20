@@ -5,7 +5,7 @@ use crate::game::{
     HEIGHT,
     Game,
     GameState,
-    PlayerTag,
+    Player,
 };
 
 #[derive(Component)]
@@ -37,7 +37,7 @@ pub fn setup_menu_system(
     mut commands: Commands,
     game: Res<Game>,
     asset_server: Res<AssetServer>,
-    player_entity: Query<Entity, With<PlayerTag>>,
+    players: Query<Entity, With<Player>>,
     ) {
     let button_size = Size::new(Val::Px(350.0), Val::Px(65.0));
     let button_margin = UiRect::all(Val::Px(10.));
@@ -166,7 +166,7 @@ pub fn setup_menu_system(
     })
     .insert(MenuContainer);
 
-    for entity in &player_entity {
+    for entity in &players {
         commands.entity(entity).despawn_recursive();
     }
 }
@@ -232,7 +232,7 @@ pub fn update_menu_system(
     mut state: ResMut<State<GameState>>,
     mut game: ResMut<Game>,
     mut commands: Commands,
-    players: Query<(Entity, &PlayerTag)>,
+    players: Query<(Entity, &Player)>,
     mut interaction_query: Query<
         (&Interaction, &mut BackgroundColor, &ButtonNextState),
         (Changed<Interaction>, With<Button>),
@@ -494,7 +494,7 @@ fn setup_result_screen(
             parent.spawn(TextBundle::from_sections([
                 TextSection::new(result_message, text_style.clone()),
                 TextSection::new(format!("\nTime: {}\n", time_str), text_style_small.clone()),
-                TextSection::new(format!("Damage Taken: {}", game.player.damage_taken as i32), text_style_small.clone()),
+                TextSection::new(format!("Damage Taken: {}", game.player_damage_taken as i32), text_style_small.clone()),
             ]));
         });
 
