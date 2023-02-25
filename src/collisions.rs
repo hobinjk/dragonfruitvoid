@@ -24,14 +24,24 @@ pub fn collide(pos_a: Vec3, radius_a: f32, pos_b: Vec3, radius_b: f32) -> bool {
     return diff.length_squared() < (radius_a + radius_b) * (radius_a + radius_b);
 }
 
+fn bullet_damage(bullet: &Bullet) -> f32 {
+    let dist_traveled = bullet.age * BULLET_SPEED;
+    // Reward being close to the target with more damage
+    let mut damage_tier = 1.5 - (dist_traveled * PX_TO_GAME / 1200.);
+    if damage_tier < 1. {
+        damage_tier = 1.;
+    }
+    BULLET_DAMAGE * damage_tier
+}
+
 pub fn collisions_bullets_orbs_system(
     players: Query<&Transform, With<Player>>,
     mut bullets: Query<(&Transform, &Bullet, &mut HasHit), (With<Bullet>, Without<MobOrb>)>,
-    mut orbs: Query<(Entity, &Transform, &mut Velocity), (With<MobOrb>, Without<Bullet>)>,
+    mut orbs: Query<(Entity, &Transform, &mut Velocity, Option<&mut Hp>), (With<MobOrb>, Without<Bullet>)>,
     ) {
     for (transform_bullet, bullet, mut has_hit) in &mut bullets {
         let bullet_pos = transform_bullet.translation;
-        for (entity_orb, transform_orb, mut velocity_orb) in &mut orbs {
+        for (entity_orb, transform_orb, mut velocity_orb, hp) in &mut orbs {
             if has_hit.0.contains(&entity_orb) {
                 continue;
             }
@@ -39,6 +49,7 @@ pub fn collisions_bullets_orbs_system(
             let orb_pos = transform_orb.translation;
             if collide(bullet_pos, BULLET_SIZE / 2., orb_pos, ORB_RADIUS) {
                 has_hit.0.insert(entity_orb);
+
                 let transform_player = players.get(bullet.firer).unwrap();
                 let push_str = 4.;
                 let orb_max_vel = 60.;
@@ -46,6 +57,10 @@ pub fn collisions_bullets_orbs_system(
                 diff.z = 0.;
                 if velocity_orb.0.length_squared() < orb_max_vel * orb_max_vel * 4. {
                     velocity_orb.0 = velocity_orb.0.add(diff.clamp_length(push_str, push_str)).clamp_length(0., orb_max_vel);
+                }
+
+                if let Some(mut hp) = hp {
+                    hp.0 -= bullet_damage(&bullet);
                 }
             }
         }
@@ -55,7 +70,7 @@ pub fn collisions_bullets_orbs_system(
 pub fn collisions_bullets_enemies_system(
     mut damage_flash_events: EventWriter<DamageFlashEvent>,
     mut bullets: Query<(&Bullet, &Transform, &mut HasHit), (With<Bullet>, Without<Enemy>)>,
-    mut enemies: Query<(Entity, &Transform, &Visibility, &CollisionRadius, &mut Hp), (With<Enemy>, Without<Bullet>)>,
+    mut enemies: Query<(Entity, &Transform, &Visibility, &CollisionRadius, &mut Hp), (With<Enemy>, Without<Bullet>, Without<MobOrb>)>,
     ) {
     for (bullet, transform_bullet, mut has_hit) in &mut bullets {
         let bullet_pos = transform_bullet.translation;
@@ -70,13 +85,7 @@ pub fn collisions_bullets_enemies_system(
             }
 
             has_hit.0.insert(entity_enemy);
-            let dist_traveled = bullet.age * BULLET_SPEED;
-            // Reward being close to the target with more damage
-            let mut damage_tier = 1.5 - (dist_traveled * PX_TO_GAME / 1200.);
-            if damage_tier < 1. {
-                damage_tier = 1.;
-            }
-            hp.0 -= BULLET_DAMAGE * damage_tier;
+            hp.0 -= bullet_damage(&bullet);
             if hp.0 > 0. {
                 damage_flash_events.send(DamageFlashEvent {
                     entity: entity_enemy,
