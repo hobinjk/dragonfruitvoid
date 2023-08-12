@@ -1182,10 +1182,10 @@ fn run_if_phase_update(
     menu_state: Res<State<MenuState>>,
     game_state: Res<State<GameState>>
     ) -> bool {
-    if menu_state.0 != MenuState::Unpaused {
+    if *menu_state != MenuState::Unpaused {
         return false
     }
-    match game_state.0 {
+    match game_state.get() {
         GameState::Nothing => false,
         GameState::PurificationOne |
         GameState::Jormag |
@@ -1205,10 +1205,10 @@ fn run_if_boss_phase_update(
     menu_state: Res<State<MenuState>>,
     game_state: Res<State<GameState>>
     ) -> bool {
-    if menu_state.0 != MenuState::Unpaused {
+    if *menu_state != MenuState::Unpaused {
         return false
     }
-    match game_state.0 {
+    match game_state.get() {
         GameState::Nothing |
         GameState::PurificationOne |
         GameState::PurificationTwo |
@@ -1229,10 +1229,10 @@ fn run_if_purification_phase_update(
     menu_state: Res<State<MenuState>>,
     game_state: Res<State<GameState>>
     ) -> bool {
-    if menu_state.0 != MenuState::Unpaused {
+    if *menu_state != MenuState::Unpaused {
         return false
     }
-    match game_state.0 {
+    match game_state.get() {
         GameState::Nothing |
         GameState::Jormag |
         GameState::Primordus |
