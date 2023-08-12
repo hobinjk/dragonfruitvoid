@@ -1282,163 +1282,162 @@ fn main() {
 
         .add_startup_system(setup)
 
-        .add_system(setup_menu_system.in_schedule(OnEnter(MenuState::StartMenu)))
-        .add_systems((
+        .add_systems(OnEnter(MenuState::StartMenu), setup_menu_system)
+        .add_systems(Update, (
             update_menu_system,
             update_menu_onoff_system
-        ).in_set(OnUpdate(MenuState::StartMenu)))
-        .add_system(cleanup_menu_system.in_schedule(OnExit(MenuState::StartMenu)))
+        ).run_if(in_state(MenuState::StartMenu)))
+        .add_systems(OnExit(MenuState::StartMenu), cleanup_menu_system)
 
-        .add_systems((
-            setup_pause_menu_system.in_schedule(OnEnter(MenuState::Paused)),
-            update_menu_system.in_set(OnUpdate(MenuState::Paused)),
-            cleanup_menu_system.in_schedule(OnExit(MenuState::Paused)),
-        ))
-        .add_systems((
-            setup_show_hint_system.in_schedule(OnEnter(MenuState::PausedShowHint)),
-            update_menu_system.in_set(OnUpdate(MenuState::PausedShowHint)),
-            cleanup_menu_system.in_schedule(OnExit(MenuState::PausedShowHint)),
-        ))
-        .add_systems((
-            setup_success_system.in_schedule(OnEnter(MenuState::Success)),
-            update_menu_system.in_set(OnUpdate(MenuState::Success)),
-            cleanup_menu_system.in_schedule(OnExit(MenuState::Success)),
-        ))
-        .add_systems((
-            setup_failure_system.in_schedule(OnEnter(MenuState::Failure)),
-            update_menu_system.in_set(OnUpdate(MenuState::Failure)),
-            cleanup_menu_system.in_schedule(OnExit(MenuState::Failure)),
-        ));
+        .add_systems(OnEnter(MenuState::Paused), setup_pause_menu_system)
+        .add_systems(Update, update_menu_system.run_if(in_state(MenuState::Paused)))
+        .add_systems(OnExit(MenuState::Paused), cleanup_menu_system)
+
+        .add_systems(OnEnter(MenuState::PausedShowHint), setup_show_hint_system)
+        .add_systems(Update, update_menu_system.run_if(in_state(MenuState::PausedShowHint)))
+        .add_systems(OnExit(MenuState::PausedShowHint), cleanup_menu_system)
+
+        .add_systems(OnEnter(MenuState::Success), setup_success_system)
+        .add_systems(Update, update_menu_system.run_if(in_state(MenuState::Success)))
+        .add_systems(OnExit(MenuState::Success), cleanup_menu_system)
+
+        .add_systems(OnEnter(MenuState::Failure), setup_failure_system)
+        .add_systems(Update, update_menu_system.run_if(in_state(MenuState::Failure)))
+        .add_systems(OnExit(MenuState::Failure), cleanup_menu_system);
 
     add_update_phase_set(&mut app);
     add_update_purification_phase_set(&mut app);
     add_update_boss_phase_set(&mut app);
 
-    app.add_systems((
-        setup_phase.in_schedule(OnEnter(GameState::PurificationOne)),
-        setup_phase.in_schedule(OnEnter(GameState::Jormag)),
-        setup_phase.in_schedule(OnEnter(GameState::Primordus)),
-        setup_phase.in_schedule(OnEnter(GameState::Kralkatorrik)),
-        setup_phase.in_schedule(OnEnter(GameState::PurificationTwo)),
-        setup_phase.in_schedule(OnEnter(GameState::Mordremoth)),
-        setup_phase.in_schedule(OnEnter(GameState::Zhaitan)),
-        setup_phase.in_schedule(OnEnter(GameState::PurificationThree)),
-        setup_phase.in_schedule(OnEnter(GameState::SooWonOne)),
-        setup_phase.in_schedule(OnEnter(GameState::PurificationFour)),
-        setup_phase.in_schedule(OnEnter(GameState::SooWonTwo)),
-    ));
+    app.add_systems(OnEnter(GameState::PurificationOne), setup_phase)
+        .add_systems(OnEnter(GameState::Jormag), setup_phase)
+        .add_systems(OnEnter(GameState::Primordus), setup_phase)
+        .add_systems(OnEnter(GameState::Kralkatorrik), setup_phase)
+        .add_systems(OnEnter(GameState::PurificationTwo), setup_phase)
+        .add_systems(OnEnter(GameState::Mordremoth), setup_phase)
+        .add_systems(OnEnter(GameState::Zhaitan), setup_phase)
+        .add_systems(OnEnter(GameState::PurificationThree), setup_phase)
+        .add_systems(OnEnter(GameState::SooWonOne), setup_phase)
+        .add_systems(OnEnter(GameState::PurificationFour), setup_phase)
+        .add_systems(OnEnter(GameState::SooWonTwo), setup_phase);
 
-    app.add_systems((
-        setup_purification.in_schedule(OnEnter(GameState::PurificationOne)),
-        setup_purification.in_schedule(OnEnter(GameState::PurificationTwo)),
-        setup_purification.in_schedule(OnEnter(GameState::PurificationThree)),
-    ));
+    app.add_systems(OnEnter(GameState::PurificationOne), setup_purification)
+        .add_systems(OnEnter(GameState::PurificationTwo), setup_purification)
+        .add_systems(OnEnter(GameState::PurificationThree), setup_purification);
 
-    app.add_systems((
-        cleanup_phase.in_schedule(OnExit(GameState::PurificationOne)),
-        cleanup_phase.in_schedule(OnExit(GameState::Jormag)),
-        cleanup_phase.in_schedule(OnExit(GameState::Primordus)),
-        cleanup_phase.in_schedule(OnExit(GameState::Kralkatorrik)),
-        cleanup_phase.in_schedule(OnExit(GameState::PurificationTwo)),
-        cleanup_phase.in_schedule(OnExit(GameState::Mordremoth)),
-        cleanup_phase.in_schedule(OnExit(GameState::Zhaitan)),
-        cleanup_phase.in_schedule(OnExit(GameState::PurificationThree)),
-        cleanup_phase.in_schedule(OnExit(GameState::SooWonOne)),
-        cleanup_phase.in_schedule(OnExit(GameState::PurificationFour)),
-        cleanup_phase.in_schedule(OnExit(GameState::SooWonTwo)),
-    ));
+    app.add_systems(OnExit(GameState::PurificationOne), cleanup_phase)
+        .add_systems(OnExit(GameState::Jormag), cleanup_phase)
+        .add_systems(OnExit(GameState::Primordus), cleanup_phase)
+        .add_systems(OnExit(GameState::Kralkatorrik), cleanup_phase)
+        .add_systems(OnExit(GameState::PurificationTwo), cleanup_phase)
+        .add_systems(OnExit(GameState::Mordremoth), cleanup_phase)
+        .add_systems(OnExit(GameState::Zhaitan), cleanup_phase)
+        .add_systems(OnExit(GameState::PurificationThree), cleanup_phase)
+        .add_systems(OnExit(GameState::SooWonOne), cleanup_phase)
+        .add_systems(OnExit(GameState::PurificationFour), cleanup_phase)
+        .add_systems(OnExit(GameState::SooWonTwo), cleanup_phase);
 
-    app.configure_set(PhaseSet::UpdatePhase
-        .run_if(run_if_phase_update));
+    app.configure_set(PhaseSet::UpdatePhase, run_if_phase_update);
 
-    app.configure_set(PhaseSet::UpdatePurificationPhase
-        .run_if(run_if_purification_phase_update));
+    app.configure_set(PhaseSet::UpdatePurificationPhase, run_if_purification_phase_update);
 
-    app.configure_set(PhaseSet::UpdateBossPhase
-        .run_if(run_if_boss_phase_update));
+    app.configure_set(PhaseSet::UpdateBossPhase, run_if_boss_phase_update);
 
     app
-        .add_system(
+        .add_systems(OnEnter(GameState::PurificationOne),
             setup_purification_one
-                .after(setup_purification)
-                .in_schedule(OnEnter(GameState::PurificationOne)))
+                .after(setup_purification))
 
-        .add_system(
+        .add_systems(OnEnter(GameState::Jormag),
             setup_jormag
-                .after(setup_phase)
-                .in_schedule(OnEnter(GameState::Jormag)))
+                .after(setup_phase))
 
-        .add_system(jormag_soup_beam_system.in_set(OnUpdate(GameState::Jormag))
-            .run_if(in_state(MenuState::Unpaused)))
-
-        .add_system(
-            setup_primordus
-                .after(setup_phase)
-                .in_schedule(OnEnter(GameState::Primordus)))
-
-        .add_system(
-            setup_kralkatorrik
-                .after(setup_phase)
-                .in_schedule(OnEnter(GameState::Kralkatorrik)))
-
-        .add_system(
-            setup_purification_two
-                .after(setup_purification)
-                .in_schedule(OnEnter(GameState::PurificationTwo)))
-
-        .add_systems((
-            timecaster_system.run_if(in_state(MenuState::Unpaused)),
-            unleash_the_bees.run_if(in_state(MenuState::Unpaused)),
-        ).in_set(OnUpdate(GameState::PurificationTwo)))
-
-        .add_system(
-            setup_mordremoth
-                .after(setup_phase)
-                .in_schedule(OnEnter(GameState::Mordremoth)))
-
-        .add_system(
-            setup_zhaitan
-                .after(setup_phase)
-                .in_schedule(OnEnter(GameState::Zhaitan)))
-
-        .add_system(
-            noodle_system
-                .in_set(OnUpdate(GameState::Zhaitan))
+        .add_systems(Update,
+            jormag_soup_beam_system
+                .run_if(in_state(GameState::Jormag))
                 .run_if(in_state(MenuState::Unpaused)))
 
-        .add_system(
-            setup_purification_three.after(setup_purification)
-                .in_schedule(OnEnter(GameState::PurificationThree)))
+        .add_systems(OnEnter(GameState::Primordus),
+            setup_primordus
+                .after(setup_phase))
 
-        .add_systems((
-            saltspray_system.run_if(in_state(MenuState::Unpaused)),
-            aoes_system.run_if(in_state(MenuState::Unpaused)),
-            aoes_detonation_system.run_if(in_state(MenuState::Unpaused)),
-        ).in_set(OnUpdate(GameState::PurificationThree)))
+        .add_systems(OnEnter(GameState::Kralkatorrik),
+            setup_kralkatorrik
+                .after(setup_phase))
 
-        .add_system(
-            setup_soowonone.after(setup_phase)
-                .in_schedule(OnEnter(GameState::SooWonOne)))
+        .add_systems(OnEnter(GameState::PurificationTwo),
+            setup_purification_two
+                .after(setup_purification))
 
-        .add_system(
-            setup_purification_four.after(setup_phase)
-                .in_schedule(OnEnter(GameState::PurificationFour)))
+        .add_systems(Update, (
+            timecaster_system
+                .run_if(in_state(GameState::PurificationTwo))
+                .run_if(in_state(MenuState::Unpaused)),
+            unleash_the_bees
+                .run_if(in_state(GameState::PurificationTwo))
+                .run_if(in_state(MenuState::Unpaused))
+        ))
 
-        .add_systems((
-            collisions_bullets_orbs_system.run_if(in_state(MenuState::Unpaused)),
-            collisions_orbs_edge_system.run_if(in_state(MenuState::Unpaused)),
-            boss_existence_check_system.run_if(in_state(MenuState::Unpaused)),
-            boss_healthbar_system.run_if(in_state(MenuState::Unpaused)),
-        ).in_set(OnUpdate(GameState::PurificationFour)))
+        .add_systems(OnEnter(GameState::Mordremoth),
+            setup_mordremoth
+                .after(setup_phase))
 
-        .add_system(
-            setup_soowontwo.after(setup_phase)
-                .in_schedule(OnEnter(GameState::SooWonTwo)))
+        .add_systems(OnEnter(GameState::Zhaitan),
+            setup_zhaitan
+                .after(setup_phase))
 
-        .add_systems((
-            goliath_system.run_if(in_state(MenuState::Unpaused)),
-            wyvern_system.run_if(in_state(MenuState::Unpaused)),
-        ).in_set(OnUpdate(GameState::SooWonTwo)))
+        .add_systems(Update,
+            noodle_system
+                .run_if(in_state(GameState::Zhaitan))
+                .run_if(in_state(MenuState::Unpaused)))
+
+        .add_systems(OnEnter(GameState::PurificationThree),
+            setup_purification_three.after(setup_purification))
+
+        .add_systems(Update, (
+            saltspray_system
+                .run_if(in_state(GameState::PurificationThree))
+                .run_if(in_state(MenuState::Unpaused)),
+            aoes_system
+                .run_if(in_state(GameState::PurificationThree))
+                .run_if(in_state(MenuState::Unpaused)),
+            aoes_detonation_system
+                .run_if(in_state(GameState::PurificationThree))
+                .run_if(in_state(MenuState::Unpaused)),
+        ))
+
+        .add_systems(OnEnter(GameState::SooWonOne),
+            setup_soowonone.after(setup_phase))
+
+        .add_systems(OnEnter(GameState::PurificationFour),
+            setup_purification_four.after(setup_phase))
+
+        .add_systems(Update, (
+            collisions_bullets_orbs_system
+                .run_if(in_state(GameState::PurificationFour))
+                .run_if(in_state(MenuState::Unpaused)),
+            collisions_orbs_edge_system
+                .run_if(in_state(GameState::PurificationFour))
+                .run_if(in_state(MenuState::Unpaused)),
+            boss_existence_check_system
+                .run_if(in_state(GameState::PurificationFour))
+                .run_if(in_state(MenuState::Unpaused)),
+            boss_healthbar_system
+                .run_if(in_state(GameState::PurificationFour))
+                .run_if(in_state(MenuState::Unpaused)),
+        ))
+
+        .add_systems(OnEnter(GameState::SooWonTwo),
+            setup_soowontwo.after(setup_phase))
+
+        .add_systems(Update, (
+            goliath_system
+                .run_if(in_state(GameState::SooWonTwo))
+                .run_if(in_state(MenuState::Unpaused)),
+            wyvern_system
+                .run_if(in_state(GameState::SooWonTwo))
+                .run_if(in_state(MenuState::Unpaused)),
+        ))
 
         .run();
 }
