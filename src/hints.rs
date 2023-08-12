@@ -160,9 +160,9 @@ let the Obliterator or Goliath hit you!",
                 },
             ]
         },
-        _ => {
+        GameState::Nothing => {
             vec![]
-        }
+        },
     }
 }
 
@@ -180,7 +180,7 @@ pub fn setup_hints(
     // Reset all cooldowns and invuln timings
     if !game.continuous {
         hints.extend(HINTS_ALL_PHASES);
-        match *state.current() {
+        match state.0 {
             GameState::PurificationOne |
             GameState::Jormag
                 => {
@@ -190,12 +190,12 @@ pub fn setup_hints(
             }
         }
     } else {
-        if *state.current() == GameState::PurificationOne {
+        if state.0 == GameState::PurificationOne {
             hints.extend(HINTS_ALL_PHASES);
         }
     }
 
-    hints.extend(phase_hints(state.current()));
+    hints.extend(phase_hints(&state.0));
 
     for hint in &hints {
         commands.spawn(ScheduledHint {
@@ -209,7 +209,7 @@ pub fn scheduled_hint_system(
     time: Res<Time>,
     mut commands: Commands,
     mut game: ResMut<Game>,
-    mut state: ResMut<State<GameState>>,
+    mut next_menu_state: ResMut<NextState<MenuState>>,
     mut hints: Query<(Entity, &mut ScheduledHint)>,
     ) {
     for (entity, mut hint) in &mut hints {
@@ -218,9 +218,7 @@ pub fn scheduled_hint_system(
             continue;
         }
         game.hint = Some(hint.hint);
-        if let Err(_) = state.push(GameState::PausedShowHint) {
-            info!("hint state push failed");
-        }
+        next_menu_state.set(MenuState::PausedShowHint);
         commands.entity(entity).despawn_recursive();
         break;
     }

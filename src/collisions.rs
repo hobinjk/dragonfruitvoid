@@ -75,7 +75,7 @@ pub fn collisions_bullets_enemies_system(
     for (bullet, transform_bullet, mut has_hit) in &mut bullets {
         let bullet_pos = transform_bullet.translation;
         for (entity_enemy, transform_enemy, visibility, radius_enemy, mut hp) in &mut enemies {
-            if has_hit.0.contains(&entity_enemy) || !visibility.is_visible {
+            if has_hit.0.contains(&entity_enemy) || visibility == Visibility::Hidden {
                 continue;
             }
 
@@ -129,10 +129,11 @@ pub fn collisions_enemies_orbs_system(
     }
 }
 
-
 pub fn collisions_orb_targets_system(
     mut game: ResMut<Game>,
-    mut state: ResMut<State<GameState>>,
+    game_state: Res<State<GameState>>,
+    mut res_next_game_state: ResMut<NextState<GameState>>,
+    mut next_menu_state: ResMut<NextState<MenuState>>,
     mut orbs: Query<(&MobOrb, &Transform, &mut Velocity)>,
     orb_targets: Query<(&OrbTarget, &Transform)>,
     ) {
@@ -157,10 +158,12 @@ pub fn collisions_orb_targets_system(
     if !any_orb_targetted {
         info!("win detected!");
         if game.continuous {
-            let cur_state = state.current().clone();
-            state.set(next_game_state(cur_state)).unwrap();
+            // let cur_state = state.current().clone();
+            res_next_game_state.set(next_game_state(game_state.0))
+            // state.set(next_game_state(cur_state)).unwrap();
         } else {
-            state.push(GameState::Success).unwrap();
+            next_menu_state.set(MenuState::Success);
+            // state.push(GameState::Success).unwrap();
         }
     }
 }
@@ -240,7 +243,7 @@ pub fn collisions_players_waves_system(
         let player_pos = transform_player.translation;
 
         for (_, visibility, transform) in &waves {
-            if !visibility.is_visible {
+            if visibility == Visibility::Hidden {
                 continue;
             }
 

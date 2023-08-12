@@ -54,7 +54,7 @@ fn set_cooldown_text_display(timer: &Timer, text: &mut Text, text_display: &Text
     }
 }
 
-pub fn text_system(
+pub fn player_text_system(
     players: Query<&Player>,
     mut text_displays: Query<(&mut Text, &TextDisplay)>,
     mut sprites: Query<&mut Sprite>,

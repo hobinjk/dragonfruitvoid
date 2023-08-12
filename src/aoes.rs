@@ -53,21 +53,21 @@ pub fn aoes_system(
     ) {
 
     for (mut aoe, mut visibility, children) in &mut aoes {
-        let mut visible = false;
+        let mut visible = Visibility::Hidden;
         match &mut aoe.visibility_start {
             Some(timer) => {
                 timer.tick(time.delta());
                 if timer.finished() {
-                    visible = true;
+                    visible = Visibility::Inherited;
                 }
             },
             None => {
-                visible = true;
+                visible = Visibility::Inherited;
             }
         }
-        visibility.is_visible = visible;
+        *visibility = visible;
 
-        if !visible {
+        if visible == Visibility::Hidden {
             continue;
         }
 

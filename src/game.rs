@@ -5,9 +5,10 @@ use bevy::{
 
 use std::time::Duration;
 
-#[derive(Clone, Eq, PartialEq, Debug, Hash)]
+#[derive(States, Clone, Copy, Eq, PartialEq, Debug, Hash, Default)]
 pub enum GameState {
-    StartMenu,
+    #[default]
+    Nothing,
     PurificationOne,
     Jormag,
     Primordus, // -> big aoe and void zone
@@ -19,10 +20,24 @@ pub enum GameState {
     SooWonOne, // -> soowontwo minus big boys
     PurificationFour, // -> damage orb
     SooWonTwo,
+}
+
+#[derive(States, Clone, Copy, Eq, PartialEq, Debug, Hash, Default)]
+pub enum MenuState {
+    #[default]
+    StartMenu,
     Failure,
     Success,
     Paused,
     PausedShowHint,
+    Unpaused,
+}
+
+#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
+pub enum PhaseSet {
+    UpdatePhase,
+    UpdatePurificationPhase,
+    UpdateBossPhase,
 }
 
 pub const LAYER_MAX: f32 = 110.;

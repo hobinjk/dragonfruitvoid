@@ -255,7 +255,7 @@ pub fn noodle_system(
             continue;
         }
 
-        visibility.is_visible = true;
+        *visibility = Visibility::Inherited;
 
         noodle.slam_cooldown.tick(time.delta());
         if noodle.slam_cooldown.finished() {

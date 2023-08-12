@@ -5,6 +5,7 @@ use crate::game::{
     HEIGHT,
     Game,
     GameState,
+    MenuState,
     Player,
 };
 
@@ -229,7 +230,9 @@ pub fn setup_pause_menu_system(mut commands: Commands, asset_server: Res<AssetSe
 }
 
 pub fn update_menu_system(
-    mut state: ResMut<State<GameState>>,
+    game_state: Res<State<GameState>>,
+    mut res_next_game_state: ResMut<NextState<GameState>>,
+    mut res_next_menu_state: ResMut<NextState<MenuState>>,
     mut game: ResMut<Game>,
     mut commands: Commands,
     players: Query<(Entity, &Player)>,
@@ -245,25 +248,28 @@ pub fn update_menu_system(
                 match next_state {
                     ButtonNextState::GoTo(next_state) => {
                         game.continuous = false;
-                        state.set(next_state.clone()).unwrap();
+                        res_next_game_state.set(next_state.clone());
+                        res_next_menu_state.set(MenuState::Unpaused);
                     }
                     ButtonNextState::StartContinuous() => {
                         game.continuous = true;
-                        state.set(GameState::PurificationOne).unwrap();
+                        res_next_game_state.set(GameState::PurificationOne);
+                        res_next_menu_state.set(MenuState::Unpaused);
                     }
                     ButtonNextState::Resume() => {
-                        state.pop().unwrap();
+                        res_next_menu_state.set(MenuState::Unpaused);
                     }
                     ButtonNextState::Restart() => {
                         // state.pop().unwrap();
                         for (entity, _) in &players {
                             commands.entity(entity).despawn_recursive();
                         }
-                        let base_state = state.inactives()[0].clone();
-                        state.replace(base_state).unwrap();
+                        res_next_game_state.set(game_state.0);
+                        res_next_menu_state.set(MenuState::Unpaused);
                     }
                     ButtonNextState::Exit() => {
-                        state.replace(GameState::StartMenu).unwrap();
+                        res_next_game_state.set(GameState::PurificationOne);
+                        res_next_menu_state.set(MenuState::StartMenu);
                     }
                 }
             }

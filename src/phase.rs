@@ -1,7 +1,7 @@
 use bevy::{
     prelude::*,
     render::color::Color,
-    sprite::MaterialMesh2dBundle,
+    sprite::{Anchor, MaterialMesh2dBundle},
     window::CursorMoved,
 };
 
@@ -10,7 +10,7 @@ use std::ops::{Add, Mul, Sub};
 use std::time::Duration;
 
 use crate::game::*;
-use crate::aoes::*;
+use crate::aoes::soup_duration_system;
 use crate::hints::{setup_hints, scheduled_hint_system};
 use crate::ui::*;
 use crate::damage_flash::*;
@@ -381,18 +381,21 @@ fn portal_despawn_system(
 
 fn handle_keyboard_system(
     keyboard_input: Res<Input<KeyCode>>,
-    mut state: ResMut<State<GameState>>,
+    menu_state: Res<State<MenuState>>,
+    mut next_menu_state: ResMut<NextState<MenuState>>,
     ) {
 
     if keyboard_input.just_pressed(KeyCode::Escape) {
-        match state.current() {
-            GameState::Paused => {
-                state.pop().unwrap();
+        match menu_state.0 {
+            MenuState::Paused | MenuState::PausedShowHint => {
+                next_menu_state.set(MenuState::Unpaused);
             },
-            GameState::StartMenu => {
+            MenuState::StartMenu |
+            MenuState::Failure |
+            MenuState::Success => {
             },
-            _ => {
-                state.push(GameState::Paused).unwrap();
+            MenuState::Unpaused => {
+                next_menu_state.set(MenuState::Paused);
             }
         }
     }
@@ -470,10 +473,10 @@ fn player_hp_check_system(
 
 fn player_count_system(
     players: Query<&Player>,
-    mut state: ResMut<State<GameState>>,
+    mut next_menu_state: ResMut<NextState<MenuState>>,
     ) {
     if players.is_empty() {
-        state.push(GameState::Failure).unwrap();
+        next_menu_state.set(MenuState::Failure);
     }
 }
 
@@ -549,35 +552,45 @@ fn enemies_hp_check_system(
     }
 }
 
-pub fn build_update_phase(phase: GameState) -> SystemSet {
-    SystemSet::on_update(phase)
-        .with_system(handle_mouse_events_system)
-        .with_system(handle_spellcasts_system)
-        .with_system(handle_keyboard_system)
-        .with_system(velocities_system)
-        .with_system(move_player_system)
-        .with_system(move_rotating_soup_system)
-        .with_system(effect_forced_march_system)
-        .with_system(collisions_players_edge_system)
-        .with_system(collisions_players_echo_system)
-        .with_system(collisions_bullets_enemies_system)
-        .with_system(collisions_players_soups_system)
-        .with_system(collisions_players_enemy_bullets_system)
-        .with_system(bullet_age_system)
-        .with_system(text_system)
-        .with_system(enemies_hp_check_system)
-        .with_system(damage_flash_system)
-        .with_system(tint_untint_system.after(damage_flash_system))
-        .with_system(void_zone_growth_system)
-        .with_system(player_hp_check_system)
-        .with_system(soup_duration_system)
-        .with_system(echo_grab_system)
-        .with_system(echo_retarget_system)
-        .with_system(scheduled_hint_system)
-        .with_system(portal_despawn_system)
-        .with_system(game_player_time_system)
-        .with_system(game_player_damage_system)
-        .with_system(player_count_system)
+pub fn add_update_phase_set(app: &mut App) {
+    app.add_systems((
+        handle_mouse_events_system,
+        handle_spellcasts_system,
+        handle_keyboard_system,
+        velocities_system,
+        move_player_system,
+        move_rotating_soup_system,
+        effect_forced_march_system,
+    ).in_set(PhaseSet::UpdatePhase));
+
+    app.add_systems((
+        collisions_players_edge_system,
+        collisions_players_echo_system,
+        collisions_bullets_enemies_system,
+        collisions_players_soups_system,
+        collisions_players_enemy_bullets_system,
+    ).in_set(PhaseSet::UpdatePhase));
+
+    app.add_systems((
+        bullet_age_system,
+        player_text_system,
+        enemies_hp_check_system,
+        void_zone_growth_system,
+        player_hp_check_system,
+        soup_duration_system,
+        echo_grab_system,
+        echo_retarget_system,
+        scheduled_hint_system,
+        portal_despawn_system,
+        game_player_time_system,
+        game_player_damage_system,
+        player_count_system,
+    ).in_set(PhaseSet::UpdatePhase));
+
+    app.add_systems((
+        damage_flash_system,
+        tint_untint_system,
+    ).chain().in_set(PhaseSet::UpdatePhase));
 }
 
 pub fn setup_phase(
@@ -675,7 +688,8 @@ pub fn setup_phase(
 
     commands.spawn(Text2dBundle {
         text: Text::from_section("hp", text_style.clone())
-            .with_alignment(TextAlignment::CENTER),
+            .with_alignment(TextAlignment::Center),
+        text_anchor: Anchor::Center,
         transform: Transform::from_xyz(0., -HEIGHT / 2. + 55., LAYER_TEXT),
         ..default()
     }).insert(TextDisplay {
@@ -697,7 +711,8 @@ pub fn setup_phase(
                 font_size: 80.,
                 color: Color::rgb(0.7, 0.7, 0.1),
             })
-            .with_alignment(TextAlignment::CENTER),
+            .with_alignment(TextAlignment::Center),
+        text_anchor: Anchor::Center,
         transform: Transform::from_xyz(0., -HEIGHT / 2. + 155., LAYER_TEXT),
         ..default()
     }).insert(TextDisplay {
@@ -712,7 +727,8 @@ pub fn setup_phase(
                 font_size: 80.,
                 color: Color::rgb(0.1, 0.7, 0.7),
             })
-            .with_alignment(TextAlignment::CENTER_RIGHT),
+            .with_alignment(TextAlignment::Right),
+        text_anchor: Anchor::CenterRight,
         transform: Transform::from_xyz(-90., -HEIGHT / 2. + 155., LAYER_TEXT),
         ..default()
     }).insert(TextDisplay {
@@ -728,7 +744,8 @@ pub fn setup_phase(
 
     commands.spawn(Text2dBundle {
         text: Text::from_section("", text_style.clone())
-            .with_alignment(TextAlignment::CENTER),
+            .with_alignment(TextAlignment::Center),
+        text_anchor: Anchor::Center,
         transform: Transform::from_xyz(-128., -HEIGHT / 2. + 55., LAYER_TEXT),
         ..default()
     }).insert(TextDisplay {
@@ -738,7 +755,8 @@ pub fn setup_phase(
 
     commands.spawn(Text2dBundle {
         text: Text::from_section("4", text_binding_style.clone())
-            .with_alignment(TextAlignment::CENTER),
+            .with_alignment(TextAlignment::Center),
+        text_anchor: Anchor::Center,
         transform: Transform::from_xyz(-128., -HEIGHT / 2. + binding_y, LAYER_TEXT),
         ..default()
     });
@@ -751,7 +769,8 @@ pub fn setup_phase(
 
     commands.spawn(Text2dBundle {
         text: Text::from_section("", text_style.clone())
-            .with_alignment(TextAlignment::CENTER),
+            .with_alignment(TextAlignment::Center),
+        text_anchor: Anchor::Center,
         transform: Transform::from_xyz(128., -HEIGHT / 2. + 55., LAYER_TEXT),
         ..default()
     }).insert(TextDisplay {
@@ -761,7 +780,8 @@ pub fn setup_phase(
 
     commands.spawn(Text2dBundle {
         text: Text::from_section("E", text_binding_style.clone())
-            .with_alignment(TextAlignment::CENTER),
+            .with_alignment(TextAlignment::Center),
+        text_anchor: Anchor::Center,
         transform: Transform::from_xyz(128., -HEIGHT / 2. + binding_y, LAYER_TEXT),
         ..default()
     });
@@ -774,7 +794,8 @@ pub fn setup_phase(
 
     commands.spawn(Text2dBundle {
         text: Text::from_section("", text_style.clone())
-            .with_alignment(TextAlignment::CENTER),
+            .with_alignment(TextAlignment::Center),
+        text_anchor: Anchor::Center,
         transform: Transform::from_xyz(256., -HEIGHT / 2. + 55., LAYER_TEXT),
         ..default()
     }).insert(TextDisplay {
@@ -784,7 +805,8 @@ pub fn setup_phase(
 
     commands.spawn(Text2dBundle {
         text: Text::from_section("R", text_binding_style.clone())
-            .with_alignment(TextAlignment::CENTER),
+            .with_alignment(TextAlignment::Center),
+        text_anchor: Anchor::Center,
         transform: Transform::from_xyz(256., -HEIGHT / 2. + binding_y, LAYER_TEXT),
         ..default()
     });
@@ -793,7 +815,7 @@ pub fn setup_phase(
 pub fn cleanup_phase(
     mut commands: Commands,
     game: Res<Game>,
-    entities: Query<Entity, (Without<Player>, Without<Camera>)>,
+    entities: Query<Entity, (Without<Window>, Without<Player>, Without<Camera>)>,
     player_entity: Query<Entity, With<Player>>,
     ) {
     for entity in &entities {

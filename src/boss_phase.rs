@@ -69,17 +69,19 @@ fn spread_aoe_spawn_system(
 pub fn boss_existence_check_system(
     bosses: Query<&Boss>,
     game: Res<Game>,
-    mut state: ResMut<State<GameState>>,
+    state: Res<State<GameState>>,
+    mut next_state: ResMut<NextState<GameState>>,
+    mut next_menu_state: ResMut<NextState<MenuState>>,
     ) {
     if let Ok(_) = bosses.get_single() {
         return;
     }
 
-    let cur_state = state.current().clone();
+    let cur_state = state.0;
     if game.continuous && cur_state != GameState::SooWonTwo {
-        state.set(next_game_state(cur_state)).unwrap();
+        next_state.set(next_game_state(cur_state));
     } else {
-        state.push(GameState::Success).unwrap();
+        next_menu_state.set(MenuState::Success);
     }
 }
 
@@ -161,19 +163,20 @@ fn puddles_system(time: Res<Time>,
     }
 }
 
-pub fn build_update_boss_phase(phase: GameState) -> SystemSet {
-    SystemSet::on_update(phase)
-        .with_system(collisions_players_waves_system)
-        .with_system(greens_system)
-        .with_system(greens_detonation_system)
-        .with_system(spread_aoe_spawn_system)
-        .with_system(aoes_system)
-        .with_system(aoes_detonation_system)
-        .with_system(aoes_follow_system)
-        .with_system(waves_system)
-        .with_system(boss_existence_check_system)
-        .with_system(boss_healthbar_system)
-        .with_system(puddle_spawns_system)
-        .with_system(puddles_system)
+pub fn add_update_boss_phase_set(app: &mut App) {
+    app.add_systems((
+        collisions_players_waves_system,
+        greens_system,
+        greens_detonation_system,
+        spread_aoe_spawn_system,
+        aoes_system,
+        aoes_detonation_system,
+        aoes_follow_system,
+        waves_system,
+        boss_existence_check_system,
+        boss_healthbar_system,
+        puddle_spawns_system,
+        puddles_system,
+    ).in_set(PhaseSet::UpdateBossPhase));
 }
 

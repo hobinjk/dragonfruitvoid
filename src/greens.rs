@@ -151,21 +151,21 @@ pub fn greens_system(time: Res<Time>,
                  mut indicators: Query<(&StackGreenIndicator, &mut Transform), Without<StackGreen>>,
                  ) {
     for (mut green, mut visibility, children) in &mut greens {
-        let mut visible = true;
+        let mut visible = Visibility::Inherited;
         if !green.visibility_start.finished() {
             green.visibility_start.tick(time.delta());
-            visible = false;
+            visible = Visibility::Hidden;
         } else {
             green.detonation.tick(time.delta());
         }
 
         if green.detonation.finished() {
-            visible = false;
+            visible = Visibility::Hidden;
         }
 
-        visibility.is_visible = visible;
+        *visibility = visible;
 
-        if !visible {
+        if visible == Visibility::Hidden {
             continue;
         }
 
@@ -225,7 +225,7 @@ pub fn setup_greens(
     for green_spawn in &green_spawns {
         commands.spawn(SpriteBundle {
             transform: Transform::from_xyz(0., 0., LAYER_TARGET),
-            visibility: Visibility { is_visible: false },
+            visibility: Visibility::Hidden,
             ..default()
         }).with_children(|parent| {
             for position in green_spawn.positions {

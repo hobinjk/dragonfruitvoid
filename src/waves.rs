@@ -26,21 +26,21 @@ pub fn waves_system(
     mut waves: Query<(&mut Wave, &mut Visibility, &mut Transform)>,
     ) {
     for (mut wave, mut visibility, mut transform) in &mut waves {
-        let mut visible = true;
+        let mut visible = Visibility::Inherited;
         if !wave.visibility_start.finished() {
             wave.visibility_start.tick(time.delta());
-            visible = false;
+            visible = Visibility::Hidden;
         } else {
             wave.growth.tick(time.delta());
         }
 
         if wave.growth.finished() {
-            visible = false;
+            visible = Visibility::Hidden;
         }
 
-        visibility.is_visible = visible;
+        *visibility = visible;
 
-        if !visible {
+        if visible == Visibility::Hidden{
             continue;
         }
 
