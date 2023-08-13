@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 use std::collections::HashSet;
 
+#[derive(Event)]
 pub struct DamageFlashEvent {
     pub entity: Entity,
 }
