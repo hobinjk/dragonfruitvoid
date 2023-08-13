@@ -264,7 +264,7 @@ pub fn update_menu_system(
                         for (entity, _) in &players {
                             commands.entity(entity).despawn_recursive();
                         }
-                        res_next_game_state.set(game_state.0);
+                        res_next_game_state.set(game_state.get());
                         res_next_menu_state.set(MenuState::Unpaused);
                     }
                     ButtonNextState::Exit() => {

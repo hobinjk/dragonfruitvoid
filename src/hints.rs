@@ -180,7 +180,7 @@ pub fn setup_hints(
     // Reset all cooldowns and invuln timings
     if !game.continuous {
         hints.extend(HINTS_ALL_PHASES);
-        match state.0 {
+        match state.get() {
             GameState::PurificationOne |
             GameState::Jormag
                 => {
@@ -190,12 +190,12 @@ pub fn setup_hints(
             }
         }
     } else {
-        if state.0 == GameState::PurificationOne {
+        if state.get() == GameState::PurificationOne {
             hints.extend(HINTS_ALL_PHASES);
         }
     }
 
-    hints.extend(phase_hints(&state.0));
+    hints.extend(phase_hints(&state.get()));
 
     for hint in &hints {
         commands.spawn(ScheduledHint {

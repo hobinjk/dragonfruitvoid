@@ -386,7 +386,7 @@ fn handle_keyboard_system(
     ) {
 
     if keyboard_input.just_pressed(KeyCode::Escape) {
-        match menu_state.0 {
+        match menu_state.get() {
             MenuState::Paused | MenuState::PausedShowHint => {
                 next_menu_state.set(MenuState::Unpaused);
             },

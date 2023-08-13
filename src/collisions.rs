@@ -159,7 +159,7 @@ pub fn collisions_orb_targets_system(
         info!("win detected!");
         if game.continuous {
             // let cur_state = state.current().clone();
-            res_next_game_state.set(next_game_state(game_state.0))
+            res_next_game_state.set(next_game_state(game_state.get()))
             // state.set(next_game_state(cur_state)).unwrap();
         } else {
             next_menu_state.set(MenuState::Success);
