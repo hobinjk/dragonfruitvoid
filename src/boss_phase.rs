@@ -77,7 +77,7 @@ pub fn boss_existence_check_system(
         return;
     }
 
-    let cur_state = state.get();
+    let cur_state = *state.get();
     if game.continuous && cur_state != GameState::SooWonTwo {
         next_state.set(next_game_state(cur_state));
     } else {
