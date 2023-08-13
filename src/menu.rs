@@ -40,11 +40,13 @@ pub fn setup_menu_system(
     asset_server: Res<AssetServer>,
     players: Query<Entity, With<Player>>,
     ) {
-    let button_size = Size::new(Val::Px(350.0), Val::Px(65.0));
+    let button_width = Val::Px(350.0);
+    let button_height = Val::Px(65.0);
     let button_margin = UiRect::all(Val::Px(10.));
 
     let button_style = Style {
-        size: button_size,
+        width: button_width,
+        height: button_height,
         // center button
         margin: button_margin,
         // horizontally center child text
@@ -62,7 +64,8 @@ pub fn setup_menu_system(
 
     commands.spawn(NodeBundle {
         style: Style {
-            size: Size::new(Val::Px(WIDTH), Val::Px(HEIGHT)),
+            width: Val::Px(WIDTH),
+            height: Val::Px(HEIGHT),
             flex_direction: FlexDirection::Row,
             // horizontally center children
             justify_content: JustifyContent::Center,
@@ -74,7 +77,8 @@ pub fn setup_menu_system(
     }).with_children(|container| {
        container.spawn(NodeBundle {
             style: Style {
-                size: Size::new(Val::Px(WIDTH / 2.), Val::Px(HEIGHT)),
+                width: Val::Px(WIDTH / 2.),
+                height: Val::Px(HEIGHT),
                 flex_direction: FlexDirection::Column,
                 // horizontally center children
                 justify_content: JustifyContent::Center,
@@ -118,7 +122,8 @@ pub fn setup_menu_system(
 
        container.spawn(NodeBundle {
             style: Style {
-                size: Size::new(Val::Px(WIDTH / 2.), Val::Px(HEIGHT)),
+                width: Val::Px(WIDTH / 2.),
+                height: Val::Px(HEIGHT),
                 flex_direction: FlexDirection::Column,
                 // horizontally center children
                 justify_content: JustifyContent::Center,
@@ -173,11 +178,13 @@ pub fn setup_menu_system(
 }
 
 pub fn setup_pause_menu_system(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let button_size = Size::new(Val::Px(350.0), Val::Px(65.0));
+    let button_width = Val::Px(350.0);
+    let button_height = Val::Px(65.0);
     let button_margin = UiRect::all(Val::Px(10.));
 
     let button_style = Style {
-        size: button_size,
+        width: button_width,
+        height: button_height,
         // center button
         margin: button_margin,
         // horizontally center child text
@@ -195,7 +202,8 @@ pub fn setup_pause_menu_system(mut commands: Commands, asset_server: Res<AssetSe
 
     commands.spawn(NodeBundle {
         style: Style {
-            size: Size::new(Val::Px(WIDTH), Val::Px(HEIGHT)),
+            width: Val::Px(WIDTH),
+            height: Val::Px(HEIGHT),
             flex_direction: FlexDirection::Column,
             // horizontally center children
             justify_content: JustifyContent::Center,
@@ -433,11 +441,13 @@ fn setup_result_screen(
     commands: &mut Commands,
     asset_server: Res<AssetServer>
     ) {
-    let button_size = Size::new(Val::Px(350.0), Val::Px(65.0));
+    let button_width = Val::Px(350.0);
+    let button_height = Val::Px(65.0);
     let button_margin = UiRect::all(Val::Px(10.));
 
     let button_style = Style {
-        size: button_size,
+        width: button_width,
+        height: button_height,
         // center button
         margin: button_margin,
         // horizontally center child text
@@ -455,7 +465,8 @@ fn setup_result_screen(
 
     commands.spawn(NodeBundle {
         style: Style {
-            size: Size::new(Val::Px(WIDTH), Val::Px(HEIGHT / 2.)),
+            width: Val::Px(WIDTH),
+            height: Val::Px(HEIGHT / 2.),
             margin: UiRect::all(Val::Auto), // UiRect::new(Val::Px(0.), Val::Px(0.), Val::Px(0.), Val::Px(HEIGHT / 4.)),
             // horizontally center child text
             justify_content: JustifyContent::Center,
@@ -469,7 +480,8 @@ fn setup_result_screen(
     .with_children(|big_container| {
         big_container.spawn(NodeBundle {
             style: Style {
-                size: Size::new(Val::Px(WIDTH), Val::Px(240.0)),
+                width: Val::Px(WIDTH),
+                height: Val::Px(240.0),
                 // horizontally center child text
                 justify_content: JustifyContent::Center,
                 // vertically center child text
@@ -506,7 +518,8 @@ fn setup_result_screen(
 
         big_container.spawn(NodeBundle {
             style: Style {
-                size: Size::new(Val::Px(WIDTH), Val::Px(100.)),
+                width: Val::Px(WIDTH),
+                height: Val::Px(100.),
                 // horizontally center children
                 justify_content: JustifyContent::Center,
                 // vertically center children
@@ -567,7 +580,8 @@ pub fn setup_show_hint_system(game: Res<Game>, mut commands: Commands, asset_ser
 
     commands.spawn(NodeBundle {
         style: Style {
-            size: Size::new(Val::Px(WIDTH / 2.), Val::Px(HEIGHT / 2.)),
+            width: Val::Px(WIDTH / 2.),
+            height: Val::Px(HEIGHT / 2.),
             margin: UiRect::all(Val::Auto), // UiRect::new(Val::Px(0.), Val::Px(0.), Val::Px(0.), Val::Px(HEIGHT / 4.)),
             // horizontally center child text
             justify_content: JustifyContent::Center,
@@ -581,7 +595,8 @@ pub fn setup_show_hint_system(game: Res<Game>, mut commands: Commands, asset_ser
     .with_children(|big_container| {
         big_container.spawn(NodeBundle {
             style: Style {
-                size: Size::new(Val::Px(WIDTH / 2. - 20.), Val::Px(240.0)),
+                width: Val::Px(WIDTH / 2. - 20.),
+                height: Val::Px(240.0),
                 // horizontally center child text
                 justify_content: JustifyContent::Center,
                 // vertically center child text
@@ -599,7 +614,8 @@ pub fn setup_show_hint_system(game: Res<Game>, mut commands: Commands, asset_ser
 
         big_container.spawn(NodeBundle {
             style: Style {
-                size: Size::new(Val::Px(WIDTH), Val::Px(100.)),
+                width: Val::Px(WIDTH),
+                height: Val::Px(100.),
                 // horizontally center children
                 justify_content: JustifyContent::Center,
                 // vertically center children
