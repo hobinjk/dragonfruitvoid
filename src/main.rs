@@ -1337,11 +1337,11 @@ fn main() {
         .add_systems(OnExit(GameState::PurificationFour), cleanup_phase)
         .add_systems(OnExit(GameState::SooWonTwo), cleanup_phase);
 
-    app.configure_set(PhaseSet::UpdatePhase, run_if_phase_update);
+    app.configure_set(Update, (PhaseSet::UpdatePhase).run_if(run_if_phase_update));
 
-    app.configure_set(PhaseSet::UpdatePurificationPhase, run_if_purification_phase_update);
+    app.configure_set(Update, (PhaseSet::UpdatePurificationPhase).run_if(run_if_purification_phase_update));
 
-    app.configure_set(PhaseSet::UpdateBossPhase, run_if_boss_phase_update);
+    app.configure_set(Update, (PhaseSet::UpdateBossPhase).run_if(run_if_boss_phase_update));
 
     app
         .add_systems(OnEnter(GameState::PurificationOne),

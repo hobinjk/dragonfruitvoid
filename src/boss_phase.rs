@@ -164,7 +164,7 @@ fn puddles_system(time: Res<Time>,
 }
 
 pub fn add_update_boss_phase_set(app: &mut App) {
-    app.add_systems(PhaseSet::UpdateBossPhase, (
+    app.add_systems(Update, (
         collisions_players_waves_system,
         greens_system,
         greens_detonation_system,
@@ -177,6 +177,6 @@ pub fn add_update_boss_phase_set(app: &mut App) {
         boss_healthbar_system,
         puddle_spawns_system,
         puddles_system,
-    ));
+    ).in_set(PhaseSet::UpdateBossPhase));
 }
 

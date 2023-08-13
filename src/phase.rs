@@ -553,7 +553,7 @@ fn enemies_hp_check_system(
 }
 
 pub fn add_update_phase_set(app: &mut App) {
-    app.add_systems(PhaseSet::UpdatePhase, (
+    app.add_systems(Update, (
         handle_mouse_events_system,
         handle_spellcasts_system,
         handle_keyboard_system,
@@ -561,17 +561,17 @@ pub fn add_update_phase_set(app: &mut App) {
         move_player_system,
         move_rotating_soup_system,
         effect_forced_march_system,
-    ));
+    ).in_set(PhaseSet::UpdatePhase));
 
-    app.add_systems(PhaseSet::UpdatePhase, (
+    app.add_systems(Update, (
         collisions_players_edge_system,
         collisions_players_echo_system,
         collisions_bullets_enemies_system,
         collisions_players_soups_system,
         collisions_players_enemy_bullets_system,
-    ));
+    ).in_set(PhaseSet::UpdatePhase));
 
-    app.add_systems(PhaseSet::UpdatePhase, (
+    app.add_systems(Update, (
         bullet_age_system,
         player_text_system,
         enemies_hp_check_system,
@@ -585,12 +585,12 @@ pub fn add_update_phase_set(app: &mut App) {
         game_player_time_system,
         game_player_damage_system,
         player_count_system,
-    ));
+    ).in_set(PhaseSet::UpdatePhase));
 
-    app.add_systems(PhaseSet::UpdatePhase, (
+    app.add_systems(Update, (
         damage_flash_system,
         tint_untint_system,
-    ).chain());
+    ).chain().in_set(PhaseSet::UpdatePhase));
 }
 
 pub fn setup_phase(
