@@ -1280,7 +1280,7 @@ fn main() {
 
         .insert_resource(game)
 
-        .add_startup_system(setup)
+        .add_systems(Startup, setup)
 
         .add_systems(OnEnter(MenuState::StartMenu), setup_menu_system)
         .add_systems(Update, (
