@@ -190,7 +190,7 @@ pub fn setup_hints(
             }
         }
     } else {
-        if state.get() == GameState::PurificationOne {
+        if *state.get() == GameState::PurificationOne {
             hints.extend(HINTS_ALL_PHASES);
         }
     }
