@@ -558,11 +558,13 @@ pub fn setup_failure_system(game: Res<Game>, mut commands: Commands, asset_serve
 pub fn setup_show_hint_system(game: Res<Game>, mut commands: Commands, asset_server: Res<AssetServer>) {
     let hint_text = game.hint.unwrap();
 
-    let button_size = Size::new(Val::Px(240.0), Val::Px(65.0));
+    let button_width = Val::Px(240.0);
+    let button_height = Val::Px(65.0);
     let button_margin = UiRect::all(Val::Px(10.));
 
     let button_style = Style {
-        size: button_size,
+        width: button_width,
+        height: button_height,
         // center button
         margin: button_margin,
         // horizontally center child text
