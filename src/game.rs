@@ -1,5 +1,6 @@
 use bevy::{
     prelude::*,
+    ecs::schedule::ScheduleLabel,
     time::Stopwatch,
 };
 
@@ -33,7 +34,7 @@ pub enum MenuState {
     Unpaused,
 }
 
-#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
+#[derive(ScheduleLabel, Debug, Hash, PartialEq, Eq, Clone)]
 pub enum PhaseSet {
     UpdatePhase,
     UpdatePurificationPhase,

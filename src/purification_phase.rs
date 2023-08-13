@@ -2,7 +2,6 @@ use bevy::{
     prelude::*,
     render::color::Color,
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
-    ecs::schedule::SystemConfigs,
 };
 use std::ops::{Add, Mul, Sub};
 
@@ -63,7 +62,7 @@ fn void_zone_crab_system(
 }
 
 pub fn add_update_purification_phase_set(app: &mut App) {
-    app.add_systems((
+    app.add_systems(PhaseSet::UpdatePurificationPhase, (
         move_crabs_system,
         collisions_crabs_orbs_system,
         collisions_enemies_orbs_system,
@@ -72,7 +71,7 @@ pub fn add_update_purification_phase_set(app: &mut App) {
         collisions_orbs_edge_system,
         game_orb_target_progression_system,
         void_zone_crab_system,
-    ).in_set(PhaseSet::UpdatePurificationPhase));
+    ));
 }
 
 pub fn setup_purification(
