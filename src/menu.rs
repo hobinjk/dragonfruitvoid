@@ -251,7 +251,7 @@ pub fn update_menu_system(
 ) {
     for (interaction, mut color, next_state) in &mut interaction_query {
         match *interaction {
-            Interaction::Clicked => {
+            Interaction::Pressed => {
                 *color = PRESSED_BUTTON.into();
                 match next_state {
                     ButtonNextState::GoTo(next_state) => {
@@ -300,7 +300,7 @@ pub fn update_menu_onoff_system(
     ) {
     for (interaction, mut color, children, mut button) in &mut interaction_query {
         match *interaction {
-            Interaction::Clicked => {
+            Interaction::Pressed => {
                 *color = PRESSED_BUTTON.into();
 
                 match *button {
