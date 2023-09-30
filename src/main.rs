@@ -110,21 +110,21 @@ fn setup_purification_one(
         material: materials.add(orb_target_material.clone()),
         transform: Transform::from_xyz(-240., 240., LAYER_TARGET),
         ..default()
-    }).insert(OrbTarget(0));
+    }).insert(OrbTarget(0)).insert(PhaseEntity);
 
     commands.spawn(MaterialMesh2dBundle {
         mesh: orb_target_mesh.clone(),
         material: materials.add(orb_target_material.clone()),
         transform: Transform::from_xyz(-240., -240., LAYER_TARGET),
         ..default()
-    }).insert(OrbTarget(1));
+    }).insert(OrbTarget(1)).insert(PhaseEntity);
 
     commands.spawn(MaterialMesh2dBundle {
         mesh: orb_target_mesh.clone(),
         material: materials.add(orb_target_material.clone()),
         transform: Transform::from_xyz(240., -240., LAYER_TARGET),
         ..default()
-    }).insert(OrbTarget(2));
+    }).insert(OrbTarget(2)).insert(PhaseEntity);
 }
 
 fn setup_purification_two(
@@ -139,7 +139,7 @@ fn setup_purification_two(
         bees_cooldown: Timer::from_seconds(5., TimerMode::Once),
         mesh: bee_mesh,
         material: bee_material,
-    });
+    }).insert(PhaseEntity);
 
     let crab_positions = vec![
         // Vec3::new(-350., 200., LAYER_MOB),
@@ -163,14 +163,14 @@ fn setup_purification_two(
         material: materials.add(orb_target_material.clone()),
         transform: Transform::from_xyz(-240., 240., LAYER_TARGET),
         ..default()
-    }).insert(OrbTarget(0));
+    }).insert(OrbTarget(0)).insert(PhaseEntity);
 
     commands.spawn(MaterialMesh2dBundle {
         mesh: orb_target_mesh.clone(),
         material: materials.add(orb_target_material.clone()),
         transform: Transform::from_xyz(240., -240., LAYER_TARGET),
         ..default()
-    }).insert(OrbTarget(1));
+    }).insert(OrbTarget(1)).insert(PhaseEntity);
 
     commands.spawn(SpriteBundle {
         sprite: Sprite {
@@ -186,7 +186,8 @@ fn setup_purification_two(
     })
     .insert(Enemy)
     .insert(Hp(10.))
-    .insert(CollisionRadius(BIGBOY_RADIUS));
+    .insert(CollisionRadius(BIGBOY_RADIUS))
+    .insert(PhaseEntity);
 }
 
 fn unleash_the_bees(
@@ -231,7 +232,8 @@ fn unleash_the_bees(
     .insert(Soup {
         damage: 25.,
         duration: None,
-    });
+    })
+    .insert(PhaseEntity);
 }
 
 fn setup_purification_three(
@@ -265,14 +267,14 @@ fn setup_purification_three(
         material: materials.add(orb_target_material.clone()),
         transform: Transform::from_xyz(-240., 240., LAYER_TARGET),
         ..default()
-    }).insert(OrbTarget(0));
+    }).insert(OrbTarget(0)).insert(PhaseEntity);
 
     commands.spawn(MaterialMesh2dBundle {
         mesh: orb_target_mesh.clone(),
         material: materials.add(orb_target_material.clone()),
         transform: Transform::from_xyz(-240., -240., LAYER_TARGET),
         ..default()
-    }).insert(OrbTarget(1));
+    }).insert(OrbTarget(1)).insert(PhaseEntity);
 
     let mut shoot_cooldown = Timer::from_seconds(6., TimerMode::Once);
     shoot_cooldown.tick(Duration::from_secs_f32(3.));
@@ -297,7 +299,8 @@ fn setup_purification_three(
     })
     .insert(Enemy)
     .insert(Hp(20.))
-    .insert(CollisionRadius(BIGBOY_RADIUS));
+    .insert(CollisionRadius(BIGBOY_RADIUS))
+    .insert(PhaseEntity);
 }
 
 fn setup_purification_four(
@@ -320,7 +323,8 @@ fn setup_purification_four(
     .insert(Hp(50.))
     .insert(Boss {
         max_hp: 50.,
-    });
+    })
+    .insert(PhaseEntity);
 
     commands.spawn(SpriteBundle {
         sprite: Sprite {
@@ -331,7 +335,7 @@ fn setup_purification_four(
         },
         transform: Transform::from_xyz(-WIDTH / 2. + 20., -HEIGHT / 2. + 128. + 24., LAYER_UI),
         ..default()
-    }).insert(BossHealthbar);
+    }).insert(BossHealthbar).insert(PhaseEntity);
 
     commands.spawn(Text2dBundle {
         text: Text::from_section(
@@ -346,7 +350,7 @@ fn setup_purification_four(
 
         transform: Transform::from_xyz(-WIDTH / 2. + 20. + 128., -HEIGHT / 2. + 128. + 24., LAYER_TEXT),
         ..default()
-    }).insert(BossHealthbarText);
+    }).insert(BossHealthbarText).insert(PhaseEntity);
 
     commands.spawn(Text2dBundle {
         text: Text::from_section(
@@ -360,7 +364,7 @@ fn setup_purification_four(
         text_anchor: Anchor::BottomLeft,
         transform: Transform::from_xyz(-WIDTH / 2. + 20., -HEIGHT / 2. + 128. + 8. + 32. + 8., LAYER_TEXT),
         ..default()
-    });
+    }).insert(PhaseEntity);
 }
 
 fn setup_claw_swipes(
@@ -442,7 +446,8 @@ fn setup_boss_phase(
         max_hp: 100.,
     }).insert(Enemy)
     .insert(Hp(100.))
-    .insert(CollisionRadius(BOSS_RADIUS));
+    .insert(CollisionRadius(BOSS_RADIUS))
+    .insert(PhaseEntity);
 
     setup_greens(
         commands,
@@ -460,7 +465,7 @@ fn setup_boss_phase(
         },
         transform: Transform::from_xyz(-WIDTH / 2. + 20., -HEIGHT / 2. + 128. + 24., LAYER_UI),
         ..default()
-    }).insert(BossHealthbar);
+    }).insert(BossHealthbar).insert(PhaseEntity);
 
     commands.spawn(Text2dBundle {
         text: Text::from_section(
@@ -474,7 +479,7 @@ fn setup_boss_phase(
         text_anchor: Anchor::Center,
         transform: Transform::from_xyz(-WIDTH / 2. + 20. + 128., -HEIGHT / 2. + 128. + 24., LAYER_TEXT),
         ..default()
-    }).insert(BossHealthbarText);
+    }).insert(BossHealthbarText).insert(PhaseEntity);
 
     commands.spawn(Text2dBundle {
         text: Text::from_section(
@@ -488,7 +493,7 @@ fn setup_boss_phase(
         text_anchor: Anchor::BottomLeft,
         transform: Transform::from_xyz(-WIDTH / 2. + 20., -HEIGHT / 2. + 128. + 8. + 32. + 8., LAYER_TEXT),
         ..default()
-    });
+    }).insert(PhaseEntity);
 
     let void_zone_positions = [
         Vec3::new(0., 0., LAYER_VOID),
@@ -508,7 +513,8 @@ fn setup_boss_phase(
         .insert(Soup {
             damage: 25.,
             duration: None,
-        });
+        })
+        .insert(PhaseEntity);
     }
 
     let puddle_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(PUDDLE_RADIUS).into()).into();
@@ -520,7 +526,7 @@ fn setup_boss_phase(
                 mesh: puddle_mesh.clone(),
                 material: puddle_material.clone(),
                 visibility_start: Timer::from_seconds(puddle_start, TimerMode::Once),
-            });
+            }).insert(PhaseEntity);
         }
     }
 
@@ -537,7 +543,7 @@ fn setup_boss_phase(
             material_detonation: spread_material_detonation,
             radius: SPREAD_RADIUS,
         }
-    });
+    }).insert(PhaseEntity);
 }
 
 fn setup_jormag(
@@ -587,7 +593,7 @@ fn setup_jormag(
         .insert(Soup {
             damage: 5.,
             duration: None,
-        });
+        }).insert(PhaseEntity);
     }
 
 }
@@ -779,7 +785,7 @@ fn setup_mordremoth(
             }).insert(Wave {
                 visibility_start: Timer::from_seconds(boop_start + boop_delay, TimerMode::Once),
                 ..default()
-            });
+            }).insert(PhaseEntity);
         }
     }
 
@@ -897,7 +903,8 @@ fn setup_zhaitan(
             })
             .insert(Enemy)
             .insert(Hp(5.))
-            .insert(CollisionRadius(NOODLE_RADIUS));
+            .insert(CollisionRadius(NOODLE_RADIUS))
+            .insert(PhaseEntity);
         }
     }
 }
@@ -938,7 +945,7 @@ fn setup_soowonone(
     }).insert(Wave {
         visibility_start: Timer::from_seconds(7., TimerMode::Once),
         ..default()
-    });
+    }).insert(PhaseEntity);
 
     commands.spawn(SpriteBundle {
         sprite: wave_sprite.clone(),
@@ -948,7 +955,7 @@ fn setup_soowonone(
     }).insert(Wave {
         visibility_start: Timer::from_seconds(32., TimerMode::Once),
         ..default()
-    });
+    }).insert(PhaseEntity);
 
     commands.spawn(SpriteBundle {
         sprite: wave_sprite.clone(),
@@ -958,7 +965,7 @@ fn setup_soowonone(
     }).insert(Wave {
         visibility_start: Timer::from_seconds(52., TimerMode::Once),
         ..default()
-    });
+    }).insert(PhaseEntity);
 
     commands.spawn(SpriteBundle {
         sprite: wave_sprite.clone(),
@@ -968,7 +975,7 @@ fn setup_soowonone(
     }).insert(Wave {
         visibility_start: Timer::from_seconds(77., TimerMode::Once),
         ..default()
-    });
+    }).insert(PhaseEntity);
 
     commands.spawn(SpriteBundle {
         sprite: wave_sprite.clone(),
@@ -978,7 +985,7 @@ fn setup_soowonone(
     }).insert(Wave {
         visibility_start: Timer::from_seconds(97., TimerMode::Once),
         ..default()
-    });
+    }).insert(PhaseEntity);
 
     let rotating_soup_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(ROTATING_SOUP_RADIUS).into()).into();
     let rotating_soup_material = materials.add(ColorMaterial::from(Color::rgba(0.0, 0.0, 0.0, 0.3)));
@@ -1006,7 +1013,7 @@ fn setup_soowonone(
         .insert(Soup {
             damage: 5.,
             duration: None,
-        });
+        }).insert(PhaseEntity);
     }
 
     setup_claw_swipes(
@@ -1053,7 +1060,7 @@ fn setup_soowontwo(
     }).insert(Wave {
         visibility_start: Timer::from_seconds(13.5, TimerMode::Once),
         ..default()
-    });
+    }).insert(PhaseEntity);
 
     commands.spawn(SpriteBundle {
         sprite: wave_sprite.clone(),
@@ -1063,7 +1070,7 @@ fn setup_soowontwo(
     }).insert(Wave {
         visibility_start: Timer::from_seconds(38.5, TimerMode::Once),
         ..default()
-    });
+    }).insert(PhaseEntity);
 
     commands.spawn(SpriteBundle {
         sprite: wave_sprite.clone(),
@@ -1073,7 +1080,7 @@ fn setup_soowontwo(
     }).insert(Wave {
         visibility_start: Timer::from_seconds(54., TimerMode::Once),
         ..default()
-    });
+    }).insert(PhaseEntity);
 
     commands.spawn(SpriteBundle {
         sprite: wave_sprite.clone(),
@@ -1083,7 +1090,7 @@ fn setup_soowontwo(
     }).insert(Wave {
         visibility_start: Timer::from_seconds(79., TimerMode::Once),
         ..default()
-    });
+    }).insert(PhaseEntity);
 
     commands.spawn(SpriteBundle {
         sprite: wave_sprite.clone(),
@@ -1093,7 +1100,7 @@ fn setup_soowontwo(
     }).insert(Wave {
         visibility_start: Timer::from_seconds(99.5, TimerMode::Once),
         ..default()
-    });
+    }).insert(PhaseEntity);
 
     let rotating_soup_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(ROTATING_SOUP_RADIUS).into()).into();
     let rotating_soup_material = materials.add(ColorMaterial::from(Color::rgba(0.0, 0.0, 0.0, 0.3)));
@@ -1121,7 +1128,7 @@ fn setup_soowontwo(
         .insert(Soup {
             damage: 5.,
             duration: None,
-        });
+        }).insert(PhaseEntity);
     }
 
     setup_claw_swipes(
@@ -1147,7 +1154,8 @@ fn setup_soowontwo(
     })
     .insert(Enemy)
     .insert(Hp(20.))
-    .insert(CollisionRadius(BIGBOY_RADIUS));
+    .insert(CollisionRadius(BIGBOY_RADIUS))
+    .insert(PhaseEntity);
 
     commands.spawn(SpriteBundle {
         sprite: Sprite {
@@ -1164,7 +1172,8 @@ fn setup_soowontwo(
     .insert(Enemy)
     .insert(Hp(20.))
     .insert(Velocity(Vec3::ZERO))
-    .insert(CollisionRadius(BIGBOY_RADIUS));
+    .insert(CollisionRadius(BIGBOY_RADIUS))
+    .insert(PhaseEntity);
 }
 
 fn jormag_soup_beam_system(

@@ -76,6 +76,9 @@ pub const PLAYER_REGEN: f32 = 1.;
 pub const CRAB_SIZE: f32 = 40.;
 
 #[derive(Component)]
+pub struct PhaseEntity;
+
+#[derive(Component)]
 pub struct CursorMark;
 
 #[derive(Component)]

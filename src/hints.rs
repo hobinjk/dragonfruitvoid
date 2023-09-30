@@ -201,7 +201,7 @@ pub fn setup_hints(
         commands.spawn(ScheduledHint {
             start: Timer::from_seconds(hint.start, TimerMode::Once),
             hint: hint.hint,
-        });
+        }).insert(PhaseEntity);
     }
 }
 

@@ -98,7 +98,8 @@ pub fn spawn_crab(commands: &mut Commands, asset_server: &Res<AssetServer>, crab
     .insert(MobCrab)
     .insert(Enemy)
     .insert(CollisionRadius(CRAB_SIZE / 2.))
-    .insert(Hp(0.1));
+    .insert(Hp(0.1))
+    .insert(PhaseEntity);
 }
 
 fn get_closest_pos(
@@ -157,7 +158,8 @@ pub fn goliath_system(
                 damage: GOLIATH_BULLET_DAMAGE,
                 knockback: GOLIATH_BULLET_KNOCKBACK,
             })
-            .insert(CollisionRadius(bullet_radius));
+            .insert(CollisionRadius(bullet_radius))
+            .insert(PhaseEntity);
         }
     }
 }
@@ -198,7 +200,8 @@ pub fn wyvern_system(
                 damage: WYVERN_BULLET_DAMAGE,
                 knockback: 0.,
             })
-            .insert(CollisionRadius(BULLET_SIZE / 2.));
+            .insert(CollisionRadius(BULLET_SIZE / 2.))
+            .insert(PhaseEntity);
         }
 
         wyvern.shockwave_cooldown.tick(time.delta());
@@ -224,7 +227,8 @@ pub fn wyvern_system(
                     damage: WYVERN_BULLET_DAMAGE,
                     knockback: 80. * GAME_TO_PX,
                 })
-                .insert(CollisionRadius(bullet_radius));
+                .insert(CollisionRadius(bullet_radius))
+                .insert(PhaseEntity);
             }
 
         }
@@ -346,7 +350,8 @@ pub fn timecaster_system(
                     damage: TIMECASTER_BULLET_DAMAGE,
                     knockback: 10.,
                 })
-                .insert(CollisionRadius(BULLET_SIZE / 2.));
+                .insert(CollisionRadius(BULLET_SIZE / 2.))
+                .insert(PhaseEntity);
             }
         }
     }

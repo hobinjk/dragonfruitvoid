@@ -4,7 +4,7 @@ use bevy::{
 };
 use std::ops::Add;
 
-use crate::game::{GAME_TO_PX, GAME_RADIUS, LAYER_AOE, Player};
+use crate::game::{GAME_TO_PX, GAME_RADIUS, LAYER_AOE, PhaseEntity, Player};
 use crate::damage_flash::DamageFlashEvent;
 use crate::collisions::{CollisionRadius, collide};
 
@@ -170,6 +170,7 @@ pub fn spawn_aoe(
     })
     .insert(aoe)
     .insert(CollisionRadius(aoe_desc.radius))
+    .insert(PhaseEntity)
     .id();
 
     if let Some(aoe_follow) = aoe_follow {

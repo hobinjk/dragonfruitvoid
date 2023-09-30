@@ -167,7 +167,8 @@ fn handle_mouse_events_system(
                       age: 0.,
                       firer: entity_player,
                   })
-                  .insert(HasHit(HashSet::new()));
+                  .insert(HasHit(HashSet::new()))
+                  .insert(PhaseEntity);
                 player.shoot_cooldown.reset();
             }
         }
@@ -285,7 +286,8 @@ fn handle_spellcasts_system(
                 .insert(PortalEntry {
                     despawn_timer: Timer::from_seconds(60., TimerMode::Once),
                     owner: entity_player,
-                });
+                })
+                .insert(PhaseEntity);
 
                 player.portal_cooldown = Timer::from_seconds(0.5, TimerMode::Once);
             } else if portal_exits.is_empty() {
@@ -302,7 +304,8 @@ fn handle_spellcasts_system(
                 .insert(PortalExit {
                     despawn_timer: Timer::from_seconds(10., TimerMode::Once),
                     owner: entity_player,
-                });
+                })
+                .insert(PhaseEntity);
 
                 player.portal_cooldown = Timer::from_seconds(60., TimerMode::Once);
             }
@@ -649,13 +652,17 @@ pub fn setup_phase(
             retarget: Timer::from_seconds(3., TimerMode::Once),
         })
         .insert(Velocity(Vec3::new(0., -ECHO_SPEED, 0.)))
-        .insert(CollisionRadius(ECHO_RADIUS));
+        .insert(CollisionRadius(ECHO_RADIUS))
+        .insert(PhaseEntity);
     }
 
-    commands.spawn((
-        VoidZoneGrowth(Timer::from_seconds(VOID_ZONE_GROWTH_DURATION_SECS, TimerMode::Repeating)),
-        VoidZoneCrabSpawn(Timer::from_seconds(VOID_ZONE_CRAB_SPAWN_DURATION_SECS, TimerMode::Repeating)),
-    ));
+    commands.spawn(
+        VoidZoneGrowth(Timer::from_seconds(VOID_ZONE_GROWTH_DURATION_SECS, TimerMode::Repeating))
+    ).insert(PhaseEntity);
+
+    commands.spawn(
+        VoidZoneCrabSpawn(Timer::from_seconds(VOID_ZONE_CRAB_SPAWN_DURATION_SECS, TimerMode::Repeating))
+    ).insert(PhaseEntity);
 
     commands.spawn(SpriteBundle {
         sprite: Sprite {
@@ -665,13 +672,13 @@ pub fn setup_phase(
         },
         transform: Transform::from_xyz(0., 0., LAYER_CURSOR),
         ..default()
-    }).insert(CursorMark);
+    }).insert(CursorMark).insert(PhaseEntity);
 
     commands.spawn(SpriteBundle {
         texture: asset_server.load("map.png"),
         transform: Transform::from_xyz(0., 0., LAYER_MAP),
         ..default()
-    });
+    }).insert(PhaseEntity);
 
     let text_style = TextStyle {
         font: asset_server.load("trebuchet_ms.ttf"),
@@ -695,14 +702,14 @@ pub fn setup_phase(
     }).insert(TextDisplay {
         value: TextValue::Hp,
         sprite: None,
-    });
+    }).insert(PhaseEntity);
 
     commands.spawn(MaterialMesh2dBundle {
         mesh: meshes.add(shape::Circle::new(50.).into()).into(),
         material: materials.add(ColorMaterial::from(Color::rgb(0.6, 0.1, 0.1))),
         transform: Transform::from_xyz(0., -HEIGHT / 2. + 55., LAYER_UI),
         ..default()
-    });
+    }).insert(PhaseEntity);
 
     commands.spawn(Text2dBundle {
         text: Text::from_section("0",
@@ -718,7 +725,7 @@ pub fn setup_phase(
     }).insert(TextDisplay {
         value: TextValue::CooldownDodge,
         sprite: None,
-    });
+    }).insert(PhaseEntity);
 
     commands.spawn(Text2dBundle {
         text: Text::from_section("0",
@@ -734,13 +741,13 @@ pub fn setup_phase(
     }).insert(TextDisplay {
         value: TextValue::StatusJump,
         sprite: None,
-    });
+    }).insert(PhaseEntity);
 
     let sprite_pull = commands.spawn(SpriteBundle {
         texture: asset_server.load("pull.png"),
         transform: Transform::from_xyz(-128., -HEIGHT / 2. + 55., LAYER_UI),
         ..default()
-    }).id();
+    }).insert(PhaseEntity).id();
 
     commands.spawn(Text2dBundle {
         text: Text::from_section("", text_style.clone())
@@ -751,7 +758,7 @@ pub fn setup_phase(
     }).insert(TextDisplay {
         value: TextValue::CooldownPull,
         sprite: Some(sprite_pull),
-    });
+    }).insert(PhaseEntity);
 
     commands.spawn(Text2dBundle {
         text: Text::from_section("4", text_binding_style.clone())
@@ -759,13 +766,13 @@ pub fn setup_phase(
         text_anchor: Anchor::Center,
         transform: Transform::from_xyz(-128., -HEIGHT / 2. + binding_y, LAYER_TEXT),
         ..default()
-    });
+    }).insert(PhaseEntity);
 
     let sprite_blink = commands.spawn(SpriteBundle {
         texture: asset_server.load("blink.png"),
         transform: Transform::from_xyz(128., -HEIGHT / 2. + 55., LAYER_UI),
         ..default()
-    }).id();
+    }).insert(PhaseEntity).id();
 
     commands.spawn(Text2dBundle {
         text: Text::from_section("", text_style.clone())
@@ -776,7 +783,7 @@ pub fn setup_phase(
     }).insert(TextDisplay {
         value: TextValue::CooldownBlink,
         sprite: Some(sprite_blink),
-    });
+    }).insert(PhaseEntity);
 
     commands.spawn(Text2dBundle {
         text: Text::from_section("E", text_binding_style.clone())
@@ -784,13 +791,13 @@ pub fn setup_phase(
         text_anchor: Anchor::Center,
         transform: Transform::from_xyz(128., -HEIGHT / 2. + binding_y, LAYER_TEXT),
         ..default()
-    });
+    }).insert(PhaseEntity);
 
     let sprite_portal = commands.spawn(SpriteBundle {
         texture: asset_server.load("portal.png"),
         transform: Transform::from_xyz(256., -HEIGHT / 2. + 55., LAYER_UI),
         ..default()
-    }).id();
+    }).insert(PhaseEntity).id();
 
     commands.spawn(Text2dBundle {
         text: Text::from_section("", text_style.clone())
@@ -801,7 +808,7 @@ pub fn setup_phase(
     }).insert(TextDisplay {
         value: TextValue::CooldownPortal,
         sprite: Some(sprite_portal),
-    });
+    }).insert(PhaseEntity);
 
     commands.spawn(Text2dBundle {
         text: Text::from_section("R", text_binding_style.clone())
@@ -809,13 +816,13 @@ pub fn setup_phase(
         text_anchor: Anchor::Center,
         transform: Transform::from_xyz(256., -HEIGHT / 2. + binding_y, LAYER_TEXT),
         ..default()
-    });
+    }).insert(PhaseEntity);
 }
 
 pub fn cleanup_phase(
     mut commands: Commands,
     game: Res<Game>,
-    entities: Query<Entity, (Without<Window>, Without<Player>, Without<Camera>)>,
+    entities: Query<Entity, With<PhaseEntity>>,
     player_entity: Query<Entity, With<Player>>,
     ) {
     for entity in &entities {

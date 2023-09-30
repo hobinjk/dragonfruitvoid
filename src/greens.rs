@@ -250,6 +250,6 @@ pub fn setup_greens(
         }).insert(StackGreen {
             visibility_start: Timer::from_seconds(green_spawn.start, TimerMode::Once),
             detonation: Timer::from_seconds(5., TimerMode::Once),
-        });
+        }).insert(PhaseEntity);
     }
 }

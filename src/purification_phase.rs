@@ -85,7 +85,7 @@ pub fn setup_purification(
         material: materials.add(ColorMaterial::from(Color::rgb(0.9, 1.0, 1.0))),
         transform: Transform::from_xyz(0., 0., LAYER_MOB),
         ..default()
-    }).insert(MobOrb).insert(Velocity(Vec3::new(0., 0., 0.)));
+    }).insert(MobOrb).insert(Velocity(Vec3::new(0., 0., 0.))).insert(PhaseEntity);
 
     let void_zone_offset = 420.;
     let void_zone_positions = [
@@ -110,6 +110,7 @@ pub fn setup_purification(
         .insert(Soup {
             damage: 25.,
             duration: None,
-        });
+        })
+        .insert(PhaseEntity);
     }
 }

@@ -132,7 +132,8 @@ fn puddle_spawns_system(
             .insert(Soup {
                 damage: 0.,
                 duration: None,
-            });
+            })
+            .insert(PhaseEntity);
         }
     }
 }
