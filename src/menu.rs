@@ -276,7 +276,7 @@ pub fn update_menu_system(
                         res_next_menu_state.set(MenuState::Unpaused);
                     }
                     ButtonNextState::Exit() => {
-                        res_next_game_state.set(GameState::PurificationOne);
+                        res_next_game_state.set(GameState::Nothing);
                         res_next_menu_state.set(MenuState::StartMenu);
                     }
                 }
