@@ -4,9 +4,9 @@ use bevy::{
 };
 use std::ops::Add;
 
-use crate::game::{GAME_TO_PX, GAME_RADIUS, LAYER_AOE, PhaseEntity, Player};
+use crate::collisions::{collide, CollisionRadius};
 use crate::damage_flash::DamageFlashEvent;
-use crate::collisions::{CollisionRadius, collide};
+use crate::game::{PhaseEntity, Player, GAME_RADIUS, GAME_TO_PX, LAYER_AOE};
 
 pub const AOE_BASE_COLOR: Color = Color::rgba(0.9, 0.9, 0., 0.4);
 pub const AOE_DETONATION_COLOR: Color = Color::rgba(0.7, 0., 0., 0.7);
@@ -50,8 +50,7 @@ pub fn aoes_system(
     time: Res<Time>,
     mut aoes: Query<(&mut Aoe, &mut Visibility, &Children)>,
     mut indicators: Query<(&AoeIndicator, &mut Transform)>,
-    ) {
-
+) {
     for (mut aoe, mut visibility, children) in &mut aoes {
         let mut visible = Visibility::Hidden;
         match &mut aoe.visibility_start {
@@ -60,7 +59,7 @@ pub fn aoes_system(
                 if timer.finished() {
                     visible = Visibility::Inherited;
                 }
-            },
+            }
             None => {
                 visible = Visibility::Inherited;
             }
@@ -88,8 +87,7 @@ pub fn aoes_detonation_system(
     mut damage_flash_events: EventWriter<DamageFlashEvent>,
     mut players: Query<(Entity, &Transform, &mut Player)>,
     aoes: Query<(Entity, &Aoe, &Transform, &CollisionRadius)>,
-    ) {
-
+) {
     for (entity_aoe, aoe, transform, radius) in &aoes {
         if !aoe.detonation.just_finished() {
             continue;
@@ -111,7 +109,7 @@ pub fn aoes_detonation_system(
         if let Some(linger) = &aoe.linger {
             commands.entity(entity_aoe).remove::<Aoe>();
             commands.entity(entity_aoe).insert(Soup {
-                damage: aoe.damage /  2., // arbitrary
+                damage: aoe.damage / 2., // arbitrary
                 duration: Some(linger.clone()),
             });
         } else {
@@ -123,7 +121,7 @@ pub fn aoes_detonation_system(
 pub fn aoes_follow_system(
     transforms: Query<&Transform, Without<Aoe>>,
     mut aoes: Query<(&AoeFollow, &mut Transform), With<Aoe>>,
-    ) {
+) {
     for (follow, mut transform) in &mut aoes {
         if let Ok(transform_target) = transforms.get(follow.target) {
             transform.translation.x = transform_target.translation.x;
@@ -136,7 +134,7 @@ pub fn soup_duration_system(
     time: Res<Time>,
     mut commands: Commands,
     mut soups: Query<(Entity, &mut Soup)>,
-    ) {
+) {
     for (entity, mut soup) in &mut soups {
         if soup.duration.is_none() {
             continue;
@@ -153,25 +151,32 @@ pub fn soup_duration_system(
 pub fn spawn_aoe(
     commands: &mut Commands,
     aoe_desc: &AoeDesc,
-    position: Vec3, aoe: Aoe, aoe_follow: Option<AoeFollow>) -> Entity {
-    let id = commands.spawn(MaterialMesh2dBundle {
-        transform: Transform::from_translation(position),
-        mesh: aoe_desc.mesh.clone(),
-        material: aoe_desc.material_base.clone(),
-        ..default()
-    }).with_children(|parent| {
-        let position_above = Vec3::new(0., 0., 0.1);
-        parent.spawn(MaterialMesh2dBundle {
+    position: Vec3,
+    aoe: Aoe,
+    aoe_follow: Option<AoeFollow>,
+) -> Entity {
+    let id = commands
+        .spawn(MaterialMesh2dBundle {
+            transform: Transform::from_translation(position),
             mesh: aoe_desc.mesh.clone(),
-            transform: Transform::from_translation(position_above).with_scale(Vec3::ZERO),
-            material: aoe_desc.material_detonation.clone(),
+            material: aoe_desc.material_base.clone(),
             ..default()
-        }).insert(AoeIndicator);
-    })
-    .insert(aoe)
-    .insert(CollisionRadius(aoe_desc.radius))
-    .insert(PhaseEntity)
-    .id();
+        })
+        .with_children(|parent| {
+            let position_above = Vec3::new(0., 0., 0.1);
+            parent
+                .spawn(MaterialMesh2dBundle {
+                    mesh: aoe_desc.mesh.clone(),
+                    transform: Transform::from_translation(position_above).with_scale(Vec3::ZERO),
+                    material: aoe_desc.material_detonation.clone(),
+                    ..default()
+                })
+                .insert(AoeIndicator);
+        })
+        .insert(aoe)
+        .insert(CollisionRadius(aoe_desc.radius))
+        .insert(PhaseEntity)
+        .id();
 
     if let Some(aoe_follow) = aoe_follow {
         commands.entity(id).insert(aoe_follow);
@@ -186,8 +191,7 @@ pub fn spawn_spew_aoe(
     detonation: f32,
     aoe_desc: &AoeDesc,
     linger: Option<Timer>,
-    ) {
-
+) {
     let rotation = Vec2::new(SPEW_DYDX.cos(), SPEW_DYDX.sin());
 
     for row in -6..=6 {
@@ -200,7 +204,9 @@ pub fn spawn_spew_aoe(
             }
 
             // Rotation and offset are both pretty arbitrary
-            let pos2 = Vec2::new(x, y).rotate(rotation).add(Vec2::new(SPEW_RADIUS * 0.7, SPEW_RADIUS * 0.1));
+            let pos2 = Vec2::new(x, y)
+                .rotate(rotation)
+                .add(Vec2::new(SPEW_RADIUS * 0.7, SPEW_RADIUS * 0.1));
             let dy = pos2.y - GAME_RADIUS;
             let dist = (pos2.x * pos2.x + dy * dy).sqrt();
             let aoe_delay = dist / 2000.;
@@ -213,7 +219,13 @@ pub fn spawn_spew_aoe(
                 linger: linger.clone(),
             };
 
-            spawn_aoe(commands, aoe_desc, Vec3::new(pos2.x, pos2.y, LAYER_AOE), aoe, None);
+            spawn_aoe(
+                commands,
+                aoe_desc,
+                Vec3::new(pos2.x, pos2.y, LAYER_AOE),
+                aoe,
+                None,
+            );
         }
     }
 }

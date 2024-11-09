@@ -19,7 +19,7 @@ pub fn damage_flash_system(
     mut events: EventReader<DamageFlashEvent>,
     mut commands: Commands,
     mut sprites: Query<&mut Sprite, Without<TintUntint>>,
-    ) {
+) {
     let mut touched = HashSet::new();
 
     for event in events.iter() {
@@ -43,7 +43,7 @@ pub fn tint_untint_system(
     time: Res<Time>,
     mut commands: Commands,
     mut sprites: Query<(Entity, &mut TintUntint, &mut Sprite)>,
-    ) {
+) {
     for (entity, mut tut, mut sprite) in &mut sprites {
         tut.tint_timer.tick(time.delta());
         tut.untint_timer.tick(time.delta());

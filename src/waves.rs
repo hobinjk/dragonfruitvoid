@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use crate::game::*;
+use bevy::prelude::*;
 
 #[derive(Component)]
 pub struct Wave {
@@ -24,7 +24,7 @@ pub const WAVE_DAMAGE: f32 = 75.;
 pub fn waves_system(
     time: Res<Time>,
     mut waves: Query<(&mut Wave, &mut Visibility, &mut Transform)>,
-    ) {
+) {
     for (mut wave, mut visibility, mut transform) in &mut waves {
         let mut visible = Visibility::Inherited;
         if !wave.visibility_start.finished() {
@@ -40,11 +40,10 @@ pub fn waves_system(
 
         *visibility = visible;
 
-        if visible == Visibility::Hidden{
+        if visible == Visibility::Hidden {
             continue;
         }
 
         transform.scale = Vec3::splat(wave.growth.percent());
     }
 }
-
