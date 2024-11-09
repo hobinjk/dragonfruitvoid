@@ -11,10 +11,10 @@ use std::time::Duration;
 
 use crate::collisions::*;
 use crate::damage_flash::*;
+use crate::game::*;
 use crate::hints::{scheduled_hint_system, setup_hints};
 use crate::mobs::*;
 use crate::ui::*;
-use crate::{ai::player_ai_system, game::*};
 use crate::{ai::AiPlayer, ai::AiRole, aoes::soup_duration_system};
 
 pub const VOID_ZONE_GROWTH_DURATION_SECS: f32 = 4.;
@@ -555,7 +555,6 @@ pub fn add_update_phase_set(app: &mut App) {
             move_player_system,
             move_rotating_soup_system,
             effect_forced_march_system,
-            player_ai_system,
         )
             .in_set(PhaseSet::UpdatePhase),
     );
@@ -629,7 +628,19 @@ pub fn setup_phase(
     if players.is_empty() {
         game.time_elapsed.reset();
 
-        for x in 0..10 {
+        let mut x: f32 = 0.;
+        for role in [
+            AiRole::Virt1,
+            AiRole::Virt2,
+            AiRole::Herald1,
+            AiRole::Herald2,
+            AiRole::Ham1,
+            AiRole::Ham2,
+            AiRole::Dps1,
+            AiRole::Dps2,
+            AiRole::Dps3,
+            AiRole::Dps4,
+        ] {
             commands
                 .spawn(SpriteBundle {
                     sprite: Sprite {
@@ -637,11 +648,12 @@ pub fn setup_phase(
                         ..default()
                     },
                     texture: asset_server.load("virt.png"),
-                    transform: Transform::from_xyz((x as f32 - 4.5) * 10., 200., LAYER_PLAYER),
+                    transform: Transform::from_xyz((x - 4.5) * 10., 200., LAYER_PLAYER),
                     ..default()
                 })
                 .insert(Player { ..default() })
-                .insert(AiPlayer { role: AiRole::Ham1 });
+                .insert(AiPlayer { role });
+            x += 1.;
         }
 
         commands
