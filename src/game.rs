@@ -1,7 +1,4 @@
-use bevy::{
-    prelude::*,
-    time::Stopwatch,
-};
+use bevy::{prelude::*, time::Stopwatch};
 
 use std::time::Duration;
 
@@ -11,14 +8,14 @@ pub enum GameState {
     Nothing,
     PurificationOne,
     Jormag,
-    Primordus, // -> big aoe and void zone
-    Kralkatorrik, // -> line aoes
+    Primordus,       // -> big aoe and void zone
+    Kralkatorrik,    // -> line aoes
     PurificationTwo, // -> kill big boy without cleaving
     Mordremoth,
-    Zhaitan, // -> noodles and grid aoe
+    Zhaitan,           // -> noodles and grid aoe
     PurificationThree, // -> kill bigger boy without cleaving
-    SooWonOne, // -> soowontwo minus big boys
-    PurificationFour, // -> damage orb
+    SooWonOne,         // -> soowontwo minus big boys
+    PurificationFour,  // -> damage orb
     SooWonTwo,
 }
 
@@ -83,7 +80,6 @@ pub struct CursorMark;
 
 #[derive(Component)]
 pub struct Player {
-    pub is_human: bool,
     pub hp: f32,
     pub damage_taken: f32,
     pub shoot_cooldown: Timer,
@@ -95,6 +91,9 @@ pub struct Player {
     pub invuln: Timer,
     pub jump: Timer,
 }
+
+#[derive(Component)]
+pub struct HumanPlayer {}
 
 #[derive(Component)]
 pub struct Bullet {
@@ -111,7 +110,6 @@ pub struct EnemyBullet {
 impl Default for Player {
     fn default() -> Self {
         let mut player = Player {
-            is_human: true,
             hp: 100.,
             damage_taken: 0.,
             shoot_cooldown: Timer::from_seconds(BULLET_COOLDOWN, TimerMode::Once),

@@ -24,6 +24,7 @@ mod collisions;
 mod phase;
 mod boss_phase;
 mod purification_phase;
+mod ai;
 
 use crate::aoes::*;
 use crate::boss_phase::*;
