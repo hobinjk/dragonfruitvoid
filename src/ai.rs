@@ -9,8 +9,8 @@ use crate::greens::StackGreen;
 use crate::mobs::Enemy;
 use crate::orbs::ORB_RADIUS;
 use crate::{
-    Bullet, Game, HasHit, MobCrab, MobOrb, OrbTarget, PhaseEntity, Velocity, BULLET_SIZE,
-    BULLET_SPEED, GAME_TO_PX, LAYER_BULLET, MAP_RADIUS, PLAYER_RADIUS,
+    collide, Bullet, CollisionRadius, Game, HasHit, MobCrab, MobOrb, OrbTarget, PhaseEntity, Soup,
+    Velocity, BULLET_SIZE, BULLET_SPEED, GAME_TO_PX, LAYER_BULLET, MAP_RADIUS, PLAYER_RADIUS,
 };
 
 pub enum AiRole {
@@ -221,6 +221,29 @@ fn get_push_team(role: &AiRole) -> i32 {
     }
 }
 
+fn think_avoid_soups(
+    player_pos: Vec3,
+    soups: &Query<(&Soup, &Transform, &CollisionRadius), Without<Player>>,
+) -> Thought {
+    for (_, transform_soup, radius) in soups {
+        let soup_pos = transform_soup.translation;
+        if !collide(player_pos, 0., soup_pos, (radius.0 + PLAYER_RADIUS) * 1.3) {
+            continue;
+        }
+
+        let diff = soup_pos.sub(player_pos);
+        return Thought {
+            utility: 0.95,
+            action: Action::Move(player_pos.add(diff.mul(-1.))),
+        };
+    }
+
+    Thought {
+        utility: 0.,
+        action: Action::Rest,
+    }
+}
+
 pub fn player_ai_purification_phase_system(
     time: Res<Time>,
     game: Res<Game>,
@@ -229,6 +252,7 @@ pub fn player_ai_purification_phase_system(
     enemies: Query<(&Enemy, &Transform), Without<Player>>,
     orb: Query<(&MobOrb, &Transform, &Velocity), Without<Player>>,
     orb_targets: Query<(&OrbTarget, &Transform), Without<Player>>,
+    soups: Query<(&Soup, &Transform, &CollisionRadius), Without<Player>>,
 ) {
     let speed = 250.0 * GAME_TO_PX * time.delta_seconds();
 
@@ -264,6 +288,7 @@ pub fn player_ai_purification_phase_system(
         let mut thoughts: Vec<Thought> = vec![
             think_dont_fall_off_edge(&player_pos),
             think_shoot_crab(player_pos, orb_pos, &enemies),
+            think_avoid_soups(player_pos, &soups),
         ];
 
         if let (Some(orb_target_pos), Some(orb_dest_pos)) = (orb_target_pos, orb_dest_pos) {
