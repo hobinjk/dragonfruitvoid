@@ -11,4 +11,3 @@ pub const ORB_VELOCITY_DECAY: f32 = 0.5;
 
 #[derive(Component)]
 pub struct OrbTarget(pub i32);
-

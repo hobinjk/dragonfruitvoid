@@ -1,14 +1,14 @@
 use bevy::prelude::*;
 
-use std::ops::{Add, Mul, Sub};
 use std::collections::HashSet;
+use std::ops::{Add, Mul, Sub};
 
-use crate::game::*;
 use crate::aoes::*;
+use crate::game::*;
 use crate::mobs::*;
 use crate::orbs::*;
+use crate::phase::{EffectForcedMarch, Velocity};
 use crate::waves::*;
-use crate::phase::{Velocity, EffectForcedMarch};
 
 use crate::damage_flash::*;
 
@@ -37,8 +37,11 @@ fn bullet_damage(bullet: &Bullet) -> f32 {
 pub fn collisions_bullets_orbs_system(
     players: Query<&Transform, With<Player>>,
     mut bullets: Query<(&Transform, &Bullet, &mut HasHit), (With<Bullet>, Without<MobOrb>)>,
-    mut orbs: Query<(Entity, &Transform, &mut Velocity, Option<&mut Hp>), (With<MobOrb>, Without<Bullet>)>,
-    ) {
+    mut orbs: Query<
+        (Entity, &Transform, &mut Velocity, Option<&mut Hp>),
+        (With<MobOrb>, Without<Bullet>),
+    >,
+) {
     for (transform_bullet, bullet, mut has_hit) in &mut bullets {
         let bullet_pos = transform_bullet.translation;
         for (entity_orb, transform_orb, mut velocity_orb, hp) in &mut orbs {
@@ -56,7 +59,10 @@ pub fn collisions_bullets_orbs_system(
                 let mut diff = orb_pos.sub(transform_player.translation);
                 diff.z = 0.;
                 if velocity_orb.0.length_squared() < orb_max_vel * orb_max_vel * 4. {
-                    velocity_orb.0 = velocity_orb.0.add(diff.clamp_length(push_str, push_str)).clamp_length(0., orb_max_vel);
+                    velocity_orb.0 = velocity_orb
+                        .0
+                        .add(diff.clamp_length(push_str, push_str))
+                        .clamp_length(0., orb_max_vel);
                 }
 
                 if let Some(mut hp) = hp {
@@ -70,8 +76,11 @@ pub fn collisions_bullets_orbs_system(
 pub fn collisions_bullets_enemies_system(
     mut damage_flash_events: EventWriter<DamageFlashEvent>,
     mut bullets: Query<(&Bullet, &Transform, &mut HasHit), (With<Bullet>, Without<Enemy>)>,
-    mut enemies: Query<(Entity, &Transform, &Visibility, &CollisionRadius, &mut Hp), (With<Enemy>, Without<Bullet>, Without<MobOrb>)>,
-    ) {
+    mut enemies: Query<
+        (Entity, &Transform, &Visibility, &CollisionRadius, &mut Hp),
+        (With<Enemy>, Without<Bullet>, Without<MobOrb>),
+    >,
+) {
     for (bullet, transform_bullet, mut has_hit) in &mut bullets {
         let bullet_pos = transform_bullet.translation;
         for (entity_enemy, transform_enemy, visibility, radius_enemy, mut hp) in &mut enemies {
@@ -99,7 +108,7 @@ pub fn collisions_crabs_orbs_system(
     mut players: Query<&mut Player>,
     crabs: Query<&Transform, With<MobCrab>>,
     orbs: Query<&Transform, With<MobOrb>>,
-    ) {
+) {
     for transform_orb in &orbs {
         let orb_pos = transform_orb.translation;
         for transform_crab in &crabs {
@@ -117,11 +126,11 @@ pub fn collisions_crabs_orbs_system(
 pub fn collisions_enemies_orbs_system(
     enemies: Query<(&Transform, &CollisionRadius), (With<Enemy>, Without<MobCrab>)>,
     mut orbs: Query<(&Transform, &mut Velocity), With<MobOrb>>,
-    ) {
+) {
     for (transform_orb, mut velocity_orb) in &mut orbs {
         let orb_pos = transform_orb.translation;
         for (transform_enemy, collision_radius) in &enemies {
-            let enemy_pos = transform_enemy .translation;
+            let enemy_pos = transform_enemy.translation;
             if collide(orb_pos, ORB_RADIUS, enemy_pos, collision_radius.0) {
                 velocity_orb.0 = velocity_orb.0.mul(-10.);
             }
@@ -136,7 +145,7 @@ pub fn collisions_orb_targets_system(
     mut next_menu_state: ResMut<NextState<MenuState>>,
     mut orbs: Query<(&MobOrb, &Transform, &mut Velocity)>,
     orb_targets: Query<(&OrbTarget, &Transform)>,
-    ) {
+) {
     let mut any_orb_targetted = false;
     for (_, transform_orb, mut velocity_orb) in &mut orbs {
         let mut orb_pos = transform_orb.translation;
@@ -168,9 +177,7 @@ pub fn collisions_orb_targets_system(
     }
 }
 
-pub fn collisions_players_edge_system(
-    mut players: Query<(&mut Player, &Transform)>,
-    ) {
+pub fn collisions_players_edge_system(mut players: Query<(&mut Player, &Transform)>) {
     for (mut player, transform_player) in &mut players {
         if !collide(transform_player.translation, 0., Vec3::ZERO, MAP_RADIUS) {
             player.hp = 0.;
@@ -183,13 +190,17 @@ pub fn collisions_players_echo_system(
     time: Res<Time>,
     mut players: Query<(&mut Player, &Transform)>,
     mut echos: Query<(&mut MobEcho, &Transform, &CollisionRadius), Without<Player>>,
-    ) {
-
+) {
     for (mut echo, transform_echo, radius) in &mut echos {
         for (mut player, transform_player) in &mut players {
             let player_pos = transform_player.translation;
 
-            if !collide(player_pos, PLAYER_RADIUS, transform_echo.translation, radius.0) {
+            if !collide(
+                player_pos,
+                PLAYER_RADIUS,
+                transform_echo.translation,
+                radius.0,
+            ) {
                 continue;
             }
 
@@ -210,8 +221,7 @@ pub fn collisions_players_soups_system(
     mut damage_flash_events: EventWriter<DamageFlashEvent>,
     mut players: Query<(Entity, &Transform, &mut Player)>,
     soups: Query<(&Soup, &Transform, &CollisionRadius)>,
-    ) {
-
+) {
     for (entity_player, transform_player, mut player) in &mut players {
         let player_pos = transform_player.translation;
         for (soup, transform_soup, radius) in &soups {
@@ -234,7 +244,7 @@ pub fn collisions_players_waves_system(
     mut damage_flash_events: EventWriter<DamageFlashEvent>,
     mut players: Query<(Entity, &Transform, &mut Player), Without<EffectForcedMarch>>,
     waves: Query<(&Wave, &Visibility, &Transform)>,
-    ) {
+) {
     if players.is_empty() {
         return;
     }
@@ -272,9 +282,14 @@ pub fn collisions_players_waves_system(
 pub fn collisions_orbs_edge_system(
     mut players: Query<&mut Player>,
     orbs: Query<(&MobOrb, &Transform)>,
-    ) {
+) {
     for (_, transform_orb) in &orbs {
-        if !collide(transform_orb.translation, 0., Vec3::ZERO, MAP_RADIUS - ORB_RADIUS) {
+        if !collide(
+            transform_orb.translation,
+            0.,
+            Vec3::ZERO,
+            MAP_RADIUS - ORB_RADIUS,
+        ) {
             for mut player in &mut players {
                 player.hp = 0.;
             }
@@ -287,14 +302,24 @@ pub fn collisions_players_enemy_bullets_system(
     mut damage_flash_events: EventWriter<DamageFlashEvent>,
     mut commands: Commands,
     mut players: Query<(Entity, &Transform, &mut Player)>,
-    bullets: Query<(Entity, &EnemyBullet, &Transform, &Velocity, &CollisionRadius)>,
-    ) {
-
+    bullets: Query<(
+        Entity,
+        &EnemyBullet,
+        &Transform,
+        &Velocity,
+        &CollisionRadius,
+    )>,
+) {
     for (entity_bullet, bullet, transform_bullet, velocity, radius) in &bullets {
         for (entity_player, transform_player, mut player) in &mut players {
             let player_pos = transform_player.translation;
 
-            if !collide(player_pos, PLAYER_RADIUS, transform_bullet.translation, radius.0) {
+            if !collide(
+                player_pos,
+                PLAYER_RADIUS,
+                transform_bullet.translation,
+                radius.0,
+            ) {
                 continue;
             }
 
@@ -306,12 +331,12 @@ pub fn collisions_players_enemy_bullets_system(
                 });
 
                 if bullet.knockback.abs() > 0.1 {
-                    let target = player_pos.add(velocity.0.clamp_length(bullet.knockback, bullet.knockback));
+                    let target =
+                        player_pos.add(velocity.0.clamp_length(bullet.knockback, bullet.knockback));
                     let speed = bullet.knockback / 0.2;
-                    commands.entity(entity_player).insert(EffectForcedMarch {
-                        target,
-                        speed,
-                    });
+                    commands
+                        .entity(entity_player)
+                        .insert(EffectForcedMarch { target, speed });
                 }
                 // Brief invuln from being damaged
                 player.invuln = Timer::from_seconds(0.1, TimerMode::Once);

@@ -4,15 +4,15 @@ use bevy::{
 };
 use std::ops::Add;
 
-use crate::game::*;
 use crate::collisions::collide;
+use crate::game::*;
 
 pub const GREEN_RADIUS: f32 = 160. * GAME_TO_PX;
 
 #[derive(Copy, Clone)]
 pub struct GreenSpawn {
     start: f32,
-    positions: [Vec3; 3]
+    positions: [Vec3; 3],
 }
 
 pub const GREEN_SPAWNS_JORMAG: [GreenSpawn; 2] = [
@@ -31,7 +31,7 @@ pub const GREEN_SPAWNS_JORMAG: [GreenSpawn; 2] = [
             Vec3::new(-303., 1., 0.),
             Vec3::new(-78., 299., 0.),
         ],
-    }
+    },
 ];
 
 pub const GREEN_SPAWNS_PRIMORDUS: [GreenSpawn; 2] = [
@@ -50,7 +50,7 @@ pub const GREEN_SPAWNS_PRIMORDUS: [GreenSpawn; 2] = [
             Vec3::new(-364., -155., 0.),
             Vec3::new(-82., -387., 0.),
         ],
-    }
+    },
 ];
 
 pub const GREEN_SPAWNS_ZHAITAN: [GreenSpawn; 3] = [
@@ -77,7 +77,7 @@ pub const GREEN_SPAWNS_ZHAITAN: [GreenSpawn; 3] = [
             Vec3::new(-308., -189., 0.),
             Vec3::new(2., 387., 0.),
         ],
-    }
+    },
 ];
 
 pub const GREEN_SPAWNS_SOOWONONE: [GreenSpawn; 2] = [
@@ -96,8 +96,7 @@ pub const GREEN_SPAWNS_SOOWONONE: [GreenSpawn; 2] = [
             Vec3::new(-47., 351., 0.),
             Vec3::new(-290., -101., 0.),
         ],
-    }
-    // there's another at 90 :(
+    }, // there's another at 90 :(
 ];
 
 pub const GREEN_SPAWNS_SOOWONTWO: [GreenSpawn; 3] = [
@@ -134,7 +133,7 @@ pub const GREEN_SPAWNS_SOOWONTWO: [GreenSpawn; 3] = [
                 Vec3::new(r * cos, r * sin, 0.)
             },
         ],
-    }
+    },
 ];
 
 #[derive(Component)]
@@ -146,10 +145,11 @@ pub struct StackGreen {
 #[derive(Component)]
 pub struct StackGreenIndicator;
 
-pub fn greens_system(time: Res<Time>,
-                 mut greens: Query<(&mut StackGreen, &mut Visibility, &Children)>,
-                 mut indicators: Query<(&StackGreenIndicator, &mut Transform), Without<StackGreen>>,
-                 ) {
+pub fn greens_system(
+    time: Res<Time>,
+    mut greens: Query<(&mut StackGreen, &mut Visibility, &Children)>,
+    mut indicators: Query<(&StackGreenIndicator, &mut Transform), Without<StackGreen>>,
+) {
     for (mut green, mut visibility, children) in &mut greens {
         let mut visible = Visibility::Inherited;
         if !green.visibility_start.finished() {
@@ -184,14 +184,20 @@ pub fn greens_detonation_system(
     mut players: Query<(&mut Player, &Transform)>,
     greens: Query<(&StackGreen, &Children)>,
     indicators: Query<(&StackGreenIndicator, &Transform)>,
-    ) {
+) {
     for (green, children) in &greens {
         if green.detonation.just_finished() {
             let mut any_collide = false;
             for (_, transform_player) in &players {
                 for &child in children.iter() {
                     if let Ok((_, transform_indicator)) = indicators.get(child) {
-                        any_collide = any_collide || collide(transform_player.translation, 0., transform_indicator.translation, GREEN_RADIUS);
+                        any_collide = any_collide
+                            || collide(
+                                transform_player.translation,
+                                0.,
+                                transform_indicator.translation,
+                                GREEN_RADIUS,
+                            );
                     }
                     if any_collide {
                         break;
@@ -216,40 +222,46 @@ pub fn setup_greens(
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<ColorMaterial>>,
     green_spawns: Vec<GreenSpawn>,
-    ) {
-
+) {
     let green_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(GREEN_RADIUS).into()).into();
     let green_bright_material = ColorMaterial::from(Color::rgb(0., 1.0, 0.));
     let green_dull_material = ColorMaterial::from(Color::rgba(0., 0.7, 0., 0.5));
 
     for green_spawn in &green_spawns {
-        commands.spawn(SpriteBundle {
-            transform: Transform::from_xyz(0., 0., LAYER_TARGET),
-            visibility: Visibility::Hidden,
-            ..default()
-        }).with_children(|parent| {
-            for position in green_spawn.positions {
-                // let mut position = position_absolute.sub(Vec3::new(WIDTH / 2., HEIGHT / 2., 0.));
-                // position.x *= -1.;
-                // position.y *= -1.;
-                parent.spawn(MaterialMesh2dBundle {
-                    mesh: green_mesh.clone(),
-                    transform: Transform::from_translation(position),
-                    material: materials.add(green_dull_material.clone()),
-                    ..default()
-                });
+        commands
+            .spawn(SpriteBundle {
+                transform: Transform::from_xyz(0., 0., LAYER_TARGET),
+                visibility: Visibility::Hidden,
+                ..default()
+            })
+            .with_children(|parent| {
+                for position in green_spawn.positions {
+                    // let mut position = position_absolute.sub(Vec3::new(WIDTH / 2., HEIGHT / 2., 0.));
+                    // position.x *= -1.;
+                    // position.y *= -1.;
+                    parent.spawn(MaterialMesh2dBundle {
+                        mesh: green_mesh.clone(),
+                        transform: Transform::from_translation(position),
+                        material: materials.add(green_dull_material.clone()),
+                        ..default()
+                    });
 
-                let position_above = position.add(Vec3::new(0., 0., 0.1));
-                parent.spawn(MaterialMesh2dBundle {
-                    mesh: green_mesh.clone(),
-                    transform: Transform::from_translation(position_above).with_scale(Vec3::ZERO),
-                    material: materials.add(green_bright_material.clone()),
-                    ..default()
-                }).insert(StackGreenIndicator);
-            }
-        }).insert(StackGreen {
-            visibility_start: Timer::from_seconds(green_spawn.start, TimerMode::Once),
-            detonation: Timer::from_seconds(5., TimerMode::Once),
-        }).insert(PhaseEntity);
+                    let position_above = position.add(Vec3::new(0., 0., 0.1));
+                    parent
+                        .spawn(MaterialMesh2dBundle {
+                            mesh: green_mesh.clone(),
+                            transform: Transform::from_translation(position_above)
+                                .with_scale(Vec3::ZERO),
+                            material: materials.add(green_bright_material.clone()),
+                            ..default()
+                        })
+                        .insert(StackGreenIndicator);
+                }
+            })
+            .insert(StackGreen {
+                visibility_start: Timer::from_seconds(green_spawn.start, TimerMode::Once),
+                detonation: Timer::from_seconds(5., TimerMode::Once),
+            })
+            .insert(PhaseEntity);
     }
 }

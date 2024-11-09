@@ -1,15 +1,15 @@
 use bevy::{
     prelude::*,
-    sprite::{Mesh2dHandle, MaterialMesh2dBundle},
+    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
 
-use crate::game::*;
-use crate::collisions::{collisions_players_waves_system, CollisionRadius};
 use crate::aoes::*;
-use crate::mobs::*;
+use crate::collisions::{collisions_players_waves_system, CollisionRadius};
+use crate::game::*;
 use crate::greens::*;
-use crate::waves::*;
+use crate::mobs::*;
 use crate::ui::boss_healthbar_system;
+use crate::waves::*;
 
 pub const SPREAD_DAMAGE: f32 = 10.;
 const SPREAD_DETONATION: f32 = 5.;
@@ -42,7 +42,7 @@ fn spread_aoe_spawn_system(
     players: Query<Entity, With<Player>>,
     mut commands: Commands,
     mut spread_aoe_spawns: Query<&mut SpreadAoeSpawn>,
-    ) {
+) {
     for mut spread_aoe_spawn in &mut spread_aoe_spawns {
         let mut do_spawn = false;
         for timer in &mut spread_aoe_spawn.timers {
@@ -55,12 +55,18 @@ fn spread_aoe_spawn_system(
 
         if do_spawn {
             for player in &players {
-                spawn_aoe(&mut commands, &spread_aoe_spawn.aoe_desc, Vec3::new(0., 0., LAYER_WAVE), Aoe {
-                    visibility_start: None,
-                    detonation: Timer::from_seconds(SPREAD_DETONATION, TimerMode::Once),
-                    damage: SPREAD_DAMAGE,
-                    linger: None,
-                }, Some(AoeFollow { target: player }));
+                spawn_aoe(
+                    &mut commands,
+                    &spread_aoe_spawn.aoe_desc,
+                    Vec3::new(0., 0., LAYER_WAVE),
+                    Aoe {
+                        visibility_start: None,
+                        detonation: Timer::from_seconds(SPREAD_DETONATION, TimerMode::Once),
+                        damage: SPREAD_DAMAGE,
+                        linger: None,
+                    },
+                    Some(AoeFollow { target: player }),
+                );
             }
         }
     }
@@ -72,7 +78,7 @@ pub fn boss_existence_check_system(
     state: Res<State<GameState>>,
     mut next_state: ResMut<NextState<GameState>>,
     mut next_menu_state: ResMut<NextState<MenuState>>,
-    ) {
+) {
     if let Ok(_) = bosses.get_single() {
         return;
     }
@@ -85,11 +91,9 @@ pub fn boss_existence_check_system(
     }
 }
 
-
 fn get_puddle_target_sorted_players(
     players: &Query<(Entity, &Transform), With<Player>>,
-    ) -> Vec<Entity> {
-
+) -> Vec<Entity> {
     let mut players_by_dist: Vec<(Entity, &Transform)> = vec![];
     for player in players {
         players_by_dist.push(player)
@@ -109,7 +113,7 @@ fn puddle_spawns_system(
     mut puddle_spawns: Query<(Entity, &mut PuddleSpawn)>,
     mut commands: Commands,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    ) {
+) {
     for (entity, mut puddle_spawn) in &mut puddle_spawns {
         puddle_spawn.visibility_start.tick(time.delta());
         if !puddle_spawn.visibility_start.finished() {
@@ -119,30 +123,38 @@ fn puddle_spawns_system(
         commands.entity(entity).despawn_recursive();
 
         for &entity_player in get_puddle_target_sorted_players(&players).iter().take(2) {
-            commands.spawn(MaterialMesh2dBundle {
-                mesh: puddle_spawn.mesh.clone(),
-                material: materials.add(puddle_spawn.material.clone()),
-                transform: Transform::from_xyz(0., 0., 0.,),
-                ..default()
-            }).insert(Puddle {
-                drop: Timer::from_seconds(6., TimerMode::Once),
-                target: entity_player,
-            })
-            .insert(CollisionRadius(PUDDLE_RADIUS))
-            .insert(Soup {
-                damage: 0.,
-                duration: None,
-            })
-            .insert(PhaseEntity);
+            commands
+                .spawn(MaterialMesh2dBundle {
+                    mesh: puddle_spawn.mesh.clone(),
+                    material: materials.add(puddle_spawn.material.clone()),
+                    transform: Transform::from_xyz(0., 0., 0.),
+                    ..default()
+                })
+                .insert(Puddle {
+                    drop: Timer::from_seconds(6., TimerMode::Once),
+                    target: entity_player,
+                })
+                .insert(CollisionRadius(PUDDLE_RADIUS))
+                .insert(Soup {
+                    damage: 0.,
+                    duration: None,
+                })
+                .insert(PhaseEntity);
         }
     }
 }
 
-fn puddles_system(time: Res<Time>,
+fn puddles_system(
+    time: Res<Time>,
     players: Query<&Transform, (With<Player>, Without<Puddle>)>,
-    mut puddles: Query<(&mut Puddle, &mut Soup, &mut Transform, &Handle<ColorMaterial>)>,
+    mut puddles: Query<(
+        &mut Puddle,
+        &mut Soup,
+        &mut Transform,
+        &Handle<ColorMaterial>,
+    )>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    ) {
+) {
     for (mut puddle, mut soup, mut transform, material) in &mut puddles {
         if puddle.drop.finished() {
             continue;
@@ -166,19 +178,22 @@ fn puddles_system(time: Res<Time>,
 }
 
 pub fn add_update_boss_phase_set(app: &mut App) {
-    app.add_systems(Update, (
-        collisions_players_waves_system,
-        greens_system,
-        greens_detonation_system,
-        spread_aoe_spawn_system,
-        aoes_system,
-        aoes_detonation_system,
-        aoes_follow_system,
-        waves_system,
-        boss_existence_check_system,
-        boss_healthbar_system,
-        puddle_spawns_system,
-        puddles_system,
-    ).in_set(PhaseSet::UpdateBossPhase));
+    app.add_systems(
+        Update,
+        (
+            collisions_players_waves_system,
+            greens_system,
+            greens_detonation_system,
+            spread_aoe_spawn_system,
+            aoes_system,
+            aoes_detonation_system,
+            aoes_follow_system,
+            waves_system,
+            boss_existence_check_system,
+            boss_healthbar_system,
+            puddle_spawns_system,
+            puddles_system,
+        )
+            .in_set(PhaseSet::UpdateBossPhase),
+    );
 }
-
