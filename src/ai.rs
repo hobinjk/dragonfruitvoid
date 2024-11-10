@@ -383,8 +383,6 @@ pub fn player_ai_purification_phase_system(
     orb_targets: Query<(&OrbTarget, &Transform), Without<Player>>,
     soups: Query<(&Soup, &Transform, &CollisionRadius), Without<Player>>,
 ) {
-    let speed = 250.0 * GAME_TO_PX * time.delta_seconds();
-
     let (_, orb_transform, orb_velocity) = orb.single();
     let orb_pos = orb_transform.translation;
 
