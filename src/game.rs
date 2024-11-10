@@ -63,7 +63,7 @@ pub const MAP_RADIUS: f32 = WIDTH / 2.;
 
 pub const BULLET_COOLDOWN: f32 = 0.2;
 pub const BULLET_SIZE: f32 = 10.;
-pub const BULLET_DAMAGE: f32 = 0.3 / 1.2;
+pub const BULLET_DAMAGE: f32 = 0.3 / 1.2 / 10.;
 pub const BULLET_SPEED: f32 = 200.0;
 pub const BULLET_RANGE: f32 = 1200. * GAME_TO_PX;
 
