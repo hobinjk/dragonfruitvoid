@@ -290,6 +290,48 @@ fn think_do_puddles(
     puddle_spawns: &Query<&PuddleSpawn>,
     puddles: &Query<&Puddle>,
 ) -> Thought {
+    match role {
+        AiRole::Dps1
+        | AiRole::Dps2
+        | AiRole::Dps3
+        | AiRole::Dps4
+        | AiRole::Herald1
+        | AiRole::Herald2
+        | AiRole::Virt1
+        | AiRole::Virt2 => return Thought::REST,
+        AiRole::Ham1 | AiRole::Ham2 => {}
+    };
+
+    for puddle in puddles {}
+
+    for puddle_spawn in puddle_spawns {
+        if puddle_spawn.visibility_start.remaining_secs() > 4.
+            || puddle_spawn.visibility_start.finished()
+        {
+            continue;
+        }
+
+        // Rotate current position towards the back and close to center
+        let mut r = player_pos.length();
+        let mut theta = player_pos.x.atan2(player_pos.y);
+        if theta < 0. {
+            theta -= 0.1;
+        } else {
+            theta += 0.1;
+        }
+        r -= PLAYER_RADIUS * 2.;
+        let target_pos = Vec3::new(r * theta.sin(), r * theta.cos(), 0.);
+
+        return Thought {
+            utility: 0.5,
+            action: Action::Move(target_pos),
+        };
+    }
+
+    Thought::REST
+}
+
+fn think_do_aoes() -> Thought {
     Thought::REST
 }
 
