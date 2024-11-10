@@ -3,13 +3,13 @@ use bevy::{
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
 
-use crate::aoes::*;
 use crate::collisions::{collisions_players_waves_system, CollisionRadius};
 use crate::game::*;
 use crate::greens::*;
 use crate::mobs::*;
 use crate::ui::boss_healthbar_system;
 use crate::waves::*;
+use crate::{ai::player_ai_boss_phase_system, aoes::*};
 
 pub const SPREAD_DAMAGE: f32 = 10.;
 const SPREAD_DETONATION: f32 = 5.;
@@ -195,5 +195,10 @@ pub fn add_update_boss_phase_set(app: &mut App) {
             puddles_system,
         )
             .in_set(PhaseSet::UpdateBossPhase),
+    );
+
+    app.add_systems(
+        Update,
+        (player_ai_boss_phase_system,).in_set(PhaseSet::UpdateBossPhase),
     );
 }
