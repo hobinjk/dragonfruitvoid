@@ -599,6 +599,21 @@ pub fn add_update_phase_set(app: &mut App) {
     );
 }
 
+fn icon_for_role(role: &AiRole) -> &'static str {
+    match role {
+        AiRole::Virt1 => "virt1.png",
+        AiRole::Virt2 => "virt2.png",
+        AiRole::Herald1 => "herald1.png",
+        AiRole::Herald2 => "herald2.png",
+        AiRole::Ham1 => "ham1.png",
+        AiRole::Ham2 => "ham2.png",
+        AiRole::Dps1 => "dps1.png",
+        AiRole::Dps2 => "dps2.png",
+        AiRole::Dps3 => "dps3.png",
+        AiRole::Dps4 => "dps4.png",
+    }
+}
+
 pub fn setup_phase(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
@@ -647,7 +662,7 @@ pub fn setup_phase(
                         custom_size: Some(Vec2::new(PLAYER_RADIUS * 2., PLAYER_RADIUS * 2.)),
                         ..default()
                     },
-                    texture: asset_server.load("virt.png"),
+                    texture: asset_server.load(icon_for_role(&role)),
                     transform: Transform::from_xyz((x - 4.5) * 10., 200., LAYER_PLAYER),
                     ..default()
                 })
