@@ -42,6 +42,13 @@ struct Thought {
     action: Action,
 }
 
+impl Thought {
+    const REST: Thought = Thought {
+        utility: 0.,
+        action: Action::Rest,
+    };
+}
+
 fn think_dont_fall_off_edge(player_pos: &Vec3) -> Thought {
     let safe_map_radius = MAP_RADIUS - PLAYER_RADIUS * 1.1;
     if player_pos.length_squared() < safe_map_radius * safe_map_radius {
@@ -102,10 +109,7 @@ fn think_shoot_crab(
     }
 
     match closest_enemy {
-        None => Thought {
-            utility: 0.,
-            action: Action::Rest,
-        },
+        None => Thought::REST,
         Some((_, closest_pos)) => Thought {
             utility: 0.4,
             action: Action::Shoot(closest_pos.sub(player_pos)),
@@ -113,7 +117,6 @@ fn think_shoot_crab(
     }
 }
 
-/*
 fn think_shoot_enemy(
     player_pos: Vec3,
     enemies: &Query<(&Enemy, &Transform), Without<Player>>,
@@ -135,17 +138,13 @@ fn think_shoot_enemy(
     }
 
     match closest_enemy {
-        None => Thought {
-            utility: 0.,
-            action: Action::Rest,
-        },
+        None => Thought::REST,
         Some((_, closest_pos)) => Thought {
             utility: 0.4,
             action: Action::Shoot(closest_pos.sub(player_pos)),
         },
     }
 }
-*/
 
 // Align to push in correct dir then shoot
 fn think_push_orb(
@@ -200,16 +199,109 @@ fn think_push_orb(
     };
 }
 
-// pub fn player_ai_boss_phase_system(
-//     time: Res<Time>,
-//     mut commands: Commands,
-//     mut players: Query<(Entity, &mut Player, &AiPlayer, &mut Transform)>,
-//     enemies: Query<(&Enemy, &Transform), Without<Player>>,
-//     greens: Query<(&StackGreen, &Children)>,
-//     puddle_spawns: Query<&PuddleSpawn>,
-//     puddles: Query<&Puddle>,
-// ) {
-// }
+pub fn player_ai_boss_phase_system(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut players: Query<(Entity, &mut Player, &AiPlayer, &mut Transform)>,
+    enemies: Query<(&Enemy, &Transform), Without<Player>>,
+    greens: Query<(&StackGreen, &Children)>,
+    puddle_spawns: Query<&PuddleSpawn>,
+    puddles: Query<&Puddle>,
+    soups: Query<(&Soup, &Transform, &CollisionRadius), Without<Player>>,
+) {
+    for (entity_player, mut player, ai_player, mut transform) in &mut players {
+        let player_pos = transform.translation;
+
+        let thoughts: Vec<Thought> = vec![
+            think_dont_fall_off_edge(&player_pos),
+            think_shoot_enemy(player_pos, &enemies),
+            think_avoid_soups(player_pos, &soups),
+            think_do_greens(player_pos, &ai_player.role, &greens),
+            think_do_puddles(player_pos, &ai_player.role, &puddle_spawns, &puddles),
+        ];
+
+        let best_thought = thoughts
+            .iter()
+            .reduce(|a, b| if a.utility > b.utility { a } else { b })
+            .unwrap_or(&Thought::REST);
+
+        act_on_thought(
+            best_thought,
+            &time,
+            &mut commands,
+            &mut player,
+            entity_player,
+            &mut transform,
+        );
+    }
+}
+
+fn think_do_greens(
+    player_pos: Vec3,
+    role: &AiRole,
+    greens: &Query<(&StackGreen, &Children)>,
+) -> Thought {
+    Thought::REST
+}
+
+fn think_do_puddles(
+    player_pos: Vec3,
+    role: &AiRole,
+    puddle_spawns: &Query<&PuddleSpawn>,
+    puddles: &Query<&Puddle>,
+) -> Thought {
+    Thought::REST
+}
+
+fn act_on_thought(
+    thought: &Thought,
+    time: &Res<Time>,
+    commands: &mut Commands,
+    player: &mut Player,
+    entity_player: Entity,
+    player_transform: &mut Transform,
+) {
+    let speed = 250.0 * GAME_TO_PX * time.delta_seconds();
+
+    match thought.action {
+        Action::Rest => {}
+        Action::Move(target_pos) => {
+            let movement = target_pos
+                .sub(player_transform.translation)
+                .truncate()
+                .clamp_length(0., speed)
+                .extend(0.);
+            player_transform.translation = player_transform.translation.add(movement);
+        }
+        Action::Shoot(dir) => {
+            let player_pos = player_transform.translation;
+            if player.shoot_cooldown.finished() {
+                let mut vel = dir.clone();
+                vel.z = 0.;
+                vel = vel.clamp_length(BULLET_SPEED, BULLET_SPEED);
+
+                commands
+                    .spawn(SpriteBundle {
+                        sprite: Sprite {
+                            color: Color::rgb(0.89, 0.39, 0.95),
+                            custom_size: Some(Vec2::new(BULLET_SIZE, BULLET_SIZE)),
+                            ..default()
+                        },
+                        transform: Transform::from_xyz(player_pos.x, player_pos.y, LAYER_BULLET),
+                        ..default()
+                    })
+                    .insert(Velocity(vel))
+                    .insert(Bullet {
+                        age: 0.,
+                        firer: entity_player,
+                    })
+                    .insert(HasHit(HashSet::new()))
+                    .insert(PhaseEntity);
+                player.shoot_cooldown.reset();
+            }
+        }
+    }
+}
 
 fn get_push_team(role: &AiRole) -> i32 {
     match role {
@@ -238,10 +330,7 @@ fn think_avoid_soups(
         };
     }
 
-    Thought {
-        utility: 0.,
-        action: Action::Rest,
-    }
+    Thought::REST
 }
 
 pub fn player_ai_purification_phase_system(
@@ -305,53 +394,15 @@ pub fn player_ai_purification_phase_system(
         let best_thought = thoughts
             .iter()
             .reduce(|a, b| if a.utility > b.utility { a } else { b })
-            .unwrap_or(&Thought {
-                utility: 0.0,
-                action: Action::Rest,
-            });
+            .unwrap_or(&Thought::REST);
 
-        match best_thought.action {
-            Action::Rest => {}
-            Action::Move(target_pos) => {
-                let movement = target_pos
-                    .sub(player_pos)
-                    .truncate()
-                    .clamp_length(0., speed)
-                    .extend(0.);
-                transform.translation = transform.translation.add(movement);
-            }
-            Action::Shoot(dir) => {
-                if player.shoot_cooldown.finished() {
-                    let mut vel = dir.clone();
-                    vel.z = 0.;
-                    vel = vel.clamp_length(BULLET_SPEED, BULLET_SPEED);
-
-                    commands
-                        .spawn(SpriteBundle {
-                            sprite: Sprite {
-                                color: Color::rgb(0.89, 0.39, 0.95),
-                                custom_size: Some(Vec2::new(BULLET_SIZE, BULLET_SIZE)),
-                                ..default()
-                            },
-                            transform: Transform::from_xyz(
-                                player_pos.x,
-                                player_pos.y,
-                                LAYER_BULLET,
-                            ),
-                            ..default()
-                        })
-                        .insert(Velocity(vel))
-                        .insert(Bullet {
-                            age: 0.,
-                            firer: entity_player,
-                        })
-                        .insert(HasHit(HashSet::new()))
-                        .insert(PhaseEntity);
-                    player.shoot_cooldown.reset();
-                }
-            }
-        }
+        act_on_thought(
+            best_thought,
+            &time,
+            &mut commands,
+            &mut player,
+            entity_player,
+            &mut transform,
+        );
     }
 }
-
-pub fn move_scorer_system() {}
