@@ -10,7 +10,8 @@ use crate::mobs::Enemy;
 use crate::orbs::ORB_RADIUS;
 use crate::{
     collide, Bullet, CollisionRadius, Game, HasHit, MobCrab, MobOrb, OrbTarget, PhaseEntity, Soup,
-    Velocity, BULLET_SIZE, BULLET_SPEED, GAME_TO_PX, LAYER_BULLET, MAP_RADIUS, PLAYER_RADIUS,
+    StackGreenIndicator, Velocity, BULLET_SIZE, BULLET_SPEED, GAME_TO_PX, LAYER_BULLET, MAP_RADIUS,
+    PLAYER_RADIUS,
 };
 
 pub enum AiRole {
@@ -205,6 +206,7 @@ pub fn player_ai_boss_phase_system(
     mut players: Query<(Entity, &mut Player, &AiPlayer, &mut Transform)>,
     enemies: Query<(&Enemy, &Transform), Without<Player>>,
     greens: Query<(&StackGreen, &Children)>,
+    indicators: Query<(&StackGreenIndicator, &Transform), Without<Player>>,
     puddle_spawns: Query<&PuddleSpawn>,
     puddles: Query<&Puddle>,
     soups: Query<(&Soup, &Transform, &CollisionRadius), Without<Player>>,
@@ -216,7 +218,7 @@ pub fn player_ai_boss_phase_system(
             think_dont_fall_off_edge(&player_pos),
             think_shoot_enemy(player_pos, &enemies),
             think_avoid_soups(player_pos, &soups),
-            think_do_greens(player_pos, &ai_player.role, &greens),
+            think_do_greens(&ai_player.role, &greens, &indicators),
             think_do_puddles(player_pos, &ai_player.role, &puddle_spawns, &puddles),
         ];
 
@@ -237,10 +239,48 @@ pub fn player_ai_boss_phase_system(
 }
 
 fn think_do_greens(
-    player_pos: Vec3,
     role: &AiRole,
     greens: &Query<(&StackGreen, &Children)>,
+    indicators: &Query<(&StackGreenIndicator, &Transform), Without<Player>>,
 ) -> Thought {
+    let no_green: usize = 9001;
+    let green_team: usize = match role {
+        AiRole::Dps1 | AiRole::Dps2 | AiRole::Dps3 | AiRole::Dps4 => no_green,
+        AiRole::Herald1 | AiRole::Herald2 => 0,
+        AiRole::Virt1 | AiRole::Virt2 => 1,
+        AiRole::Ham1 | AiRole::Ham2 => 2,
+    };
+
+    if green_team == no_green {
+        return Thought::REST;
+    }
+
+    for (green, children) in greens {
+        if green.visibility_start.remaining_secs() > 3. {
+            continue;
+        }
+
+        if green.detonation.finished() {
+            continue;
+        }
+
+        let mut green_pos = None;
+        for &child in children.iter() {
+            if let Ok((indicator, transform_indicator)) = indicators.get(child) {
+                if indicator.0 == green_team {
+                    green_pos = Some(transform_indicator.translation);
+                }
+            }
+        }
+
+        if let Some(green_pos) = green_pos {
+            return Thought {
+                utility: 0.95,
+                action: Action::Move(green_pos),
+            };
+        }
+    }
+
     Thought::REST
 }
 
