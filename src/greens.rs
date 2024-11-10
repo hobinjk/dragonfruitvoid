@@ -138,12 +138,12 @@ pub const GREEN_SPAWNS_SOOWONTWO: [GreenSpawn; 3] = [
 
 #[derive(Component)]
 pub struct StackGreen {
-    visibility_start: Timer,
-    detonation: Timer,
+    pub visibility_start: Timer,
+    pub detonation: Timer,
 }
 
 #[derive(Component)]
-pub struct StackGreenIndicator;
+pub struct StackGreenIndicator(pub usize);
 
 pub fn greens_system(
     time: Res<Time>,
@@ -235,7 +235,7 @@ pub fn setup_greens(
                 ..default()
             })
             .with_children(|parent| {
-                for position in green_spawn.positions {
+                for (index, &position) in green_spawn.positions.iter().enumerate() {
                     // let mut position = position_absolute.sub(Vec3::new(WIDTH / 2., HEIGHT / 2., 0.));
                     // position.x *= -1.;
                     // position.y *= -1.;
@@ -255,7 +255,7 @@ pub fn setup_greens(
                             material: materials.add(green_bright_material.clone()),
                             ..default()
                         })
-                        .insert(StackGreenIndicator);
+                        .insert(StackGreenIndicator(index));
                 }
             })
             .insert(StackGreen {
