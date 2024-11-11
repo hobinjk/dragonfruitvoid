@@ -9,9 +9,9 @@ use crate::greens::StackGreen;
 use crate::mobs::Enemy;
 use crate::orbs::ORB_RADIUS;
 use crate::{
-    collide, Aoe, Bullet, CollisionRadius, Game, HasHit, MobOrb, OrbTarget, PhaseEntity, Soup,
-    StackGreenIndicator, Velocity, VoidZone, BOSS_RADIUS, BULLET_SIZE, BULLET_SPEED, GAME_TO_PX,
-    HEIGHT, LAYER_BULLET, MAP_RADIUS, PLAYER_RADIUS,
+    collide, Aoe, Bullet, CollisionRadius, Game, GameState, HasHit, MobOrb, OrbTarget, PhaseEntity,
+    Soup, StackGreenIndicator, Velocity, VoidZone, BOSS_RADIUS, BULLET_SIZE, BULLET_SPEED,
+    GAME_TO_PX, HEIGHT, LAYER_BULLET, MAP_RADIUS, PLAYER_RADIUS,
 };
 
 #[derive(Copy, Clone)]
@@ -222,6 +222,7 @@ fn think_push_orb(
 
 pub fn player_ai_boss_phase_system(
     time: Res<Time>,
+    game_state: Res<State<GameState>>,
     mut commands: Commands,
     mut players: Query<(Entity, &mut Player, &AiPlayer, &mut Transform)>,
     enemies: Query<(&Enemy, &Transform), Without<Player>>,
@@ -251,7 +252,7 @@ pub fn player_ai_boss_phase_system(
                 &puddles,
                 &void_zones,
             ),
-            think_go_home(&ai_player.role, player_pos),
+            think_go_home(game_state.get(), &ai_player.role, player_pos),
             think_avoid_aoes(player_pos, &aoes),
         ];
 
@@ -557,18 +558,30 @@ const HOME: Vec3 = Vec3::new(
     (MAP_RADIUS - PLAYER_RADIUS * 1.3) * 0.995,
     0.,
 );
+const HOME_PRIMORDUS: Vec3 = Vec3::new(
+    (MAP_RADIUS - PLAYER_RADIUS * 1.3) * -0.1,
+    (MAP_RADIUS - PLAYER_RADIUS * 1.3) * 0.99,
+    0.,
+);
 
-fn home_for_role(role: &AiRole) -> Vec3 {
+fn home_for_role(game_state: &GameState, role: &AiRole) -> Vec3 {
+    let home = match game_state {
+        GameState::Primordus => match role {
+            AiRole::Ham1 | AiRole::Ham2 => HOME,
+            _ => HOME_PRIMORDUS,
+        },
+        _ => HOME,
+    };
     let offset = (*role as i32) as f32;
-    HOME.add(Vec3::new(
+    home.add(Vec3::new(
         (offset % 3.) * PLAYER_RADIUS,
         ((offset / 3.) % 4.) * PLAYER_RADIUS,
         0.,
     ))
 }
 
-fn think_go_home(role: &AiRole, player_pos: Vec3) -> Thought {
-    let home = home_for_role(role);
+fn think_go_home(game_state: &GameState, role: &AiRole, player_pos: Vec3) -> Thought {
+    let home = home_for_role(game_state, role);
     if collide(player_pos, PLAYER_RADIUS, home, BOSS_RADIUS / 2.) {
         return Thought::REST;
     }
