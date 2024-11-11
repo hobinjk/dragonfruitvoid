@@ -11,7 +11,7 @@ use crate::orbs::ORB_RADIUS;
 use crate::{
     collide, Aoe, Bullet, CollisionRadius, Game, HasHit, MobOrb, OrbTarget, PhaseEntity, Soup,
     StackGreenIndicator, Velocity, VoidZone, BOSS_RADIUS, BULLET_SIZE, BULLET_SPEED, GAME_TO_PX,
-    LAYER_BULLET, MAP_RADIUS, PLAYER_RADIUS,
+    HEIGHT, LAYER_BULLET, MAP_RADIUS, PLAYER_RADIUS,
 };
 
 #[derive(Copy, Clone)]
@@ -234,7 +234,7 @@ pub fn player_ai_boss_phase_system(
                 &void_zones,
             ),
             think_go_home(&ai_player.role, player_pos),
-            think_do_aoes(player_pos, &aoes),
+            think_avoid_aoes(player_pos, &aoes),
         ];
 
         let best_thought = thoughts
@@ -362,27 +362,34 @@ fn think_do_puddles(
     Thought::REST
 }
 
-fn think_do_aoes(
+fn think_avoid_aoes(
     player_pos: Vec3,
     aoes: &Query<(&Aoe, &Visibility, &Transform, &CollisionRadius), Without<Player>>,
 ) -> Thought {
     let mut avg_overlapping_aoe_pos = Vec3::ZERO;
-    let mut n_overlapping = 0;
+    let mut n_overlapping = 0.;
 
     for (_aoe, visibility, transform, radius) in aoes {
         if visibility == Visibility::Hidden {
             continue;
         }
 
-        if !collide(transform.translation, radius.0 * 1.1, player_pos, 0.) {
+        if !collide(transform.translation, radius.0, player_pos, PLAYER_RADIUS) {
             continue;
         }
 
-        avg_overlapping_aoe_pos = avg_overlapping_aoe_pos.add(transform.translation);
-        n_overlapping += 1;
+        let mut aoe_pos = transform.translation;
+
+        // Special-case primordus chomps
+        if radius.0 > 300. {
+            aoe_pos.y = HEIGHT / 2.;
+        }
+
+        avg_overlapping_aoe_pos = avg_overlapping_aoe_pos.add(aoe_pos.mul(radius.0 / 100.));
+        n_overlapping += radius.0 / 100.;
     }
 
-    if n_overlapping == 0 {
+    if n_overlapping < 0.01 {
         return Thought::REST;
     }
 
