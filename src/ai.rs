@@ -303,7 +303,18 @@ fn think_do_puddles(
         AiRole::Ham1 | AiRole::Ham2 => {}
     };
 
-    for puddle in puddles {}
+    for puddle in puddles {
+        if puddle.drop.percent() < 4. / 6. {
+            let r = MAP_RADIUS - PLAYER_RADIUS;
+            let theta = player_pos.x.atan2(player_pos.y);
+            let target_pos = Vec3::new(r * theta.sin(), r * theta.cos(), 0.);
+
+            return Thought {
+                utility: 0.6,
+                action: Action::Move(target_pos),
+            };
+        }
+    }
 
     for puddle_spawn in puddle_spawns {
         if puddle_spawn.visibility_start.remaining_secs() > 4.
