@@ -584,7 +584,7 @@ fn home_for_role(game_state: &GameState, role: &AiRole) -> Vec3 {
     let offset = (*role as i32) as f32;
     home.add(Vec3::new(
         (offset % 3.) * PLAYER_RADIUS,
-        ((offset / 3.) % 4.) * PLAYER_RADIUS,
+        -((offset / 3.) % 4.) * PLAYER_RADIUS,
         0.,
     ))
 }
