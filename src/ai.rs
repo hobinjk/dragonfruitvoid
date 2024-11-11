@@ -100,9 +100,11 @@ fn think_shoot_crab(
     enemies: &Query<(&Enemy, &Transform), Without<Player>>,
 ) -> Thought {
     let mut closest_enemy: Option<(f32, Vec3)> = None;
+    let mut unsafe_enemy_pos = None;
     for (_enemy, transform_enemy) in enemies {
         let enemy_pos: Vec3 = transform_enemy.translation;
         if !is_safe_for_orb(player_pos, orb_pos, enemy_pos) {
+            unsafe_enemy_pos = Some(enemy_pos);
             continue;
         }
         let shoot_dir = enemy_pos.sub(orb_pos).truncate();
@@ -119,8 +121,16 @@ fn think_shoot_crab(
         }
     }
 
-    match closest_enemy {
+    let fallback_thought = match unsafe_enemy_pos {
         None => Thought::REST,
+        Some(unsafe_enemy_pos) => Thought {
+            utility: 0.1,
+            action: Action::Move(unsafe_enemy_pos),
+        },
+    };
+
+    match closest_enemy {
+        None => fallback_thought,
         Some((_, closest_pos)) => Thought {
             utility: 0.4,
             action: Action::Shoot(closest_pos.sub(player_pos)),
