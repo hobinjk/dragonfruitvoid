@@ -230,7 +230,7 @@ pub fn player_ai_boss_phase_system(
                 &puddles,
                 &void_zones,
             ),
-            think_go_home(player_pos),
+            think_go_home(&ai_player.role, player_pos),
             think_do_aoes(player_pos, &aoes),
         ];
 
@@ -457,14 +457,24 @@ const HOME: Vec3 = Vec3::new(
     0.,
 );
 
-fn think_go_home(player_pos: Vec3) -> Thought {
-    if collide(player_pos, PLAYER_RADIUS, HOME, BOSS_RADIUS) {
+fn home_for_role(role: &AiRole) -> Vec3 {
+    let offset = (*role as i32) as f32;
+    HOME.add(Vec3::new(
+        (offset % 3.) * PLAYER_RADIUS,
+        ((offset / 3.) % 4.) * PLAYER_RADIUS,
+        0.,
+    ))
+}
+
+fn think_go_home(role: &AiRole, player_pos: Vec3) -> Thought {
+    let home = home_for_role(role);
+    if collide(player_pos, PLAYER_RADIUS, home, BOSS_RADIUS / 2.) {
         return Thought::REST;
     }
 
     Thought {
         utility: 0.2,
-        action: Action::Move(HOME),
+        action: Action::Move(home),
     }
 }
 
