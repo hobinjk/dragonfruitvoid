@@ -476,8 +476,8 @@ fn get_push_team(role: &AiRole) -> i32 {
 }
 
 const HOME: Vec3 = Vec3::new(
-    (MAP_RADIUS - PLAYER_RADIUS * 2.) * 0.1,
-    (MAP_RADIUS - PLAYER_RADIUS * 2.) * 0.995,
+    (MAP_RADIUS - PLAYER_RADIUS * 1.3) * 0.1,
+    (MAP_RADIUS - PLAYER_RADIUS * 1.3) * 0.995,
     0.,
 );
 
