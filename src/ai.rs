@@ -141,7 +141,7 @@ fn think_shoot_enemy(
     match closest_enemy {
         None => Thought::REST,
         Some((_, closest_pos)) => Thought {
-            utility: 0.4,
+            utility: 0.1,
             action: Action::Shoot(closest_pos.sub(player_pos)),
         },
     }
