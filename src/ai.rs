@@ -220,6 +220,7 @@ pub fn player_ai_boss_phase_system(
             think_avoid_soups(player_pos, &soups),
             think_do_greens(&ai_player.role, &greens, &indicators),
             think_do_puddles(player_pos, &ai_player.role, &puddle_spawns, &puddles),
+            think_go_home(player_pos),
         ];
 
         let best_thought = thoughts
@@ -392,6 +393,23 @@ fn get_push_team(role: &AiRole) -> i32 {
         AiRole::Ham1 | AiRole::Ham2 | AiRole::Dps1 | AiRole::Dps2 | AiRole::Dps3 | AiRole::Dps4 => {
             2
         }
+    }
+}
+
+const HOME: Vec3 = Vec3::new(
+    (MAP_RADIUS - PLAYER_RADIUS * 2.) * 0.1,
+    (MAP_RADIUS - PLAYER_RADIUS * 2.) * 0.995,
+    0.,
+);
+
+fn think_go_home(player_pos: Vec3) -> Thought {
+    if collide(player_pos, PLAYER_RADIUS * 3., HOME, 0.) {
+        return Thought::REST;
+    }
+
+    Thought {
+        utility: 0.2,
+        action: Action::Move(HOME),
     }
 }
 
