@@ -396,7 +396,9 @@ fn think_avoid_aoes(
         let mut aoe_pos = transform.translation;
 
         // Special-case primordus chomps
-        if radius.0 > 300. {
+        let diff = aoe_pos.sub(player_pos);
+        let target_pos = player_pos.add(diff.mul(-1.));
+        if target_pos.length_squared() > MAP_RADIUS * MAP_RADIUS {
             aoe_pos.y = HEIGHT / 2.;
         }
 
