@@ -248,8 +248,8 @@ fn think_do_greens(
     let no_green: usize = 9001;
     let green_team: usize = match role {
         AiRole::Dps1 | AiRole::Dps2 | AiRole::Dps3 | AiRole::Dps4 => no_green,
-        AiRole::Herald1 | AiRole::Herald2 => 0,
-        AiRole::Virt1 | AiRole::Virt2 => 1,
+        AiRole::Virt1 | AiRole::Virt2 => 0,
+        AiRole::Herald1 | AiRole::Herald2 => 1,
         AiRole::Ham1 | AiRole::Ham2 => 2,
     };
 
