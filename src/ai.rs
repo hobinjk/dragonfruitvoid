@@ -404,7 +404,9 @@ fn act_on_thought(
     match thought.action {
         Action::Rest => {}
         Action::Move(target_pos) => {
-            let movement = target_pos
+            let safe_map_radius = MAP_RADIUS - PLAYER_RADIUS * 1.2;
+            let safe_target_pos = target_pos.clamp_length_max(safe_map_radius);
+            let movement = safe_target_pos
                 .sub(player_transform.translation)
                 .truncate()
                 .clamp_length(0., speed)
