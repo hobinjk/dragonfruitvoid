@@ -19,17 +19,17 @@ pub const GREEN_SPAWNS_JORMAG: [GreenSpawn; 2] = [
     GreenSpawn {
         start: 15.,
         positions: [
-            Vec3::new(269., 3., 0.),
             Vec3::new(-270., 0., 0.),
             Vec3::new(-78., 240., 0.),
+            Vec3::new(269., 3., 0.),
         ],
     },
     GreenSpawn {
         start: 55.,
         positions: [
-            Vec3::new(312., 3., 0.),
             Vec3::new(-303., 1., 0.),
             Vec3::new(-78., 299., 0.),
+            Vec3::new(312., 3., 0.),
         ],
     },
 ];
@@ -38,17 +38,17 @@ pub const GREEN_SPAWNS_PRIMORDUS: [GreenSpawn; 2] = [
     GreenSpawn {
         start: 23.,
         positions: [
-            Vec3::new(269., -111., 0.),
             Vec3::new(-274., -113., 0.),
             Vec3::new(-62., -290., 0.),
+            Vec3::new(269., -111., 0.),
         ],
     },
     GreenSpawn {
         start: 77.,
         positions: [
-            Vec3::new(365., -153., 0.),
             Vec3::new(-364., -155., 0.),
             Vec3::new(-82., -387., 0.),
+            Vec3::new(365., -153., 0.),
         ],
     },
 ];
@@ -57,25 +57,25 @@ pub const GREEN_SPAWNS_ZHAITAN: [GreenSpawn; 3] = [
     GreenSpawn {
         start: 0., // actually -5., not entirely sure what to do here
         positions: [
-            Vec3::new(158., -110., 0.),
             Vec3::new(-158., -114., 0.),
             Vec3::new(1., 258., 0.),
+            Vec3::new(158., -110., 0.),
         ],
     },
     GreenSpawn {
         start: 28. + 5.,
         positions: [
-            Vec3::new(197., -131., 0.),
             Vec3::new(-201., -131., 0.),
             Vec3::new(1., 258., 0.),
+            Vec3::new(197., -131., 0.),
         ],
     },
     GreenSpawn {
         start: 60. + 5.,
         positions: [
-            Vec3::new(308., -179., 0.),
             Vec3::new(-308., -189., 0.),
             Vec3::new(2., 387., 0.),
+            Vec3::new(308., -179., 0.),
         ],
     },
 ];
@@ -84,17 +84,17 @@ pub const GREEN_SPAWNS_SOOWONONE: [GreenSpawn; 2] = [
     GreenSpawn {
         start: 5.,
         positions: [
+            Vec3::new(-199., -64., 0.),
             Vec3::new(-131., 75., 0.),
             Vec3::new(-47., 351., 0.),
-            Vec3::new(-199., -64., 0.),
         ],
     },
     GreenSpawn {
         start: 50.,
         positions: [
+            Vec3::new(-290., -101., 0.),
             Vec3::new(-268., 174., 0.),
             Vec3::new(-47., 351., 0.),
-            Vec3::new(-290., -101., 0.),
         ],
     }, // there's another at 90 :(
 ];
@@ -103,17 +103,17 @@ pub const GREEN_SPAWNS_SOOWONTWO: [GreenSpawn; 3] = [
     GreenSpawn {
         start: 12.,
         positions: [
+            Vec3::new(-199., -64., 0.),
             Vec3::new(-131., 75., 0.),
             Vec3::new(-47., 351., 0.),
-            Vec3::new(-199., -64., 0.),
         ],
     },
     GreenSpawn {
         start: 58.,
         positions: [
+            Vec3::new(-290., -101., 0.),
             Vec3::new(-268., 174., 0.),
             Vec3::new(-47., 351., 0.),
-            Vec3::new(-290., -101., 0.),
         ],
     },
     GreenSpawn {
