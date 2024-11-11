@@ -237,16 +237,12 @@ pub fn player_ai_boss_phase_system(
             think_avoid_aoes(player_pos, &aoes),
         ];
 
-        let best_thought = thoughts
-            .iter()
-            .reduce(|a, b| if a.utility > b.utility { a } else { b })
-            .unwrap_or(&Thought::REST);
-
-        act_on_thought(
-            best_thought,
+        act_on_thoughts(
+            &thoughts,
             &time,
             &mut commands,
             &mut player,
+            &ai_player.role,
             entity_player,
             &mut transform,
             Some(center_void_zone_radius.0),
@@ -403,23 +399,79 @@ fn think_avoid_aoes(
     }
 }
 
+fn act_on_thoughts(
+    thoughts: &Vec<Thought>,
+    time: &Res<Time>,
+    mut commands: &mut Commands,
+    mut player: &mut Player,
+    role: &AiRole,
+    entity_player: Entity,
+    mut player_transform: &mut Transform,
+    center_void_zone_radius: Option<f32>,
+) {
+    let best_move_thought = thoughts
+        .iter()
+        .filter(|a| match a.action {
+            Action::Move(_) => true,
+            _ => false,
+        })
+        .reduce(|a, b| if a.utility > b.utility { a } else { b })
+        .unwrap_or(&Thought::REST);
+
+    act_on_thought(
+        best_move_thought,
+        &time,
+        &mut commands,
+        &mut player,
+        &role,
+        entity_player,
+        &mut player_transform,
+        center_void_zone_radius,
+    );
+
+    let best_shoot_thought = thoughts
+        .iter()
+        .filter(|a| match a.action {
+            Action::Shoot(_) => true,
+            _ => false,
+        })
+        .reduce(|a, b| if a.utility > b.utility { a } else { b })
+        .unwrap_or(&Thought::REST);
+
+    act_on_thought(
+        best_shoot_thought,
+        &time,
+        &mut commands,
+        &mut player,
+        &role,
+        entity_player,
+        &mut player_transform,
+        center_void_zone_radius,
+    );
+}
+
 fn act_on_thought(
     thought: &Thought,
     time: &Res<Time>,
     commands: &mut Commands,
     player: &mut Player,
+    role: &AiRole,
     entity_player: Entity,
     player_transform: &mut Transform,
     center_void_zone_radius: Option<f32>,
 ) {
     let speed = 250.0 * GAME_TO_PX * time.delta_seconds();
+    let safe_margin = match role {
+        AiRole::Ham1 | AiRole::Ham2 => 1.1,
+        _ => 3.,
+    };
 
     match thought.action {
         Action::Rest => {}
         Action::Move(target_pos) => {
             let safe_map_radius = MAP_RADIUS - PLAYER_RADIUS * 1.2;
             let safe_inner_radius = if let Some(center_void_zone_radius) = center_void_zone_radius {
-                center_void_zone_radius + PLAYER_RADIUS * 1.5
+                center_void_zone_radius + PLAYER_RADIUS * safe_margin
             } else {
                 0.
             };
@@ -589,16 +641,12 @@ pub fn player_ai_purification_phase_system(
             ));
         }
 
-        let best_thought = thoughts
-            .iter()
-            .reduce(|a, b| if a.utility > b.utility { a } else { b })
-            .unwrap_or(&Thought::REST);
-
-        act_on_thought(
-            best_thought,
+        act_on_thoughts(
+            &thoughts,
             &time,
             &mut commands,
             &mut player,
+            &ai_player.role,
             entity_player,
             &mut transform,
             None,
