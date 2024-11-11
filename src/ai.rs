@@ -456,7 +456,7 @@ const HOME: Vec3 = Vec3::new(
 );
 
 fn think_go_home(player_pos: Vec3) -> Thought {
-    if collide(player_pos, PLAYER_RADIUS * 3., HOME, 0.) {
+    if collide(player_pos, PLAYER_RADIUS, HOME, BOSS_RADIUS) {
         return Thought::REST;
     }
 
