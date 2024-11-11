@@ -428,7 +428,10 @@ fn think_avoid_soups(
     player_pos: Vec3,
     soups: &Query<(&Soup, &Transform, &CollisionRadius), Without<Player>>,
 ) -> Thought {
-    for (_, transform_soup, radius) in soups {
+    for (soup, transform_soup, radius) in soups {
+        if soup.damage < 0.1 {
+            continue;
+        }
         let soup_pos = transform_soup.translation;
         if !collide(player_pos, 0., soup_pos, radius.0 + PLAYER_RADIUS * 1.3) {
             continue;
