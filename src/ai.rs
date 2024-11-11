@@ -591,7 +591,7 @@ fn home_for_role(game_state: &GameState, role: &AiRole) -> Vec3 {
 
 fn think_go_home(game_state: &GameState, role: &AiRole, player_pos: Vec3) -> Thought {
     let home = home_for_role(game_state, role);
-    if collide(player_pos, PLAYER_RADIUS, home, BOSS_RADIUS / 2.) {
+    if collide(player_pos, PLAYER_RADIUS * 2., home, 0.) {
         return Thought::REST;
     }
 
