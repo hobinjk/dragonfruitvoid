@@ -221,6 +221,7 @@ pub fn player_ai_boss_phase_system(
             think_do_greens(&ai_player.role, &greens, &indicators),
             think_do_puddles(player_pos, &ai_player.role, &puddle_spawns, &puddles),
             think_go_home(player_pos),
+            think_do_aoes(player_pos, &aoes),
         ];
 
         let best_thought = thoughts
@@ -343,8 +344,38 @@ fn think_do_puddles(
     Thought::REST
 }
 
-fn think_do_aoes() -> Thought {
-    Thought::REST
+fn think_do_aoes(
+    player_pos: Vec3,
+    aoes: &Query<(&Aoe, &Visibility, &Transform, &CollisionRadius), Without<Player>>,
+) -> Thought {
+    let mut avg_overlapping_aoe_pos = Vec3::ZERO;
+    let mut n_overlapping = 0;
+
+    for (_aoe, visibility, transform, radius) in aoes {
+        if visibility == Visibility::Hidden {
+            continue;
+        }
+
+        if !collide(transform.translation, radius.0 * 1.2, player_pos, 0.) {
+            continue;
+        }
+
+        avg_overlapping_aoe_pos = avg_overlapping_aoe_pos.add(transform.translation);
+        n_overlapping += 1;
+    }
+
+    if n_overlapping == 0 {
+        return Thought::REST;
+    }
+
+    let diff = avg_overlapping_aoe_pos
+        .mul(1. / (n_overlapping as f32))
+        .sub(player_pos);
+
+    Thought {
+        utility: 0.7,
+        action: Action::Move(player_pos.add(diff.mul(-10.))),
+    }
 }
 
 fn act_on_thought(
