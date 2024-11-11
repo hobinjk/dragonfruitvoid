@@ -408,8 +408,9 @@ fn think_avoid_aoes(
             aoe_pos.y = HEIGHT / 2.;
         }
 
-        avg_overlapping_aoe_pos = avg_overlapping_aoe_pos.add(aoe_pos.mul(radius.0 / 100.));
-        n_overlapping += radius.0 / 100.;
+        let scale_factor = if radius.0 > 300. { 3. } else { 1. };
+        avg_overlapping_aoe_pos = avg_overlapping_aoe_pos.add(aoe_pos.mul(scale_factor));
+        n_overlapping += scale_factor;
     }
 
     if n_overlapping < 0.01 {
