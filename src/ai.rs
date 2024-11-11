@@ -322,7 +322,7 @@ fn think_do_puddles(
             let target_pos = Vec3::new(r * theta.sin(), r * theta.cos(), 0.);
 
             return Thought {
-                utility: 0.6,
+                utility: 0.97, // even more important than greens
                 action: Action::Move(target_pos),
             };
         }
@@ -350,7 +350,7 @@ fn think_do_puddles(
         let target_pos = Vec3::new(r * theta.sin(), r * theta.cos(), 0.);
 
         return Thought {
-            utility: 0.5,
+            utility: 0.9,
             action: Action::Move(target_pos),
         };
     }
@@ -556,7 +556,7 @@ fn think_go_home(role: &AiRole, player_pos: Vec3) -> Thought {
     }
 
     Thought {
-        utility: 0.2,
+        utility: 0.05,
         action: Action::Move(home),
     }
 }
