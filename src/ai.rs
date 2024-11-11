@@ -9,7 +9,7 @@ use crate::greens::StackGreen;
 use crate::mobs::Enemy;
 use crate::orbs::ORB_RADIUS;
 use crate::{
-    collide, Bullet, CollisionRadius, Game, HasHit, MobCrab, MobOrb, OrbTarget, PhaseEntity, Soup,
+    collide, Bullet, CollisionRadius, Game, HasHit, MobOrb, OrbTarget, PhaseEntity, Soup,
     StackGreenIndicator, Velocity, BULLET_SIZE, BULLET_SPEED, GAME_TO_PX, LAYER_BULLET, MAP_RADIUS,
     PLAYER_RADIUS,
 };
