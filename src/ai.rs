@@ -14,6 +14,7 @@ use crate::{
     LAYER_BULLET, MAP_RADIUS, PLAYER_RADIUS,
 };
 
+#[derive(Copy, Clone)]
 pub enum AiRole {
     Virt1,
     Virt2,
@@ -32,6 +33,7 @@ pub struct AiPlayer {
     pub role: AiRole,
 }
 
+#[derive(Copy, Clone)]
 enum Action {
     Move(Vec3),
     Shoot(Vec3),
