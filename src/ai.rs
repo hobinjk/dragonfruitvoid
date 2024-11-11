@@ -215,6 +215,9 @@ pub fn player_ai_boss_phase_system(
     aoes: Query<(&Aoe, &Visibility, &Transform, &CollisionRadius), Without<Player>>,
     void_zones: Query<(&CollisionRadius, &Transform), (With<VoidZone>, Without<Player>)>,
 ) {
+    let center_void_zone = void_zones.single();
+    let (center_void_zone_radius, _) = center_void_zone;
+
     for (entity_player, mut player, ai_player, mut transform) in &mut players {
         let player_pos = transform.translation;
 
@@ -246,6 +249,7 @@ pub fn player_ai_boss_phase_system(
             &mut player,
             entity_player,
             &mut transform,
+            Some(center_void_zone_radius.0),
         );
     }
 }
@@ -339,13 +343,14 @@ fn think_do_puddles(
         }
 
         // Be as close to the center as possible while rotating to the back
-        let r = center_void_zone_radius.0 + PLAYER_RADIUS * 2.;
+        let r = center_void_zone_radius.0 + PLAYER_RADIUS * 1.4;
         let mut theta = player_pos.x.atan2(player_pos.y);
         if theta < 0. {
             theta -= 0.2;
         } else {
             theta += 0.2;
         }
+        theta = theta.clamp(-PI, PI);
         let target_pos = Vec3::new(r * theta.sin(), r * theta.cos(), 0.);
 
         return Thought {
@@ -398,6 +403,7 @@ fn act_on_thought(
     player: &mut Player,
     entity_player: Entity,
     player_transform: &mut Transform,
+    center_void_zone_radius: Option<f32>,
 ) {
     let speed = 250.0 * GAME_TO_PX * time.delta_seconds();
 
@@ -405,13 +411,29 @@ fn act_on_thought(
         Action::Rest => {}
         Action::Move(target_pos) => {
             let safe_map_radius = MAP_RADIUS - PLAYER_RADIUS * 1.2;
-            let safe_target_pos = target_pos.clamp_length_max(safe_map_radius);
-            let movement = safe_target_pos
+            let safe_inner_radius = if let Some(center_void_zone_radius) = center_void_zone_radius {
+                center_void_zone_radius + PLAYER_RADIUS * 1.5
+            } else {
+                0.
+            };
+
+            let player_pos = player_transform.translation.truncate();
+
+            let movement = target_pos
                 .sub(player_transform.translation)
                 .truncate()
-                .clamp_length(0., speed)
-                .extend(0.);
-            player_transform.translation = player_transform.translation.add(movement);
+                .clamp_length(0., speed);
+            let unsafe_translation = player_pos.add(movement);
+            let safe_translation =
+                unsafe_translation.clamp_length(safe_inner_radius, safe_map_radius);
+
+            let mut safe_movement = safe_translation.sub(player_pos);
+
+            if safe_movement.length_squared() < movement.length_squared() {
+                safe_movement = safe_movement.clamp_length_min(movement.length());
+            }
+            player_transform.translation =
+                player_transform.translation.add(safe_movement.extend(0.));
         }
         Action::Shoot(dir) => {
             let player_pos = player_transform.translation;
@@ -572,6 +594,7 @@ pub fn player_ai_purification_phase_system(
             &mut player,
             entity_player,
             &mut transform,
+            None,
         );
     }
 }
