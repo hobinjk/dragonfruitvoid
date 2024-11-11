@@ -332,7 +332,7 @@ fn think_do_puddles(
     let (center_void_zone_radius, _) = center_void_zone;
 
     for puddle_spawn in puddle_spawns {
-        if puddle_spawn.visibility_start.remaining_secs() > 4.
+        if puddle_spawn.visibility_start.remaining_secs() > 6.
             || puddle_spawn.visibility_start.finished()
         {
             continue;
