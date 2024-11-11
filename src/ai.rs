@@ -9,9 +9,9 @@ use crate::greens::StackGreen;
 use crate::mobs::Enemy;
 use crate::orbs::ORB_RADIUS;
 use crate::{
-    collide, Bullet, CollisionRadius, Game, HasHit, MobOrb, OrbTarget, PhaseEntity, Soup,
-    StackGreenIndicator, Velocity, BULLET_SIZE, BULLET_SPEED, GAME_TO_PX, LAYER_BULLET, MAP_RADIUS,
-    PLAYER_RADIUS,
+    collide, Aoe, Bullet, CollisionRadius, Game, HasHit, MobOrb, OrbTarget, PhaseEntity, Soup,
+    StackGreenIndicator, Velocity, VoidZone, BOSS_RADIUS, BULLET_SIZE, BULLET_SPEED, GAME_TO_PX,
+    LAYER_BULLET, MAP_RADIUS, PLAYER_RADIUS,
 };
 
 pub enum AiRole {
@@ -210,6 +210,8 @@ pub fn player_ai_boss_phase_system(
     puddle_spawns: Query<&PuddleSpawn>,
     puddles: Query<&Puddle>,
     soups: Query<(&Soup, &Transform, &CollisionRadius), Without<Player>>,
+    aoes: Query<(&Aoe, &Visibility, &Transform, &CollisionRadius), Without<Player>>,
+    void_zones: Query<(&CollisionRadius, &Transform), (With<VoidZone>, Without<Player>)>,
 ) {
     for (entity_player, mut player, ai_player, mut transform) in &mut players {
         let player_pos = transform.translation;
@@ -219,7 +221,13 @@ pub fn player_ai_boss_phase_system(
             think_shoot_enemy(player_pos, &enemies),
             think_avoid_soups(player_pos, &soups),
             think_do_greens(&ai_player.role, &greens, &indicators),
-            think_do_puddles(player_pos, &ai_player.role, &puddle_spawns, &puddles),
+            think_do_puddles(
+                player_pos,
+                &ai_player.role,
+                &puddle_spawns,
+                &puddles,
+                &void_zones,
+            ),
             think_go_home(player_pos),
             think_do_aoes(player_pos, &aoes),
         ];
@@ -291,6 +299,7 @@ fn think_do_puddles(
     role: &AiRole,
     puddle_spawns: &Query<&PuddleSpawn>,
     puddles: &Query<&Puddle>,
+    void_zones: &Query<(&CollisionRadius, &Transform), (With<VoidZone>, Without<Player>)>,
 ) -> Thought {
     match role {
         AiRole::Dps1
@@ -317,6 +326,9 @@ fn think_do_puddles(
         }
     }
 
+    let center_void_zone = void_zones.single();
+    let (center_void_zone_radius, _) = center_void_zone;
+
     for puddle_spawn in puddle_spawns {
         if puddle_spawn.visibility_start.remaining_secs() > 4.
             || puddle_spawn.visibility_start.finished()
@@ -324,15 +336,14 @@ fn think_do_puddles(
             continue;
         }
 
-        // Rotate current position towards the back and close to center
-        let mut r = player_pos.length();
+        // Be as close to the center as possible while rotating to the back
+        let r = center_void_zone_radius.0 + PLAYER_RADIUS * 2.;
         let mut theta = player_pos.x.atan2(player_pos.y);
         if theta < 0. {
-            theta -= 0.1;
+            theta -= 0.2;
         } else {
-            theta += 0.1;
+            theta += 0.2;
         }
-        r -= PLAYER_RADIUS * 2.;
         let target_pos = Vec3::new(r * theta.sin(), r * theta.cos(), 0.);
 
         return Thought {
