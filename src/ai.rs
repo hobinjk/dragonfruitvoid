@@ -369,7 +369,7 @@ fn think_do_aoes(
             continue;
         }
 
-        if !collide(transform.translation, radius.0 * 1.2, player_pos, 0.) {
+        if !collide(transform.translation, radius.0 * 1.1, player_pos, 0.) {
             continue;
         }
 
@@ -387,7 +387,7 @@ fn think_do_aoes(
 
     Thought {
         utility: 0.7,
-        action: Action::Move(player_pos.add(diff.mul(-10.))),
+        action: Action::Move(player_pos.add(diff.mul(-1.))),
     }
 }
 
