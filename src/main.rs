@@ -797,7 +797,7 @@ fn setup_kralkatorrik(
 
     let aoe_desc = AoeDesc {
         mesh,
-        radius: SPEW_RADIUS,
+        radius: line_radius,
         material_base,
         material_detonation,
     };
@@ -817,7 +817,7 @@ fn setup_kralkatorrik(
                         TimerMode::Once,
                     )),
                     detonation: Timer::from_seconds(line_delay, TimerMode::Once),
-                    damage: SPREAD_DAMAGE,
+                    damage: SPEW_DAMAGE,
                     linger: Some(Timer::from_seconds(line_duration, TimerMode::Once)),
                 },
                 None,
@@ -834,7 +834,7 @@ fn setup_kralkatorrik(
                         TimerMode::Once,
                     )),
                     detonation: Timer::from_seconds(line_delay, TimerMode::Once),
-                    damage: SPREAD_DAMAGE,
+                    damage: SPEW_DAMAGE,
                     linger: Some(Timer::from_seconds(line_duration, TimerMode::Once)),
                 },
                 None,
