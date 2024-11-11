@@ -384,8 +384,14 @@ fn think_avoid_aoes(
     let mut avg_overlapping_aoe_pos = Vec3::ZERO;
     let mut n_overlapping = 0.;
 
-    for (_aoe, visibility, transform, radius) in aoes {
-        if visibility == Visibility::Hidden {
+    for (aoe, visibility, transform, radius) in aoes {
+        let big_and_about_to_happen = radius.0 > 300.
+            && if let Some(vis_start) = &aoe.visibility_start {
+                vis_start.remaining_secs() < 3.
+            } else {
+                false
+            };
+        if visibility == Visibility::Hidden && !big_and_about_to_happen {
             continue;
         }
 
