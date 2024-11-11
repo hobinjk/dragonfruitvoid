@@ -568,8 +568,8 @@ const HOME: Vec3 = Vec3::new(
     0.,
 );
 const HOME_PRIMORDUS: Vec3 = Vec3::new(
-    (MAP_RADIUS - PLAYER_RADIUS * 1.3) * -0.1,
-    (MAP_RADIUS - PLAYER_RADIUS * 1.3) * 0.99,
+    (MAP_RADIUS - PLAYER_RADIUS * 1.3) * -0.24,
+    (MAP_RADIUS - PLAYER_RADIUS * 1.3) * 0.97,
     0.,
 );
 
