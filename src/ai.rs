@@ -70,7 +70,15 @@ fn think_dont_fall_off_edge(player_pos: &Vec3) -> Thought {
 fn is_safe_for_orb(player_pos: Vec3, orb_pos: Vec3, enemy_pos: Vec3) -> bool {
     let shoot_dir = enemy_pos.sub(player_pos).truncate();
     let orb_dir = orb_pos.sub(player_pos).truncate();
-    let angle_orb = (ORB_RADIUS * 3.).atan2(orb_dir.length());
+
+    // Inside the orb, hitting no matter what
+    if orb_dir.length_squared() < (ORB_RADIUS * 1.1) * (ORB_RADIUS * 1.1) {
+        return false;
+    }
+
+    let angle_orb = (ORB_RADIUS * 3.5)
+        .atan2(orb_dir.length())
+        .clamp(0., PI / 2.);
     let mut angle_shoot = orb_dir.angle_between(shoot_dir);
 
     if angle_shoot < 0. {
