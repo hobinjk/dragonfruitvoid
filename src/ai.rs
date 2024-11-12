@@ -81,7 +81,7 @@ fn think_jump_wave(
             continue;
         }
 
-        let r_outer = transform.scale.x * WAVE_MAX_RADIUS + PLAYER_RADIUS * 2.;
+        let r_outer = transform.scale.x * WAVE_MAX_RADIUS + PLAYER_RADIUS * 4.;
         let r_inner = r_outer - 20.;
 
         // Safe because we're in the "eye" of the wave

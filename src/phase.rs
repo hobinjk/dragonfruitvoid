@@ -25,7 +25,7 @@ pub const VOID_ZONE_CRAB_SPAWN_DURATION_SECS: f32 = 10.;
 pub const PORTAL_RADIUS: f32 = 24.;
 
 pub const DODGE_DURATION_S: f32 = 0.75;
-pub const JUMP_DURATION_S: f32 = 0.5;
+pub const JUMP_DURATION_S: f32 = 0.75;
 
 #[derive(Component)]
 pub struct RotatingSoup {

@@ -2,6 +2,8 @@ use bevy::{prelude::*, time::Stopwatch};
 
 use std::time::Duration;
 
+use crate::JUMP_DURATION_S;
+
 #[derive(States, Clone, Copy, Eq, PartialEq, Debug, Hash, Default)]
 pub enum GameState {
     #[default]
@@ -113,7 +115,7 @@ impl Default for Player {
             dodge_cooldown: Timer::from_seconds(10., TimerMode::Once),
             blink_cooldown: Timer::from_seconds(16., TimerMode::Once),
             portal_cooldown: Timer::from_seconds(60., TimerMode::Once),
-            jump_cooldown: Timer::from_seconds(0.6, TimerMode::Once),
+            jump_cooldown: Timer::from_seconds(JUMP_DURATION_S, TimerMode::Once),
             pull_cooldown: Timer::from_seconds(20., TimerMode::Once),
             invuln: Timer::from_seconds(0.75, TimerMode::Once),
             jump: Timer::from_seconds(0.75, TimerMode::Once),
