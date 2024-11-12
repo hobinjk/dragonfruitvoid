@@ -458,7 +458,6 @@ fn think_avoid_aoes(
         let mut aoe_pos = transform.translation;
         // Zhaitan map covering aoe is big and centered
         if radius.0 > MAP_RADIUS - PLAYER_RADIUS && aoe_pos.truncate().length_squared() < 1. {
-            println!("zhaitaning it");
             continue;
         }
 
