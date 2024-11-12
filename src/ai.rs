@@ -686,7 +686,7 @@ fn think_avoid_soups(
             continue;
         }
         let soup_pos = transform_soup.translation;
-        if !collide(player_pos, 0., soup_pos, radius.0 + PLAYER_RADIUS) {
+        if !collide(player_pos, 0., soup_pos, radius.0 + PLAYER_RADIUS / 8.) {
             continue;
         }
 
