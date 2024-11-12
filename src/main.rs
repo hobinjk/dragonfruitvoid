@@ -1,3 +1,4 @@
+use ai::player_ai_purification_phase_system;
 use bevy::{
     prelude::*,
     render::color::Color,
@@ -1635,6 +1636,9 @@ fn main() {
                 .run_if(in_state(GameState::PurificationFour))
                 .run_if(in_state(MenuState::Unpaused)),
             boss_healthbar_system
+                .run_if(in_state(GameState::PurificationFour))
+                .run_if(in_state(MenuState::Unpaused)),
+            player_ai_purification_phase_system
                 .run_if(in_state(GameState::PurificationFour))
                 .run_if(in_state(MenuState::Unpaused)),
         ),

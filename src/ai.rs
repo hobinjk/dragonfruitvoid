@@ -718,6 +718,7 @@ fn think_avoid_soups(
 pub fn player_ai_purification_phase_system(
     time: Res<Time>,
     game: Res<Game>,
+    game_state: Res<State<GameState>>,
     mut commands: Commands,
     mut players: Query<(Entity, &mut Player, &AiPlayer, &mut Transform)>,
     enemies: Query<(&Enemy, &Transform), Without<Player>>,
@@ -726,7 +727,10 @@ pub fn player_ai_purification_phase_system(
     soups: Query<(&Soup, &Transform, &CollisionRadius), Without<Player>>,
     saltspray: Query<(&MobSaltspray, &Hp)>,
 ) {
-    let (_, orb_transform, orb_velocity) = orb.single();
+    let (_, orb_transform, orb_velocity) = match orb.get_single() {
+        Ok(res) => res,
+        Err(_) => return,
+    };
     let orb_pos = orb_transform.translation;
 
     for (entity_player, mut player, ai_player, mut transform) in &mut players {
@@ -770,6 +774,26 @@ pub fn player_ai_purification_phase_system(
                 orb_dest_pos,
                 &saltspray,
                 is_active,
+            ));
+        }
+
+        // Dark orb everyone gets to push
+        if *game_state.get() == GameState::PurificationFour {
+            let role_index = ai_player.role as i32;
+            let orb_target_pos = if role_index % 2 == 0 {
+                Vec3::new(MAP_RADIUS / 4., 0., 0.)
+            } else {
+                Vec3::new(-MAP_RADIUS / 4., 0., 0.)
+            };
+            let orb_dest_pos = orb_target_pos;
+            thoughts.push(think_push_orb(
+                player_pos,
+                orb_pos,
+                orb_velocity,
+                orb_target_pos,
+                orb_dest_pos,
+                &saltspray,
+                true,
             ));
         }
 
