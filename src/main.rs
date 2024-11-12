@@ -1048,7 +1048,7 @@ fn setup_zhaitan(
                     aoe_desc: aoe_desc_noodle.clone(),
                 })
                 .insert(Enemy)
-                .insert(Hp(5.))
+                .insert(Hp(2.))
                 .insert(CollisionRadius(NOODLE_RADIUS))
                 .insert(PhaseEntity);
         }
