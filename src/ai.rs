@@ -9,9 +9,9 @@ use crate::greens::StackGreen;
 use crate::mobs::Enemy;
 use crate::orbs::ORB_RADIUS;
 use crate::{
-    collide, Aoe, Bullet, CollisionRadius, Game, GameState, HasHit, MobOrb, OrbTarget, PhaseEntity,
-    Soup, StackGreenIndicator, Velocity, VoidZone, Wave, BULLET_SIZE, BULLET_SPEED, GAME_TO_PX,
-    HEIGHT, JUMP_DURATION_S, LAYER_BULLET, MAP_RADIUS, PLAYER_RADIUS, WAVE_MAX_RADIUS,
+    collide, Aoe, Boss, Bullet, CollisionRadius, Game, GameState, HasHit, MobOrb, OrbTarget,
+    PhaseEntity, Soup, StackGreenIndicator, Velocity, VoidZone, Wave, BULLET_SIZE, BULLET_SPEED,
+    GAME_TO_PX, HEIGHT, JUMP_DURATION_S, LAYER_BULLET, MAP_RADIUS, PLAYER_RADIUS, WAVE_MAX_RADIUS,
 };
 
 #[derive(Copy, Clone)]
@@ -173,16 +173,20 @@ fn think_shoot_crab(
 
 fn think_shoot_enemy(
     player_pos: Vec3,
-    enemies: &Query<(&Enemy, &Transform, &Visibility), Without<Player>>,
+    enemies: &Query<(&Enemy, &Transform, &Visibility, Option<&Boss>), Without<Player>>,
 ) -> Thought {
     let mut closest_enemy: Option<(f32, Vec3)> = None;
-    for (_enemy, transform_enemy, visibility) in enemies {
+    for (_enemy, transform_enemy, visibility, opt_boss) in enemies {
         if visibility == Visibility::Hidden {
             continue;
         }
 
         let enemy_pos: Vec3 = transform_enemy.translation;
-        let dist_sq = enemy_pos.sub(player_pos).length_squared();
+        let mut dist_sq = enemy_pos.sub(player_pos).length_squared();
+        // Prioritize boss after every other enemy
+        if opt_boss.is_some() {
+            dist_sq = (MAP_RADIUS * 2.) * (MAP_RADIUS * 2.);
+        }
         closest_enemy = match closest_enemy {
             None => Some((dist_sq, enemy_pos)),
             Some((closest_dist_sq, closest_pos)) => {
@@ -262,7 +266,7 @@ pub fn player_ai_boss_phase_system(
     game_state: Res<State<GameState>>,
     mut commands: Commands,
     mut players: Query<(Entity, &mut Player, &AiPlayer, &mut Transform)>,
-    enemies: Query<(&Enemy, &Transform, &Visibility), Without<Player>>,
+    enemies: Query<(&Enemy, &Transform, &Visibility, Option<&Boss>), Without<Player>>,
     greens: Query<(&StackGreen, &Children)>,
     indicators: Query<(&StackGreenIndicator, &Transform), Without<Player>>,
     puddle_spawns: Query<&PuddleSpawn>,
