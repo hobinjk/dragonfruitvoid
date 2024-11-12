@@ -955,7 +955,10 @@ fn setup_zhaitan(
         spread_starts,
     );
 
-    let spew_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(SPEW_RADIUS).into()).into();
+    let spew_radius_nerfed = SPEW_RADIUS * 0.9;
+    let spew_mesh: Mesh2dHandle = meshes
+        .add(shape::Circle::new(spew_radius_nerfed).into())
+        .into();
     let fear_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(WIDTH / 2.).into()).into();
     let noodle_aoe_mesh: Mesh2dHandle = meshes
         .add(shape::Circle::new(NOODLE_SLAM_RADIUS).into())
@@ -965,7 +968,7 @@ fn setup_zhaitan(
 
     let aoe_desc_spew = AoeDesc {
         mesh: spew_mesh,
-        radius: SPEW_RADIUS,
+        radius: spew_radius_nerfed,
         material_base: material_base.clone(),
         material_detonation: material_detonation.clone(),
     };
