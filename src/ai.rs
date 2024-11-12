@@ -11,7 +11,7 @@ use crate::orbs::ORB_RADIUS;
 use crate::{
     collide, Aoe, Boss, Bullet, CollisionRadius, Game, GameState, HasHit, Hp, MobOrb, MobSaltspray,
     OrbTarget, PhaseEntity, Soup, StackGreenIndicator, Velocity, VoidZone, Wave, BULLET_SIZE,
-    BULLET_SPEED, GAME_TO_PX, HEIGHT, JUMP_DURATION_S, LAYER_BULLET, MAP_RADIUS, PLAYER_RADIUS,
+    BULLET_SPEED, GAME_TO_PX, JUMP_DURATION_S, LAYER_BULLET, MAP_RADIUS, PLAYER_RADIUS,
     WAVE_MAX_RADIUS,
 };
 
