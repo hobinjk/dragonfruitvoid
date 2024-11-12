@@ -295,7 +295,7 @@ pub fn collisions_orbs_edge_system(
             for mut player in &mut players {
                 player.hp = 0.;
             }
-            info!("orb hit the edge");
+            info!("orb hit the edge: {}", transform_orb.translation);
         }
     }
 }
