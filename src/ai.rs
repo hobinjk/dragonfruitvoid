@@ -266,10 +266,14 @@ fn think_push_orb(
         };
     }
 
-    let good_prep_pos = orb_dest_pos.sub(des_push_vel.extend(0.).mul(ORB_RADIUS * 1.3));
+    let mut utility = 0.25;
+    if saltspray_exists {
+        utility = 0.1;
+    }
 
+    let good_prep_pos = orb_dest_pos.sub(des_push_vel.extend(0.).mul(ORB_RADIUS * 1.3));
     return Thought {
-        utility: 0.25,
+        utility,
         action: Action::Move(good_prep_pos),
     };
 }
