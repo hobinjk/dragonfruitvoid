@@ -10,8 +10,8 @@ use crate::mobs::Enemy;
 use crate::orbs::ORB_RADIUS;
 use crate::{
     collide, Aoe, Bullet, CollisionRadius, Game, GameState, HasHit, MobOrb, OrbTarget, PhaseEntity,
-    Soup, StackGreenIndicator, Velocity, VoidZone, BULLET_SIZE, BULLET_SPEED, GAME_TO_PX, HEIGHT,
-    LAYER_BULLET, MAP_RADIUS, PLAYER_RADIUS,
+    Soup, StackGreenIndicator, Velocity, VoidZone, Wave, BULLET_SIZE, BULLET_SPEED, GAME_TO_PX,
+    HEIGHT, JUMP_DURATION_S, LAYER_BULLET, MAP_RADIUS, PLAYER_RADIUS, WAVE_MAX_RADIUS,
 };
 
 #[derive(Copy, Clone)]
@@ -37,6 +37,7 @@ pub struct AiPlayer {
 enum Action {
     Move(Vec3),
     Shoot(Vec3),
+    Jump,
     Rest,
 }
 
@@ -65,6 +66,38 @@ fn think_dont_fall_off_edge(player_pos: &Vec3) -> Thought {
         utility: 1.,
         action: Action::Move(Vec3::new(0., 0., 0.)),
     }
+}
+
+fn think_jump_wave(
+    player: (&Player, &Transform),
+    waves: &Query<(&Wave, &Visibility, &Transform), Without<Player>>,
+) -> Thought {
+    let (player, transform_player) = player;
+    let player_pos = transform_player.translation;
+
+    for (_, visibility, transform) in waves {
+        if visibility == Visibility::Hidden {
+            continue;
+        }
+
+        let r_outer = transform.scale.x * WAVE_MAX_RADIUS + PLAYER_RADIUS * 2.;
+        let r_inner = r_outer - 20.;
+
+        // Safe because we're in the "eye" of the wave
+        if collide(player_pos, 0., transform.translation, r_inner) {
+            continue;
+        }
+        if collide(player_pos, 0., transform.translation, r_outer) {
+            if player.jump_cooldown.finished() {
+                return Thought {
+                    utility: 1.0,
+                    action: Action::Jump,
+                };
+            }
+        }
+    }
+
+    Thought::REST
 }
 
 fn is_safe_for_orb(player_pos: Vec3, orb_pos: Vec3, enemy_pos: Vec3) -> bool {
@@ -233,6 +266,7 @@ pub fn player_ai_boss_phase_system(
     soups: Query<(&Soup, &Transform, &CollisionRadius), Without<Player>>,
     aoes: Query<(&Aoe, &Visibility, &Transform, &CollisionRadius), Without<Player>>,
     void_zones: Query<(&CollisionRadius, &Transform), (With<VoidZone>, Without<Player>)>,
+    waves: Query<(&Wave, &Visibility, &Transform), Without<Player>>,
 ) {
     let center_void_zone = void_zones.single();
     let (center_void_zone_radius, _) = center_void_zone;
@@ -254,6 +288,7 @@ pub fn player_ai_boss_phase_system(
             ),
             think_go_home(game_state.get(), &ai_player.role, player_pos),
             think_avoid_aoes(player_pos, &aoes),
+            think_jump_wave((&player, &transform), &waves),
         ];
 
         act_on_thoughts(
@@ -448,17 +483,17 @@ fn act_on_thoughts(
     mut player_transform: &mut Transform,
     center_void_zone_radius: Option<f32>,
 ) {
-    let best_move_thought = thoughts
+    let best_not_shoot_thought = thoughts
         .iter()
         .filter(|a| match a.action {
-            Action::Move(_) => true,
-            _ => false,
+            Action::Shoot(_) => false,
+            _ => true,
         })
         .reduce(|a, b| if a.utility > b.utility { a } else { b })
         .unwrap_or(&Thought::REST);
 
     act_on_thought(
-        best_move_thought,
+        best_not_shoot_thought,
         &time,
         &mut commands,
         &mut player,
@@ -558,6 +593,12 @@ fn act_on_thought(
                     .insert(HasHit(HashSet::new()))
                     .insert(PhaseEntity);
                 player.shoot_cooldown.reset();
+            }
+        }
+        Action::Jump => {
+            if player.jump_cooldown.finished() {
+                player.jump = Timer::from_seconds(JUMP_DURATION_S, TimerMode::Once);
+                player.jump_cooldown.reset();
             }
         }
     }
