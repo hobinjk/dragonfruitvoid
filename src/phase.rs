@@ -622,7 +622,7 @@ pub fn setup_phase(
     asset_server: Res<AssetServer>,
     mut game: ResMut<Game>,
     state: Res<State<GameState>>,
-    mut players: Query<&mut Player>,
+    mut players: Query<(&mut Player, Option<&AiPlayer>)>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
@@ -632,7 +632,7 @@ pub fn setup_phase(
     if !game.continuous {
         game.time_elapsed.reset();
         game.player_damage_taken = 0.;
-        for mut player in &mut players {
+        for (mut player, _) in &mut players {
             player.hp = 100.;
             player.dodge_cooldown.tick(Duration::from_secs_f32(1000.));
             player.blink_cooldown.tick(Duration::from_secs_f32(1000.));
@@ -685,6 +685,14 @@ pub fn setup_phase(
                 ..default()
             })
             .insert(Player { ..default() });
+    }
+
+    for (mut player, ai_player) in &mut players {
+        if ai_player.is_none() {
+            continue;
+        }
+        // Full-heal ai players as a treat
+        player.hp = 100.;
     }
 
     if game.echo_enabled {
