@@ -326,7 +326,7 @@ pub fn saltspray_system(
                             TimerMode::Once,
                         )),
                         detonation: Timer::from_seconds(1., TimerMode::Once),
-                        damage: 30.,
+                        damage: 20.,
                         linger: Some(Timer::from_seconds(1., TimerMode::Once)),
                     },
                     None,

@@ -326,7 +326,7 @@ fn setup_purification_three(
             },
         })
         .insert(Enemy)
-        .insert(Hp(20.))
+        .insert(Hp(15.))
         .insert(CollisionRadius(BIGBOY_RADIUS))
         .insert(PhaseEntity);
 }
