@@ -446,7 +446,9 @@ fn think_do_puddles(
         let target_pos = Vec3::new(r * theta.sin(), r * theta.cos(), 0.);
 
         let mut utility = 0.8;
-        if player_pos.length_squared() < (r + PLAYER_RADIUS * 3.) * (r + PLAYER_RADIUS * 3.) {
+        if player_pos.length_squared() < (r + PLAYER_RADIUS * 3.) * (r + PLAYER_RADIUS * 3.)
+            && theta.abs() > PI * 2. / 3.
+        {
             utility = 0.15;
         }
         return Thought {
