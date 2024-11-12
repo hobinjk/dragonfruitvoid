@@ -441,9 +441,9 @@ fn think_do_puddles(
         theta = theta.clamp(-PI, PI);
         let target_pos = Vec3::new(r * theta.sin(), r * theta.cos(), 0.);
 
-        let mut utility = 0.4;
+        let mut utility = 0.8;
         if player_pos.length_squared() < (r * 1.5) * (r * 1.5) {
-            utility = 0.2;
+            utility = 0.15;
         }
         return Thought {
             utility,
@@ -478,15 +478,14 @@ fn think_avoid_aoes(
             continue;
         }
 
-        if !collide(aoe_pos, radius.0, player_pos, PLAYER_RADIUS) {
+        if !collide(aoe_pos, radius.0, player_pos, PLAYER_RADIUS / 4.) {
             continue;
         }
 
         // Special-case primordus chomps
-        let diff = aoe_pos.sub(player_pos);
-        let target_pos = player_pos.add(diff.mul(-1.));
-        if target_pos.length_squared() > MAP_RADIUS * MAP_RADIUS {
+        if radius.0 > MAP_RADIUS - PLAYER_RADIUS {
             aoe_pos.y = HEIGHT / 2.;
+            aoe_pos.x = player_pos.x / 3.;
         }
 
         let scale_factor = if radius.0 > 300. { 5. } else { 1. };
