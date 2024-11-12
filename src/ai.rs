@@ -455,16 +455,16 @@ fn think_avoid_aoes(
             continue;
         }
 
-        // Zhaitan map covering aoe
-        if radius.0 > MAP_RADIUS - PLAYER_RADIUS {
-            continue;
-        }
-
-        if !collide(transform.translation, radius.0, player_pos, PLAYER_RADIUS) {
-            continue;
-        }
-
         let mut aoe_pos = transform.translation;
+        // Zhaitan map covering aoe is big and centered
+        if radius.0 > MAP_RADIUS - PLAYER_RADIUS && aoe_pos.truncate().length_squared() < 1. {
+            println!("zhaitaning it");
+            continue;
+        }
+
+        if !collide(aoe_pos, radius.0, player_pos, PLAYER_RADIUS) {
+            continue;
+        }
 
         // Special-case primordus chomps
         let diff = aoe_pos.sub(player_pos);
@@ -473,7 +473,7 @@ fn think_avoid_aoes(
             aoe_pos.y = HEIGHT / 2.;
         }
 
-        let scale_factor = if radius.0 > 300. { 3. } else { 1. };
+        let scale_factor = if radius.0 > 300. { 5. } else { 1. };
         avg_overlapping_aoe_pos = avg_overlapping_aoe_pos.add(aoe_pos.mul(scale_factor));
         n_overlapping += scale_factor;
     }
@@ -486,8 +486,13 @@ fn think_avoid_aoes(
         .mul(1. / (n_overlapping as f32))
         .sub(player_pos);
 
+    let utility = if (n_overlapping - 5.).abs() < 0.1 {
+        0.2
+    } else {
+        0.7
+    };
     Thought {
-        utility: 0.7,
+        utility,
         action: Action::Move(player_pos.add(diff.mul(-1.))),
     }
 }
