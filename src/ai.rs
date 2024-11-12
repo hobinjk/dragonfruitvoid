@@ -435,18 +435,18 @@ fn think_do_puddles(
         }
 
         // Be as close to the center as possible while rotating to the back
-        let r = center_void_zone_radius.0 + PLAYER_RADIUS * 1.4;
+        let r = center_void_zone_radius.0 + PLAYER_RADIUS * 0.5;
         let mut theta = player_pos.x.atan2(player_pos.y);
         if theta < 0. {
             theta -= 0.2;
         } else {
             theta += 0.2;
         }
-        theta = theta.clamp(-PI, PI);
+        theta = theta.clamp(-PI + 0.05, PI - 0.05);
         let target_pos = Vec3::new(r * theta.sin(), r * theta.cos(), 0.);
 
         let mut utility = 0.8;
-        if player_pos.length_squared() < (r * 1.5) * (r * 1.5) {
+        if player_pos.length_squared() < (r + PLAYER_RADIUS * 3.) * (r + PLAYER_RADIUS * 3.) {
             utility = 0.15;
         }
         return Thought {
