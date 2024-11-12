@@ -24,6 +24,9 @@ pub const VOID_ZONE_CRAB_SPAWN_DURATION_SECS: f32 = 10.;
 
 pub const PORTAL_RADIUS: f32 = 24.;
 
+pub const DODGE_DURATION_S: f32 = 0.75;
+pub const JUMP_DURATION_S: f32 = 0.5;
+
 #[derive(Component)]
 pub struct RotatingSoup {
     pub radius: f32,
@@ -195,7 +198,7 @@ fn handle_spellcasts_system(
         let player_loc = transform_player.translation;
 
         if player.jump_cooldown.finished() && keyboard_input.pressed(KeyCode::Space) {
-            player.jump = Timer::from_seconds(0.5, TimerMode::Once);
+            player.jump = Timer::from_seconds(JUMP_DURATION_S, TimerMode::Once);
             player.jump_cooldown.reset();
         }
 
@@ -212,7 +215,7 @@ fn handle_spellcasts_system(
                 speed: dodge_speed,
             });
 
-            player.invuln = Timer::from_seconds(0.75, TimerMode::Once);
+            player.invuln = Timer::from_seconds(DODGE_DURATION_S, TimerMode::Once);
             player.dodge_cooldown.reset();
         }
 
