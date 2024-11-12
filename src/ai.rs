@@ -286,7 +286,7 @@ pub fn player_ai_boss_phase_system(
             think_dont_fall_off_edge(&player_pos),
             think_shoot_enemy(player_pos, &enemies),
             think_avoid_soups(player_pos, &soups),
-            think_do_greens(&ai_player.role, &greens, &indicators),
+            think_do_greens(game_state.get(), &ai_player.role, &greens, &indicators),
             think_do_puddles(
                 player_pos,
                 &ai_player.role,
@@ -313,16 +313,33 @@ pub fn player_ai_boss_phase_system(
 }
 
 fn think_do_greens(
+    game_state: &GameState,
     role: &AiRole,
     greens: &Query<(&StackGreen, &Children)>,
     indicators: &Query<(&StackGreenIndicator, &Transform), Without<Player>>,
 ) -> Thought {
     let no_green: usize = 9001;
-    let green_team: usize = match role {
-        AiRole::Dps1 | AiRole::Dps2 | AiRole::Dps3 | AiRole::Dps4 => no_green,
-        AiRole::Virt1 | AiRole::Virt2 => 0,
-        AiRole::Herald1 | AiRole::Herald2 => 1,
-        AiRole::Ham1 | AiRole::Ham2 => 2,
+    let green_team: usize = match game_state {
+        GameState::SooWonOne | GameState::SooWonTwo => match role {
+            AiRole::Dps1 | AiRole::Dps2 => no_green,
+            AiRole::Dps3 | AiRole::Dps4 => 2,
+            AiRole::Virt1 | AiRole::Virt2 => 0,
+            AiRole::Herald1 | AiRole::Herald2 => 1,
+            AiRole::Ham1 | AiRole::Ham2 => no_green,
+        },
+        // This would be more accurate but is hard to pull off for the hams
+        // GameState::SooWonTwo => match role {
+        //     AiRole::Dps1 | AiRole::Dps2 | AiRole::Dps3 | AiRole::Dps4 => no_green,
+        //     AiRole::Virt1 | AiRole::Virt2 => 1,
+        //     AiRole::Herald1 | AiRole::Herald2 => 2,
+        //     AiRole::Ham1 | AiRole::Ham2 => 0,
+        // },
+        _ => match role {
+            AiRole::Dps1 | AiRole::Dps2 | AiRole::Dps3 | AiRole::Dps4 => no_green,
+            AiRole::Virt1 | AiRole::Virt2 => 0,
+            AiRole::Herald1 | AiRole::Herald2 => 1,
+            AiRole::Ham1 | AiRole::Ham2 => 2,
+        },
     };
 
     if green_team == no_green {
