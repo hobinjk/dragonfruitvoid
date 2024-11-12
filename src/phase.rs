@@ -424,7 +424,7 @@ fn move_player_system(
 ) {
     // Much slower than actual movement
     let speed = 250.0 * GAME_TO_PX * time.delta_seconds();
-    for (mut transform, player) in &mut transforms {
+    for (mut transform, _player) in &mut transforms {
         let mut movement = Vec3::ZERO;
         if keyboard_input.pressed(KeyCode::Up) || keyboard_input.pressed(KeyCode::W) {
             movement.y += speed;
