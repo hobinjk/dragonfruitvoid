@@ -58,7 +58,9 @@ pub fn collisions_bullets_orbs_system(
                 let orb_max_vel = 60.;
                 let mut diff = orb_pos.sub(transform_player.translation);
                 diff.z = 0.;
-                if velocity_orb.0.length_squared() < orb_max_vel * orb_max_vel * 4. {
+                if diff.length_squared() > 1.
+                    && velocity_orb.0.length_squared() < orb_max_vel * orb_max_vel * 4.
+                {
                     velocity_orb.0 = velocity_orb
                         .0
                         .add(diff.clamp_length(push_str, push_str))
