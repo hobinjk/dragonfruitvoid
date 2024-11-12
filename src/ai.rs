@@ -665,7 +665,7 @@ fn think_avoid_soups(
         }
 
         let diff = soup_pos.sub(player_pos);
-        let utility = if soup.damage < 10. { 0.3 } else { 0.8 };
+        let utility = if soup.damage < 19. { 0.3 } else { 0.98 };
         return Thought {
             utility,
             action: Action::Move(player_pos.add(diff.mul(-1.))),
