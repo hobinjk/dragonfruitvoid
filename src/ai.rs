@@ -340,8 +340,14 @@ fn think_do_puddles(
             let theta = player_pos.x.atan2(player_pos.y);
             let target_pos = Vec3::new(r * theta.sin(), r * theta.cos(), 0.);
 
+            let mut utility = 0.97; // even more important than greens
+                                    // Downgrade utility if we're basically there already
+            if player_pos.length_squared() > r - PLAYER_RADIUS {
+                utility = 0.5;
+            }
+
             return Thought {
-                utility: 0.97, // even more important than greens
+                utility,
                 action: Action::Move(target_pos),
             };
         }
@@ -368,8 +374,13 @@ fn think_do_puddles(
         theta = theta.clamp(-PI, PI);
         let target_pos = Vec3::new(r * theta.sin(), r * theta.cos(), 0.);
 
+        let mut utility = 0.9;
+        // Downgrade utility if we're basically there already
+        if player_pos.length_squared() < r + PLAYER_RADIUS {
+            utility = 0.5;
+        }
         return Thought {
-            utility: 0.9,
+            utility,
             action: Action::Move(target_pos),
         };
     }
