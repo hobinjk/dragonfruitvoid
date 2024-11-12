@@ -9,9 +9,10 @@ use crate::greens::StackGreen;
 use crate::mobs::Enemy;
 use crate::orbs::ORB_RADIUS;
 use crate::{
-    collide, Aoe, Boss, Bullet, CollisionRadius, Game, GameState, HasHit, MobOrb, OrbTarget,
-    PhaseEntity, Soup, StackGreenIndicator, Velocity, VoidZone, Wave, BULLET_SIZE, BULLET_SPEED,
-    GAME_TO_PX, HEIGHT, JUMP_DURATION_S, LAYER_BULLET, MAP_RADIUS, PLAYER_RADIUS, WAVE_MAX_RADIUS,
+    collide, Aoe, Boss, Bullet, CollisionRadius, Game, GameState, HasHit, Hp, MobOrb, MobSaltspray,
+    OrbTarget, PhaseEntity, Soup, StackGreenIndicator, Velocity, VoidZone, Wave, BULLET_SIZE,
+    BULLET_SPEED, GAME_TO_PX, HEIGHT, JUMP_DURATION_S, LAYER_BULLET, MAP_RADIUS, PLAYER_RADIUS,
+    WAVE_MAX_RADIUS,
 };
 
 #[derive(Copy, Clone)]
@@ -215,8 +216,18 @@ fn think_push_orb(
     orb_vel: &Velocity,
     orb_target_pos: Vec3,
     orb_dest_pos: Vec3,
+    saltspray: &Query<(&MobSaltspray, &Hp)>,
     is_active: bool,
 ) -> Thought {
+    let saltspray_exists = match saltspray.get_single() {
+        Ok((_, hp)) => hp.0 > 3.,
+        Err(_) => false,
+    };
+
+    if saltspray_exists {
+        return Thought::REST;
+    }
+
     let cur_vel = orb_vel.0.truncate();
     // The velocity change that happens if we push the orb from here
     let cur_push_vel = orb_pos.sub(player_pos).truncate().normalize();
@@ -713,6 +724,7 @@ pub fn player_ai_purification_phase_system(
     orb: Query<(&MobOrb, &Transform, &Velocity), Without<Player>>,
     orb_targets: Query<(&OrbTarget, &Transform), Without<Player>>,
     soups: Query<(&Soup, &Transform, &CollisionRadius), Without<Player>>,
+    saltspray: Query<(&MobSaltspray, &Hp)>,
 ) {
     let (_, orb_transform, orb_velocity) = orb.single();
     let orb_pos = orb_transform.translation;
@@ -756,6 +768,7 @@ pub fn player_ai_purification_phase_system(
                 orb_velocity,
                 orb_target_pos,
                 orb_dest_pos,
+                &saltspray,
                 is_active,
             ));
         }
