@@ -434,6 +434,11 @@ fn think_avoid_aoes(
             continue;
         }
 
+        // Zhaitan map covering aoe
+        if radius.0 > MAP_RADIUS - PLAYER_RADIUS {
+            continue;
+        }
+
         if !collide(transform.translation, radius.0, player_pos, PLAYER_RADIUS) {
             continue;
         }
