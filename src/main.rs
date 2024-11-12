@@ -1344,7 +1344,7 @@ fn setup_soowontwo(
             charge_cooldown: Timer::from_seconds(11., TimerMode::Repeating),
         })
         .insert(Enemy)
-        .insert(Hp(20.))
+        .insert(Hp(15.))
         .insert(CollisionRadius(BIGBOY_RADIUS))
         .insert(PhaseEntity);
 
@@ -1362,7 +1362,7 @@ fn setup_soowontwo(
             shoot_cooldown: Timer::from_seconds(5., TimerMode::Repeating),
         })
         .insert(Enemy)
-        .insert(Hp(20.))
+        .insert(Hp(10.))
         .insert(Velocity(Vec3::ZERO))
         .insert(CollisionRadius(BIGBOY_RADIUS))
         .insert(PhaseEntity);
