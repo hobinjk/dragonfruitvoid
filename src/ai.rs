@@ -10,8 +10,8 @@ use crate::mobs::Enemy;
 use crate::orbs::ORB_RADIUS;
 use crate::{
     collide, Aoe, Bullet, CollisionRadius, Game, GameState, HasHit, MobOrb, OrbTarget, PhaseEntity,
-    Soup, StackGreenIndicator, Velocity, VoidZone, BOSS_RADIUS, BULLET_SIZE, BULLET_SPEED,
-    GAME_TO_PX, HEIGHT, LAYER_BULLET, MAP_RADIUS, PLAYER_RADIUS,
+    Soup, StackGreenIndicator, Velocity, VoidZone, BULLET_SIZE, BULLET_SPEED, GAME_TO_PX, HEIGHT,
+    LAYER_BULLET, MAP_RADIUS, PLAYER_RADIUS,
 };
 
 #[derive(Copy, Clone)]

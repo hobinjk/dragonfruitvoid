@@ -93,9 +93,6 @@ pub struct Player {
 }
 
 #[derive(Component)]
-pub struct HumanPlayer {}
-
-#[derive(Component)]
 pub struct Bullet {
     pub age: f32,
     pub firer: Entity,
