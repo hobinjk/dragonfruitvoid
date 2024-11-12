@@ -487,12 +487,16 @@ fn think_avoid_aoes(
         }
 
         // Special-case primordus chomps
-        if radius.0 > MAP_RADIUS - PLAYER_RADIUS {
-            aoe_pos.y = HEIGHT / 2.;
+        let diff = aoe_pos.sub(player_pos);
+        let target_pos = player_pos.add(diff.mul(-1.));
+        if radius.0 > MAP_RADIUS - PLAYER_RADIUS
+            || target_pos.length_squared() > MAP_RADIUS * MAP_RADIUS
+        {
+            aoe_pos.y = MAP_RADIUS;
             aoe_pos.x = player_pos.x / 3.;
         }
 
-        let scale_factor = if radius.0 > 300. { 5. } else { 1. };
+        let scale_factor = if radius.0 > 300. { 3. } else { 1. };
         avg_overlapping_aoe_pos = avg_overlapping_aoe_pos.add(aoe_pos.mul(scale_factor));
         n_overlapping += scale_factor;
     }
@@ -505,13 +509,8 @@ fn think_avoid_aoes(
         .mul(1. / (n_overlapping as f32))
         .sub(player_pos);
 
-    let utility = if (n_overlapping - 5.).abs() < 0.1 {
-        0.2
-    } else {
-        0.7
-    };
     Thought {
-        utility,
+        utility: 0.7,
         action: Action::Move(player_pos.add(diff.mul(-1.))),
     }
 }
