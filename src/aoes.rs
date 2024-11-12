@@ -109,7 +109,7 @@ pub fn aoes_detonation_system(
         if let Some(linger) = &aoe.linger {
             commands.entity(entity_aoe).remove::<Aoe>();
             commands.entity(entity_aoe).insert(Soup {
-                damage: aoe.damage / 2., // arbitrary
+                damage: aoe.damage / 4., // arbitrary
                 duration: Some(linger.clone()),
             });
         } else {
