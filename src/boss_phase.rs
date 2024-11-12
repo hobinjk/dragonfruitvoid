@@ -12,7 +12,7 @@ use crate::waves::*;
 use crate::{ai::player_ai_boss_phase_system, aoes::*};
 
 pub const SPREAD_DAMAGE: f32 = 10.;
-const SPREAD_DETONATION: f32 = 5.;
+const SPREAD_DETONATION: f32 = 6.5; // timed on primordus
 pub const SPREAD_RADIUS: f32 = 240. * GAME_TO_PX;
 
 const PUDDLE_DAMAGE: f32 = 20.;
