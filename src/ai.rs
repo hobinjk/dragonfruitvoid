@@ -220,13 +220,15 @@ fn think_push_orb(
     is_active: bool,
 ) -> Thought {
     let saltspray_exists = match saltspray.get_single() {
-        Ok((_, hp)) => hp.0 > 3.,
+        Ok((_, hp)) => {
+            if hp.0 > 20. {
+                // Only start pre-moving if the dragon is a little low
+                return Thought::REST;
+            }
+            hp.0 > 2.
+        }
         Err(_) => false,
     };
-
-    if saltspray_exists {
-        return Thought::REST;
-    }
 
     let cur_vel = orb_vel.0.truncate();
     // The velocity change that happens if we push the orb from here
@@ -247,7 +249,7 @@ fn think_push_orb(
 
     // cos(angle between vels) means that 1 is good, 0 is bad
     let push_goodness = des_push_vel.dot(cur_push_vel);
-    if push_goodness > 0.99 && is_active {
+    if push_goodness > 0.99 && is_active && !saltspray_exists {
         // roughly +-8 degrees
         return Thought {
             utility: push_utility,
@@ -267,7 +269,7 @@ fn think_push_orb(
     let good_prep_pos = orb_dest_pos.sub(des_push_vel.extend(0.).mul(ORB_RADIUS * 1.3));
 
     return Thought {
-        utility: 0.3,
+        utility: 0.25,
         action: Action::Move(good_prep_pos),
     };
 }
