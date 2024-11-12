@@ -428,8 +428,12 @@ fn think_do_puddles(
         theta = theta.clamp(-PI, PI);
         let target_pos = Vec3::new(r * theta.sin(), r * theta.cos(), 0.);
 
+        let mut utility = 0.4;
+        if player_pos.length_squared() < (r * 1.5) * (r * 1.5) {
+            utility = 0.2;
+        }
         return Thought {
-            utility: 0.1,
+            utility,
             action: Action::Move(target_pos),
         };
     }
