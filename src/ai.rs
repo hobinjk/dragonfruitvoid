@@ -173,10 +173,14 @@ fn think_shoot_crab(
 
 fn think_shoot_enemy(
     player_pos: Vec3,
-    enemies: &Query<(&Enemy, &Transform), Without<Player>>,
+    enemies: &Query<(&Enemy, &Transform, &Visibility), Without<Player>>,
 ) -> Thought {
     let mut closest_enemy: Option<(f32, Vec3)> = None;
-    for (_enemy, transform_enemy) in enemies {
+    for (_enemy, transform_enemy, visibility) in enemies {
+        if visibility == Visibility::Hidden {
+            continue;
+        }
+
         let enemy_pos: Vec3 = transform_enemy.translation;
         let dist_sq = enemy_pos.sub(player_pos).length_squared();
         closest_enemy = match closest_enemy {
@@ -258,7 +262,7 @@ pub fn player_ai_boss_phase_system(
     game_state: Res<State<GameState>>,
     mut commands: Commands,
     mut players: Query<(Entity, &mut Player, &AiPlayer, &mut Transform)>,
-    enemies: Query<(&Enemy, &Transform), Without<Player>>,
+    enemies: Query<(&Enemy, &Transform, &Visibility), Without<Player>>,
     greens: Query<(&StackGreen, &Children)>,
     indicators: Query<(&StackGreenIndicator, &Transform), Without<Player>>,
     puddle_spawns: Query<&PuddleSpawn>,
