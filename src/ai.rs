@@ -270,7 +270,10 @@ fn think_push_orb(
     }
 
     if is_active {
-        let good_push_pos = orb_pos.sub(des_push_vel.extend(0.).mul(ORB_RADIUS * 1.3));
+        let closer_dist =
+            (orb_pos.sub(player_pos).length() * 0.95).clamp(ORB_RADIUS * 1.3, MAP_RADIUS);
+
+        let good_push_pos = orb_pos.sub(des_push_vel.extend(0.).mul(closer_dist));
 
         return Thought {
             utility: 0.4,
