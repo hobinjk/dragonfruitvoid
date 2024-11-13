@@ -1481,6 +1481,7 @@ fn main() {
     .add_state::<GameState>()
     .add_state::<MenuState>()
     .add_event::<DamageFlashEvent>()
+    .add_event::<RestartEvent>()
     .insert_resource(game)
     .add_systems(Startup, setup)
     .add_systems(OnEnter(MenuState::StartMenu), setup_menu_system)
@@ -1512,7 +1513,8 @@ fn main() {
         Update,
         update_menu_system.run_if(in_state(MenuState::Failure)),
     )
-    .add_systems(OnExit(MenuState::Failure), cleanup_menu_system);
+    .add_systems(OnExit(MenuState::Failure), cleanup_menu_system)
+    .add_systems(Update, restart_event_system);
 
     add_update_phase_set(&mut app);
     add_update_purification_phase_set(&mut app);

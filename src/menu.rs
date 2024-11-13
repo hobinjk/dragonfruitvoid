@@ -28,6 +28,11 @@ pub enum ButtonOnOff {
     Role(),
 }
 
+#[derive(Event)]
+pub struct RestartEvent {
+    game_state: GameState,
+}
+
 const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
 const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
@@ -272,12 +277,11 @@ pub fn update_menu_system(
     mut res_next_game_state: ResMut<NextState<GameState>>,
     mut res_next_menu_state: ResMut<NextState<MenuState>>,
     mut game: ResMut<Game>,
-    mut commands: Commands,
-    players: Query<(Entity, &Player)>,
     mut interaction_query: Query<
         (&Interaction, &mut BackgroundColor, &ButtonNextState),
         (Changed<Interaction>, With<Button>),
     >,
+    mut restart_events: EventWriter<RestartEvent>,
 ) {
     for (interaction, mut color, next_state) in &mut interaction_query {
         match *interaction {
@@ -298,12 +302,11 @@ pub fn update_menu_system(
                         res_next_menu_state.set(MenuState::Unpaused);
                     }
                     ButtonNextState::Restart() => {
-                        // state.pop().unwrap();
-                        for (entity, _) in &players {
-                            commands.entity(entity).despawn_recursive();
-                        }
-                        res_next_game_state.set(*game_state.get());
-                        res_next_menu_state.set(MenuState::Unpaused);
+                        res_next_game_state.set(GameState::Nothing);
+                        res_next_menu_state.set(MenuState::StartMenu);
+                        restart_events.send(RestartEvent {
+                            game_state: *game_state.get(),
+                        });
                     }
                     ButtonNextState::Exit() => {
                         res_next_game_state.set(GameState::Nothing);
@@ -318,6 +321,17 @@ pub fn update_menu_system(
                 *color = NORMAL_BUTTON.into();
             }
         }
+    }
+}
+
+pub fn restart_event_system(
+    mut events: EventReader<RestartEvent>,
+    mut res_next_game_state: ResMut<NextState<GameState>>,
+    mut res_next_menu_state: ResMut<NextState<MenuState>>,
+) {
+    for event in events.iter() {
+        res_next_game_state.set(event.game_state);
+        res_next_menu_state.set(MenuState::Unpaused);
     }
 }
 
@@ -604,7 +618,7 @@ fn setup_result_screen(
                 })
                 .with_children(|parent| {
                     let buttons = vec![
-                        ("Restart", ButtonNextState::Restart()),
+                        // ("Restart", ButtonNextState::Restart()),
                         ("Exit", ButtonNextState::Exit()),
                     ];
 
