@@ -1,4 +1,4 @@
-use ai::player_ai_purification_phase_system;
+use ai::{player_ai_purification_phase_system, AiRole};
 use bevy::{
     prelude::*,
     render::color::Color,
@@ -1458,6 +1458,8 @@ fn main() {
         greens_enabled: true,
         puddles_enabled: true,
         unlimited_range_enabled: true,
+        ai_enabled: true,
+        player_role: AiRole::Virt1,
     };
 
     let binding = App::new();

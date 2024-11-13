@@ -136,6 +136,7 @@ fn game_player_damage_system(mut game: ResMut<Game>, players: Query<&Player>) {
 }
 
 fn handle_mouse_events_system(
+    game: Res<Game>,
     mouse_button_input: Res<Input<MouseButton>>,
     keyboard_input: Res<Input<KeyCode>>,
     mut commands: Commands,
@@ -143,6 +144,11 @@ fn handle_mouse_events_system(
     mut players: Query<(Entity, &Transform, &mut Player), (Without<CursorMark>, Without<AiPlayer>)>,
     mut cursors: Query<&mut Transform, With<CursorMark>>,
 ) {
+    let base_bullet_damage = if game.ai_enabled {
+        BULLET_DAMAGE
+    } else {
+        BULLET_DAMAGE * 10.
+    };
     for (entity_player, transform_player, mut player) in &mut players {
         let player_loc = transform_player.translation;
         if player.shoot_cooldown.finished()
@@ -168,6 +174,7 @@ fn handle_mouse_events_system(
                 .insert(Bullet {
                     age: 0.,
                     firer: entity_player,
+                    base_damage: base_bullet_damage,
                 })
                 .insert(HasHit(HashSet::new()))
                 .insert(PhaseEntity);
@@ -602,6 +609,21 @@ pub fn add_update_phase_set(app: &mut App) {
     );
 }
 
+fn icon_for_player_role(role: &AiRole) -> &'static str {
+    match role {
+        AiRole::Virt1 => "virt.png",
+        AiRole::Virt2 => "virt.png",
+        AiRole::Herald1 => "herald.png",
+        AiRole::Herald2 => "herald.png",
+        AiRole::Ham1 => "ham.png",
+        AiRole::Ham2 => "ham.png",
+        AiRole::Dps1 => "dps.png",
+        AiRole::Dps2 => "dps.png",
+        AiRole::Dps3 => "dps.png",
+        AiRole::Dps4 => "dps.png",
+    }
+}
+
 fn icon_for_role(role: &AiRole) -> &'static str {
     match role {
         AiRole::Virt1 => "virt1.png",
@@ -646,32 +668,39 @@ pub fn setup_phase(
     if players.is_empty() {
         game.time_elapsed.reset();
 
-        let mut x: f32 = 0.;
-        for role in [
-            AiRole::Virt1,
-            AiRole::Virt2,
-            AiRole::Herald1,
-            AiRole::Herald2,
-            AiRole::Ham1,
-            AiRole::Ham2,
-            AiRole::Dps1,
-            AiRole::Dps2,
-            AiRole::Dps3,
-            AiRole::Dps4,
-        ] {
-            commands
-                .spawn(SpriteBundle {
-                    sprite: Sprite {
-                        custom_size: Some(Vec2::new(PLAYER_RADIUS * 2., PLAYER_RADIUS * 2.)),
+        if game.ai_enabled {
+            let mut x: f32 = 0.;
+            for role in [
+                AiRole::Virt1,
+                AiRole::Virt2,
+                AiRole::Herald1,
+                AiRole::Herald2,
+                AiRole::Ham1,
+                AiRole::Ham2,
+                AiRole::Dps1,
+                AiRole::Dps2,
+                AiRole::Dps3,
+                AiRole::Dps4,
+            ] {
+                if role == game.player_role {
+                    // Player is stepping in for whoever this is
+                    continue;
+                }
+
+                commands
+                    .spawn(SpriteBundle {
+                        sprite: Sprite {
+                            custom_size: Some(Vec2::new(PLAYER_RADIUS * 2., PLAYER_RADIUS * 2.)),
+                            ..default()
+                        },
+                        texture: asset_server.load(icon_for_role(&role)),
+                        transform: Transform::from_xyz((x - 4.5) * 30., 200., LAYER_PLAYER),
                         ..default()
-                    },
-                    texture: asset_server.load(icon_for_role(&role)),
-                    transform: Transform::from_xyz((x - 4.5) * 10., 200., LAYER_PLAYER),
-                    ..default()
-                })
-                .insert(Player { ..default() })
-                .insert(AiPlayer { role });
-            x += 1.;
+                    })
+                    .insert(Player { ..default() })
+                    .insert(AiPlayer { role });
+                x += 1.;
+            }
         }
 
         commands
@@ -680,7 +709,7 @@ pub fn setup_phase(
                     custom_size: Some(Vec2::new(PLAYER_RADIUS * 2., PLAYER_RADIUS * 2.)),
                     ..default()
                 },
-                texture: asset_server.load("virt.png"),
+                texture: asset_server.load(icon_for_player_role(&game.player_role)),
                 transform: Transform::from_xyz(0., 200., LAYER_PLAYER),
                 ..default()
             })

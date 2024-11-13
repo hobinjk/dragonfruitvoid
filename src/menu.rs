@@ -1,6 +1,9 @@
 use bevy::prelude::*;
 
-use crate::game::{Game, GameState, MenuState, Player, HEIGHT, WIDTH};
+use crate::{
+    ai::AiRole,
+    game::{Game, GameState, MenuState, Player, HEIGHT, WIDTH},
+};
 
 #[derive(Component)]
 pub struct MenuContainer;
@@ -21,6 +24,8 @@ pub enum ButtonOnOff {
     UnlimitedRange(),
     Puddles(),
     Greens(),
+    AI(),
+    Role(),
 }
 
 const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
@@ -148,6 +153,7 @@ pub fn setup_menu_system(
 
                     let phases = vec![
                         ("Hints", ButtonOnOff::Hints(), game.hints_enabled),
+                        ("Friends", ButtonOnOff::AI(), game.ai_enabled),
                         ("Require Greens", ButtonOnOff::Greens(), game.greens_enabled),
                         ("Spawn Reds", ButtonOnOff::Puddles(), game.puddles_enabled),
                         (
@@ -161,6 +167,21 @@ pub fn setup_menu_system(
                             game.echo_enabled,
                         ),
                     ];
+
+                    container
+                        .spawn(ButtonBundle {
+                            style: button_style.clone(),
+                            background_color: NORMAL_BUTTON.into(),
+                            ..default()
+                        })
+                        .with_children(|parent| {
+                            let value = game.player_role.to_string();
+                            parent.spawn(TextBundle::from_section(
+                                format!("Role: {}", value),
+                                text_style.clone(),
+                            ));
+                        })
+                        .insert(ButtonOnOff::Role());
 
                     for (label, state, onoff_enabled) in phases {
                         container
@@ -363,6 +384,16 @@ pub fn update_menu_onoff_system(
                             }
                         }
                     }
+                    ButtonOnOff::AI() => {
+                        game.ai_enabled = !game.ai_enabled;
+                        let onoff = if game.ai_enabled { "ON" } else { "OFF" };
+
+                        for &child in children.iter() {
+                            if let Ok(mut text) = texts.get_mut(child) {
+                                text.sections[0].value = format!("Friends: {}", onoff);
+                            }
+                        }
+                    }
 
                     ButtonOnOff::Echo(ref mut val) => {
                         let mut label = "Ender's Echo";
@@ -397,6 +428,24 @@ pub fn update_menu_onoff_system(
                         for &child in children.iter() {
                             if let Ok(mut text) = texts.get_mut(child) {
                                 text.sections[0].value = format!("{}: {}", label, onoff);
+                            }
+                        }
+                    }
+
+                    ButtonOnOff::Role() => {
+                        let next_role = match game.player_role {
+                            AiRole::Virt1 | AiRole::Virt2 => AiRole::Herald1,
+                            AiRole::Herald1 | AiRole::Herald2 => AiRole::Ham1,
+                            AiRole::Ham1 | AiRole::Ham2 => AiRole::Dps1,
+                            AiRole::Dps1 | AiRole::Dps2 | AiRole::Dps3 | AiRole::Dps4 => {
+                                AiRole::Virt1
+                            }
+                        };
+                        game.player_role = next_role;
+
+                        for &child in children.iter() {
+                            if let Ok(mut text) = texts.get_mut(child) {
+                                text.sections[0].value = format!("Role: {}", next_role.to_string());
                             }
                         }
                     }
