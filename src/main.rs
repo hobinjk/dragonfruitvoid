@@ -1483,6 +1483,7 @@ fn main() {
     .add_event::<DamageFlashEvent>()
     .add_event::<RestartEvent>()
     .insert_resource(game)
+    .insert_resource(ClearColor(Color::rgb(0.3, 0.3, 0.3)))
     .add_systems(Startup, setup)
     .add_systems(OnEnter(MenuState::StartMenu), setup_menu_system)
     .add_systems(

@@ -618,7 +618,7 @@ fn setup_result_screen(
                 })
                 .with_children(|parent| {
                     let buttons = vec![
-                        // ("Restart", ButtonNextState::Restart()),
+                        ("Restart", ButtonNextState::Restart()),
                         ("Exit", ButtonNextState::Exit()),
                     ];
 
