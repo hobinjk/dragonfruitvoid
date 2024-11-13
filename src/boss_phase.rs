@@ -152,7 +152,7 @@ fn puddles_system(time: Res<Time>,
         if puddle.drop.percent() < 4. / 6. {
             if let Ok(transform_player) = players.get(puddle.target) {
                 transform.translation = transform_player.translation;
-                transform.translation.z = LAYER_AOE;
+                transform.translation.z = LAYER_AOE - 0.1;
             }
         }
 
