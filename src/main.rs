@@ -215,6 +215,7 @@ fn setup_purification_two(
 
 fn unleash_the_bees(
     time: Res<Time>,
+    game: Res<Game>,
     mut commands: Commands,
     orb: Query<&Transform, With<MobOrb>>,
     mut onntb: Query<&mut OhNoNotTheBees>,
@@ -223,11 +224,17 @@ fn unleash_the_bees(
         return;
     }
 
+    let bee_speed = if game.orb_target == 0 { BEE_SPEED } else { 0. };
+
     let transform_orb = orb.single();
 
     let mut bees = onntb.single_mut();
 
     bees.bees_cooldown.tick(time.delta());
+    if game.orb_target > 0 {
+        // Double bee rate when they're stationary
+        bees.bees_cooldown.tick(time.delta());
+    }
     if !bees.bees_cooldown.finished() {
         return;
     }
@@ -235,7 +242,7 @@ fn unleash_the_bees(
 
     let dir = rand::thread_rng().gen_range(0..8);
     let theta = (dir as f32) / 4. * PI;
-    let vel = Vec3::new(theta.cos() * BEE_SPEED, theta.sin() * BEE_SPEED, 0.);
+    let vel = Vec3::new(theta.cos() * bee_speed, theta.sin() * bee_speed, 0.);
     let orb_pos = transform_orb.translation;
     let pos = Vec3::new(orb_pos.x, orb_pos.y, LAYER_AOE);
 
