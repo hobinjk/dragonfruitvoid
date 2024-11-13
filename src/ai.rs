@@ -757,6 +757,7 @@ pub fn player_ai_purification_phase_system(
     orb_targets: Query<(&OrbTarget, &Transform), Without<Player>>,
     soups: Query<(&Soup, &Transform, &CollisionRadius), Without<Player>>,
     saltspray: Query<(&MobSaltspray, &Hp)>,
+    aoes: Query<(&Aoe, &Transform, &CollisionRadius, Option<&AoeFollow>), Without<Player>>,
 ) {
     let (_, orb_transform, orb_velocity) = match orb.get_single() {
         Ok(res) => res,
@@ -794,6 +795,7 @@ pub fn player_ai_purification_phase_system(
             think_dont_fall_off_edge(&player_pos),
             think_shoot_crab(player_pos, orb_pos, &enemies),
             think_avoid_soups(player_pos, &soups),
+            think_avoid_aoes(entity_player, player_pos, &aoes),
         ];
 
         if let (Some(orb_target_pos), Some(orb_dest_pos)) = (orb_target_pos, orb_dest_pos) {
