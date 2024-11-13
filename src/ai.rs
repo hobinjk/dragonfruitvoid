@@ -255,7 +255,7 @@ fn think_push_orb(
     let mut des_push_vel = des_orb_vel.sub(cur_vel);
 
     // The greater the difference the more we need to push the orb
-    let push_utility = des_push_vel.length() / (400. * GAME_TO_PX);
+    let push_utility = des_push_vel.length() / (300. * GAME_TO_PX);
 
     des_push_vel = des_push_vel.normalize();
 
@@ -270,8 +270,8 @@ fn think_push_orb(
     }
 
     if is_active {
-        let closer_dist =
-            (orb_pos.sub(player_pos).length() * 0.95).clamp(ORB_RADIUS * 1.3, MAP_RADIUS);
+        let closer_dist = (orb_pos.sub(player_pos).length() - PLAYER_RADIUS)
+            .clamp(ORB_RADIUS + PLAYER_RADIUS, MAP_RADIUS * 2.);
 
         let good_push_pos = orb_pos.sub(des_push_vel.extend(0.).mul(closer_dist));
 
