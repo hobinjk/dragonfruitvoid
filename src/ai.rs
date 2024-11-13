@@ -9,10 +9,10 @@ use crate::greens::StackGreen;
 use crate::mobs::Enemy;
 use crate::orbs::ORB_RADIUS;
 use crate::{
-    collide, Aoe, Boss, Bullet, CollisionRadius, Game, GameState, HasHit, Hp, MobOrb, MobSaltspray,
-    OrbTarget, PhaseEntity, Soup, StackGreenIndicator, Velocity, VoidZone, Wave, BULLET_DAMAGE,
-    BULLET_SIZE, BULLET_SPEED, GAME_TO_PX, JUMP_DURATION_S, LAYER_BULLET, MAP_RADIUS,
-    PLAYER_RADIUS, WAVE_MAX_RADIUS,
+    collide, Aoe, AoeFollow, Boss, Bullet, CollisionRadius, Game, GameState, HasHit, Hp, MobOrb,
+    MobSaltspray, OrbTarget, PhaseEntity, Soup, StackGreenIndicator, Velocity, VoidZone, Wave,
+    BULLET_DAMAGE, BULLET_SIZE, BULLET_SPEED, GAME_TO_PX, JUMP_DURATION_S, LAYER_BULLET,
+    MAP_RADIUS, PLAYER_RADIUS, WAVE_MAX_RADIUS,
 };
 
 #[derive(Copy, Clone, PartialEq)]
@@ -301,7 +301,7 @@ pub fn player_ai_boss_phase_system(
     puddle_spawns: Query<&PuddleSpawn>,
     puddles: Query<&Puddle>,
     soups: Query<(&Soup, &Transform, &CollisionRadius), Without<Player>>,
-    aoes: Query<(&Aoe, &Visibility, &Transform, &CollisionRadius), Without<Player>>,
+    aoes: Query<(&Aoe, &Transform, &CollisionRadius, Option<&AoeFollow>), Without<Player>>,
     void_zones: Query<(&CollisionRadius, &Transform), (With<VoidZone>, Without<Player>)>,
     waves: Query<(&Wave, &Visibility, &Transform), Without<Player>>,
 ) {
@@ -324,7 +324,7 @@ pub fn player_ai_boss_phase_system(
                 &void_zones,
             ),
             think_go_home(game_state.get(), &ai_player.role, player_pos),
-            think_avoid_aoes(player_pos, &aoes),
+            think_avoid_aoes(entity_player, player_pos, &aoes),
             think_jump_wave((&player, &transform), &waves),
         ];
 
@@ -473,20 +473,32 @@ fn think_do_puddles(
 }
 
 fn think_avoid_aoes(
+    player_entity: Entity,
     player_pos: Vec3,
-    aoes: &Query<(&Aoe, &Visibility, &Transform, &CollisionRadius), Without<Player>>,
+    aoes: &Query<(&Aoe, &Transform, &CollisionRadius, Option<&AoeFollow>), Without<Player>>,
 ) -> Thought {
     let mut avg_overlapping_aoe_pos = Vec3::ZERO;
     let mut n_overlapping = 0.;
 
-    for (aoe, visibility, transform, radius) in aoes {
+    for (aoe, transform, radius, aoe_follow) in aoes {
+        if let Some(aoe_follow) = aoe_follow {
+            if aoe_follow.target == player_entity {
+                continue;
+            }
+        }
         let big_and_about_to_happen = radius.0 > 300.
             && if let Some(vis_start) = &aoe.visibility_start {
                 vis_start.remaining_secs() < 3.
             } else {
                 false
             };
-        if visibility == Visibility::Hidden && !big_and_about_to_happen {
+        let visible = if let Some(vis_start) = &aoe.visibility_start {
+            vis_start.finished()
+        } else {
+            true
+        };
+
+        if !visible && !big_and_about_to_happen {
             continue;
         }
 
