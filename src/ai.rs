@@ -593,7 +593,7 @@ fn act_on_thought(
     let speed = 250.0 * GAME_TO_PX * time.delta_seconds();
     let safe_margin = match role {
         AiRole::Ham1 | AiRole::Ham2 => 0.3,
-        _ => 3.,
+        _ => 1.5,
     };
 
     match thought.action {
