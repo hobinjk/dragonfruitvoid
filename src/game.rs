@@ -39,7 +39,7 @@ pub enum PhaseSet {
 
 pub const LAYER_MAX: f32 = 110.;
 
-pub const LAYER_PLAYER: f32 = 100.;
+pub const LAYER_PLAYER: f32 = 90.;
 pub const LAYER_CURSOR: f32 = LAYER_PLAYER - 5.;
 pub const LAYER_MOB: f32 = 20.;
 pub const LAYER_BULLET: f32 = 19.;
