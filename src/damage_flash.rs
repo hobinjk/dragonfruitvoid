@@ -22,7 +22,7 @@ pub fn damage_flash_system(
 ) {
     let mut touched = HashSet::new();
 
-    for event in events.iter() {
+    for event in events.read() {
         if touched.contains(&event.entity) {
             continue;
         }

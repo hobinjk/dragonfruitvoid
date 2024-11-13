@@ -182,7 +182,7 @@ fn handle_mouse_events_system(
         }
     }
 
-    for event in cursor_moved_events.iter() {
+    for event in cursor_moved_events.read() {
         let mut cursor = cursors.single_mut();
         cursor.translation.x = event.position.x - WIDTH / 2.;
         cursor.translation.y = HEIGHT / 2. - event.position.y;

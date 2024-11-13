@@ -329,7 +329,7 @@ pub fn restart_event_system(
     mut res_next_game_state: ResMut<NextState<GameState>>,
     mut res_next_menu_state: ResMut<NextState<MenuState>>,
 ) {
-    for event in events.iter() {
+    for event in events.read() {
         res_next_game_state.set(event.game_state);
         res_next_menu_state.set(MenuState::Unpaused);
     }
