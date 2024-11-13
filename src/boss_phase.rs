@@ -3,6 +3,8 @@ use bevy::{
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
 
+use std::ops::Sub;
+
 use crate::collisions::{collisions_players_waves_system, CollisionRadius};
 use crate::game::*;
 use crate::greens::*;
@@ -39,7 +41,7 @@ pub struct Puddle {
 
 fn spread_aoe_spawn_system(
     time: ResMut<Time>,
-    players: Query<Entity, With<Player>>,
+    players: Query<(Entity, &Transform), With<Player>>,
     mut commands: Commands,
     mut spread_aoe_spawns: Query<&mut SpreadAoeSpawn>,
 ) {
@@ -54,7 +56,7 @@ fn spread_aoe_spawn_system(
         }
 
         if do_spawn {
-            for player in &players {
+            for &entity_player in get_spread_target_sorted_players(&players).iter().take(6) {
                 spawn_aoe(
                     &mut commands,
                     &spread_aoe_spawn.aoe_desc,
@@ -65,7 +67,9 @@ fn spread_aoe_spawn_system(
                         damage: SPREAD_DAMAGE,
                         linger: None,
                     },
-                    Some(AoeFollow { target: player }),
+                    Some(AoeFollow {
+                        target: entity_player,
+                    }),
                 );
             }
         }
@@ -89,6 +93,25 @@ pub fn boss_existence_check_system(
     } else {
         next_menu_state.set(MenuState::Success);
     }
+}
+
+fn get_spread_target_sorted_players(
+    players: &Query<(Entity, &Transform), With<Player>>,
+) -> Vec<Entity> {
+    let mut players_by_dist: Vec<(Entity, &Transform)> = vec![];
+    for player in players {
+        players_by_dist.push(player)
+    }
+
+    let boss_center = Vec3::new(0., MAP_RADIUS, 0.);
+
+    // Sort by distance to boss descending
+    players_by_dist.sort_by(|b, a| {
+        let pos_a = a.1.translation.sub(boss_center);
+        let pos_b = b.1.translation.sub(boss_center);
+        pos_a.length_squared().total_cmp(&pos_b.length_squared())
+    });
+    players_by_dist.iter().map(|a| a.0).collect()
 }
 
 fn get_puddle_target_sorted_players(
