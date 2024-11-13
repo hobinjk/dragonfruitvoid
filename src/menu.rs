@@ -175,7 +175,7 @@ pub fn setup_menu_system(
                             ..default()
                         })
                         .with_children(|parent| {
-                            let value = game.player_role.to_string();
+                            let value = player_role_to_string(&game.player_role);
                             parent.spawn(TextBundle::from_section(
                                 format!("Role: {}", value),
                                 text_style.clone(),
@@ -321,6 +321,14 @@ pub fn update_menu_system(
     }
 }
 
+fn player_role_to_string(role: &Option<AiRole>) -> String {
+    if let Some(role) = role {
+        role.to_string()
+    } else {
+        "Spectator".to_string()
+    }
+}
+
 pub fn update_menu_onoff_system(
     mut game: ResMut<Game>,
     mut interaction_query: Query<
@@ -433,19 +441,22 @@ pub fn update_menu_onoff_system(
                     }
 
                     ButtonOnOff::Role() => {
-                        let next_role = match game.player_role {
-                            AiRole::Virt1 | AiRole::Virt2 => AiRole::Herald1,
-                            AiRole::Herald1 | AiRole::Herald2 => AiRole::Ham1,
-                            AiRole::Ham1 | AiRole::Ham2 => AiRole::Dps1,
-                            AiRole::Dps1 | AiRole::Dps2 | AiRole::Dps3 | AiRole::Dps4 => {
-                                AiRole::Virt1
+                        let next_role = if let Some(role) = game.player_role {
+                            match role {
+                                AiRole::Virt1 | AiRole::Virt2 => Some(AiRole::Herald1),
+                                AiRole::Herald1 | AiRole::Herald2 => Some(AiRole::Ham1),
+                                AiRole::Ham1 | AiRole::Ham2 => Some(AiRole::Dps1),
+                                AiRole::Dps1 | AiRole::Dps2 | AiRole::Dps3 | AiRole::Dps4 => None,
                             }
+                        } else {
+                            Some(AiRole::Virt1)
                         };
                         game.player_role = next_role;
 
                         for &child in children.iter() {
                             if let Ok(mut text) = texts.get_mut(child) {
-                                text.sections[0].value = format!("Role: {}", next_role.to_string());
+                                text.sections[0].value =
+                                    format!("Role: {}", player_role_to_string(&next_role));
                             }
                         }
                     }

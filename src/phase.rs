@@ -609,18 +609,22 @@ pub fn add_update_phase_set(app: &mut App) {
     );
 }
 
-fn icon_for_player_role(role: &AiRole) -> &'static str {
-    match role {
-        AiRole::Virt1 => "virt.png",
-        AiRole::Virt2 => "virt.png",
-        AiRole::Herald1 => "herald.png",
-        AiRole::Herald2 => "herald.png",
-        AiRole::Ham1 => "ham.png",
-        AiRole::Ham2 => "ham.png",
-        AiRole::Dps1 => "dps.png",
-        AiRole::Dps2 => "dps.png",
-        AiRole::Dps3 => "dps.png",
-        AiRole::Dps4 => "dps.png",
+fn icon_for_player_role(role: &Option<AiRole>) -> &'static str {
+    if let Some(role) = role {
+        match role {
+            AiRole::Virt1 => "virt.png",
+            AiRole::Virt2 => "virt.png",
+            AiRole::Herald1 => "herald.png",
+            AiRole::Herald2 => "herald.png",
+            AiRole::Ham1 => "ham.png",
+            AiRole::Ham2 => "ham.png",
+            AiRole::Dps1 => "dps.png",
+            AiRole::Dps2 => "dps.png",
+            AiRole::Dps3 => "dps.png",
+            AiRole::Dps4 => "dps.png",
+        }
+    } else {
+        ""
     }
 }
 
@@ -682,9 +686,11 @@ pub fn setup_phase(
                 AiRole::Dps3,
                 AiRole::Dps4,
             ] {
-                if role == game.player_role {
-                    // Player is stepping in for whoever this is
-                    continue;
+                if let Some(player_role) = game.player_role {
+                    if role == player_role {
+                        // Player is stepping in for whoever this is
+                        continue;
+                    }
                 }
 
                 commands
@@ -703,17 +709,19 @@ pub fn setup_phase(
             }
         }
 
-        commands
-            .spawn(SpriteBundle {
-                sprite: Sprite {
-                    custom_size: Some(Vec2::new(PLAYER_RADIUS * 2., PLAYER_RADIUS * 2.)),
+        if game.player_role.is_some() {
+            commands
+                .spawn(SpriteBundle {
+                    sprite: Sprite {
+                        custom_size: Some(Vec2::new(PLAYER_RADIUS * 2., PLAYER_RADIUS * 2.)),
+                        ..default()
+                    },
+                    texture: asset_server.load(icon_for_player_role(&game.player_role)),
+                    transform: Transform::from_xyz(0., 200., LAYER_PLAYER),
                     ..default()
-                },
-                texture: asset_server.load(icon_for_player_role(&game.player_role)),
-                transform: Transform::from_xyz(0., 200., LAYER_PLAYER),
-                ..default()
-            })
-            .insert(Player { ..default() });
+                })
+                .insert(Player { ..default() });
+        }
     }
 
     for (mut player, ai_player) in &mut players {
@@ -780,6 +788,17 @@ pub fn setup_phase(
         })
         .insert(PhaseEntity);
 
+    if game.player_role.is_some() {
+        setup_player_ui(&mut commands, &asset_server, &mut meshes, &mut materials);
+    }
+}
+
+fn setup_player_ui(
+    commands: &mut Commands,
+    asset_server: &Res<AssetServer>,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<ColorMaterial>>,
+) {
     let text_style = TextStyle {
         font: asset_server.load("trebuchet_ms.ttf"),
         font_size: 64.,

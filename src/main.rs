@@ -1459,7 +1459,7 @@ fn main() {
         puddles_enabled: true,
         unlimited_range_enabled: true,
         ai_enabled: true,
-        player_role: AiRole::Virt1,
+        player_role: Some(AiRole::Virt1),
     };
 
     let binding = App::new();
