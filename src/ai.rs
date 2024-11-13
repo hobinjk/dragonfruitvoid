@@ -261,7 +261,7 @@ fn think_push_orb(
 
     // cos(angle between vels) means that 1 is good, 0 is bad
     let push_goodness = des_push_vel.dot(cur_push_vel);
-    if push_goodness > 0.99 && is_active && !saltspray_exists {
+    if push_goodness > 0.98 && is_active && !saltspray_exists {
         // roughly +-8 degrees
         return Thought {
             utility: push_utility,
