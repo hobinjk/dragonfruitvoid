@@ -10,12 +10,12 @@ use crate::mobs::Enemy;
 use crate::orbs::ORB_RADIUS;
 use crate::{
     collide, Aoe, Boss, Bullet, CollisionRadius, Game, GameState, HasHit, Hp, MobOrb, MobSaltspray,
-    OrbTarget, PhaseEntity, Soup, StackGreenIndicator, Velocity, VoidZone, Wave, BULLET_SIZE,
-    BULLET_SPEED, GAME_TO_PX, JUMP_DURATION_S, LAYER_BULLET, MAP_RADIUS, PLAYER_RADIUS,
-    WAVE_MAX_RADIUS,
+    OrbTarget, PhaseEntity, Soup, StackGreenIndicator, Velocity, VoidZone, Wave, BULLET_DAMAGE,
+    BULLET_SIZE, BULLET_SPEED, GAME_TO_PX, JUMP_DURATION_S, LAYER_BULLET, MAP_RADIUS,
+    PLAYER_RADIUS, WAVE_MAX_RADIUS,
 };
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum AiRole {
     Virt1,
     Virt2,
@@ -27,6 +27,18 @@ pub enum AiRole {
     Dps2,
     Dps3,
     Dps4,
+}
+
+impl ToString for AiRole {
+    fn to_string(&self) -> String {
+        match self {
+            AiRole::Virt1 | AiRole::Virt2 => "Virtuoso",
+            AiRole::Herald1 | AiRole::Herald2 => "Herald",
+            AiRole::Ham1 | AiRole::Ham2 => "HAM",
+            AiRole::Dps1 | AiRole::Dps2 | AiRole::Dps3 | AiRole::Dps4 => "DPS",
+        }
+        .to_string()
+    }
 }
 
 #[derive(Component)]
@@ -633,6 +645,7 @@ fn act_on_thought(
                     .insert(Bullet {
                         age: 0.,
                         firer: entity_player,
+                        base_damage: BULLET_DAMAGE,
                     })
                     .insert(HasHit(HashSet::new()))
                     .insert(PhaseEntity);

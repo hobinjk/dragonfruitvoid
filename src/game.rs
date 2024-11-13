@@ -2,7 +2,7 @@ use bevy::{prelude::*, time::Stopwatch};
 
 use std::time::Duration;
 
-use crate::JUMP_DURATION_S;
+use crate::{ai::AiRole, JUMP_DURATION_S};
 
 #[derive(States, Clone, Copy, Eq, PartialEq, Debug, Hash, Default)]
 pub enum GameState {
@@ -98,6 +98,7 @@ pub struct Player {
 pub struct Bullet {
     pub age: f32,
     pub firer: Entity,
+    pub base_damage: f32,
 }
 
 #[derive(Component)]
@@ -140,10 +141,12 @@ pub struct Game {
     pub continuous: bool,
     pub echo_enabled: bool,
     pub hints_enabled: bool,
+    pub ai_enabled: bool,
     pub hint: Option<&'static str>,
     pub puddles_enabled: bool,
     pub greens_enabled: bool,
     pub unlimited_range_enabled: bool,
+    pub player_role: AiRole,
 }
 
 pub fn next_game_state(game_state: GameState) -> GameState {

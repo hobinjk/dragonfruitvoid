@@ -31,7 +31,7 @@ fn bullet_damage(bullet: &Bullet) -> f32 {
     if damage_tier < 1. {
         damage_tier = 1.;
     }
-    BULLET_DAMAGE * damage_tier
+    bullet.base_damage * damage_tier
 }
 
 pub fn collisions_bullets_orbs_system(
