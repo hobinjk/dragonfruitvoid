@@ -102,7 +102,7 @@ impl Player {
     pub fn damage(&mut self, amount: f32, reason: &str) {
         self.hp -= amount;
         if self.hp <= 0. {
-            println!("{} died to {}", self.name, reason);
+            info!("{} died: {}", self.name, reason);
         }
     }
     pub fn heal(&mut self, amount: f32) {
