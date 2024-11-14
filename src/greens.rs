@@ -208,7 +208,7 @@ pub fn greens_detonation_system(
             if !any_collide {
                 if game.greens_enabled {
                     for (mut player, _) in &mut players {
-                        player.hp = 0.;
+                        player.damage(999., "green detonation");
                     }
                 }
                 info!("green exploded");

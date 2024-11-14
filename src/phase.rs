@@ -118,10 +118,7 @@ fn game_player_time_system(
         player.jump_cooldown.tick(time.delta());
         player.invuln.tick(time.delta());
         player.jump.tick(time.delta());
-        player.hp += time.delta_seconds() * PLAYER_REGEN;
-        if player.hp > 100. {
-            player.hp = 100.;
-        }
+        player.heal(time.delta_seconds() * PLAYER_REGEN);
     }
 }
 
@@ -473,7 +470,7 @@ fn void_zone_growth_system(
 
 fn player_hp_check_system(players: Query<(Entity, &Player)>, mut commands: Commands) {
     for (entity_player, player) in &players {
-        if player.hp <= 0.1 {
+        if player.get_hp() <= 0.1 {
             commands.entity(entity_player).despawn_recursive();
         }
     }
@@ -609,22 +606,18 @@ pub fn add_update_phase_set(app: &mut App) {
     );
 }
 
-fn icon_for_player_role(role: &Option<AiRole>) -> &'static str {
-    if let Some(role) = role {
-        match role {
-            AiRole::Virt1 => "virt.png",
-            AiRole::Virt2 => "virt.png",
-            AiRole::Herald1 => "herald.png",
-            AiRole::Herald2 => "herald.png",
-            AiRole::Ham1 => "ham.png",
-            AiRole::Ham2 => "ham.png",
-            AiRole::Dps1 => "dps.png",
-            AiRole::Dps2 => "dps.png",
-            AiRole::Dps3 => "dps.png",
-            AiRole::Dps4 => "dps.png",
-        }
-    } else {
-        ""
+fn icon_for_player_role(role: &AiRole) -> &'static str {
+    match role {
+        AiRole::Virt1 => "virt.png",
+        AiRole::Virt2 => "virt.png",
+        AiRole::Herald1 => "herald.png",
+        AiRole::Herald2 => "herald.png",
+        AiRole::Ham1 => "ham.png",
+        AiRole::Ham2 => "ham.png",
+        AiRole::Dps1 => "dps.png",
+        AiRole::Dps2 => "dps.png",
+        AiRole::Dps3 => "dps.png",
+        AiRole::Dps4 => "dps.png",
     }
 }
 
@@ -659,7 +652,8 @@ pub fn setup_phase(
         game.time_elapsed.reset();
         game.player_damage_taken = 0.;
         for (mut player, _) in &mut players {
-            player.hp = 100.;
+            // Reset player hp
+            player.heal(10000.);
             player.dodge_cooldown.tick(Duration::from_secs_f32(1000.));
             player.blink_cooldown.tick(Duration::from_secs_f32(1000.));
             player.portal_cooldown.tick(Duration::from_secs_f32(1000.));
@@ -703,24 +697,24 @@ pub fn setup_phase(
                         transform: Transform::from_xyz((x - 4.5) * 30., 200., LAYER_PLAYER),
                         ..default()
                     })
-                    .insert(Player { ..default() })
+                    .insert(Player::new(role.to_string()))
                     .insert(AiPlayer { role });
                 x += 1.;
             }
         }
 
-        if game.player_role.is_some() {
+        if let Some(player_role) = game.player_role {
             commands
                 .spawn(SpriteBundle {
                     sprite: Sprite {
                         custom_size: Some(Vec2::new(PLAYER_RADIUS * 2., PLAYER_RADIUS * 2.)),
                         ..default()
                     },
-                    texture: asset_server.load(icon_for_player_role(&game.player_role)),
+                    texture: asset_server.load(icon_for_player_role(&player_role)),
                     transform: Transform::from_xyz(0., 200., LAYER_PLAYER),
                     ..default()
                 })
-                .insert(Player { ..default() });
+                .insert(Player::new(format!("human {}", player_role.to_string())));
         }
     }
 
@@ -729,7 +723,7 @@ pub fn setup_phase(
             continue;
         }
         // Full-heal ai players as a treat
-        player.hp = 100.;
+        player.heal(100.);
     }
 
     if game.echo_enabled {

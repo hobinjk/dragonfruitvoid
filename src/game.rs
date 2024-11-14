@@ -82,7 +82,8 @@ pub struct CursorMark;
 
 #[derive(Component)]
 pub struct Player {
-    pub hp: f32,
+    pub name: String,
+    hp: f32,
     pub damage_taken: f32,
     pub shoot_cooldown: Timer,
     pub dodge_cooldown: Timer,
@@ -92,6 +93,27 @@ pub struct Player {
     pub jump_cooldown: Timer,
     pub invuln: Timer,
     pub jump: Timer,
+}
+
+impl Player {
+    pub fn new(name: String) -> Player {
+        Player { name, ..default() }
+    }
+    pub fn damage(&mut self, amount: f32, reason: &str) {
+        self.hp -= amount;
+        if self.hp <= 0. {
+            println!("{} died to {}", self.name, reason);
+        }
+    }
+    pub fn heal(&mut self, amount: f32) {
+        self.hp += amount;
+        if self.hp > 100. {
+            self.hp = 100.;
+        }
+    }
+    pub fn get_hp(&self) -> f32 {
+        self.hp
+    }
 }
 
 #[derive(Component)]
@@ -110,6 +132,7 @@ pub struct EnemyBullet {
 impl Default for Player {
     fn default() -> Self {
         let mut player = Player {
+            name: "player".to_string(),
             hp: 100.,
             damage_taken: 0.,
             shoot_cooldown: Timer::from_seconds(BULLET_COOLDOWN, TimerMode::Once),

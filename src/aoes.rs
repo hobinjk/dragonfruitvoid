@@ -98,7 +98,7 @@ pub fn aoes_detonation_system(
             let hit = collide(transform.translation, radius.0, player_pos, 0.);
 
             if hit {
-                player.hp -= aoe.damage;
+                player.damage(aoe.damage, "aoe detonation");
                 player.damage_taken += aoe.damage;
                 damage_flash_events.send(DamageFlashEvent {
                     entity: entity_player,

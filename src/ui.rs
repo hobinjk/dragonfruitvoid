@@ -66,7 +66,7 @@ pub fn player_text_system(
         for (mut text, text_display) in &mut text_displays {
             match text_display.value {
                 TextValue::Hp => {
-                    let hp = player.hp;
+                    let hp = player.get_hp().clamp(0., 100.);
                     text.sections[0].value = format!("{hp:.0}");
                 }
                 TextValue::CooldownBlink => {

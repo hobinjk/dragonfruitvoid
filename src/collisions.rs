@@ -117,7 +117,7 @@ pub fn collisions_crabs_orbs_system(
             let crab_pos = transform_crab.translation;
             if collide(orb_pos, ORB_RADIUS, crab_pos, CRAB_SIZE / 2.) {
                 for mut player in &mut players {
-                    player.hp = 0.;
+                    player.damage(999., "crab hit orb");
                 }
                 info!("crab hit orb");
             }
@@ -182,8 +182,7 @@ pub fn collisions_orb_targets_system(
 pub fn collisions_players_edge_system(mut players: Query<(&mut Player, &Transform)>) {
     for (mut player, transform_player) in &mut players {
         if !collide(transform_player.translation, 0., Vec3::ZERO, MAP_RADIUS) {
-            player.hp = 0.;
-            info!("player fell off the edge");
+            player.damage(999., "player fell off the edge");
         }
     }
 }
@@ -212,7 +211,7 @@ pub fn collisions_players_echo_system(
 
             echo.gottem = true;
 
-            player.hp -= ECHO_DAMAGE * time.delta_seconds();
+            player.damage(ECHO_DAMAGE * time.delta_seconds(), "echo hug");
             player.damage_taken += ECHO_DAMAGE * time.delta_seconds();
         }
     }
@@ -231,7 +230,7 @@ pub fn collisions_players_soups_system(
                 continue;
             }
             let damage = soup.damage * time.delta_seconds();
-            player.hp -= damage;
+            player.damage(damage, "soup");
             player.damage_taken += damage;
             if soup.damage > 0.1 {
                 damage_flash_events.send(DamageFlashEvent {
@@ -268,7 +267,7 @@ pub fn collisions_players_waves_system(
             }
             if collide(player_pos, 0., transform.translation, r_outer) {
                 if player.invuln.finished() && player.jump.finished() {
-                    player.hp -= WAVE_DAMAGE;
+                    player.damage(WAVE_DAMAGE, "wave");
                     player.damage_taken += WAVE_DAMAGE;
                     damage_flash_events.send(DamageFlashEvent {
                         entity: entity_player,
@@ -293,7 +292,7 @@ pub fn collisions_orbs_edge_system(
             MAP_RADIUS - ORB_RADIUS,
         ) {
             for mut player in &mut players {
-                player.hp = 0.;
+                player.damage(999., "orb hit the edge");
             }
             info!("orb hit the edge: {}", transform_orb.translation);
         }
@@ -326,7 +325,7 @@ pub fn collisions_players_enemy_bullets_system(
             }
 
             if player.invuln.finished() {
-                player.hp -= bullet.damage;
+                player.damage(bullet.damage, "bullet");
                 player.damage_taken += bullet.damage;
                 damage_flash_events.send(DamageFlashEvent {
                     entity: entity_player,
