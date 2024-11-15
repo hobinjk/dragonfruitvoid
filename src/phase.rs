@@ -38,9 +38,6 @@ pub struct RotatingSoup {
 pub struct VoidZone;
 
 #[derive(Component)]
-pub struct VoidZoneGrowth(pub Timer);
-
-#[derive(Component)]
 pub struct VoidZoneCrabSpawn(pub Timer);
 
 #[derive(Component)]
@@ -449,22 +446,14 @@ fn move_player_system(
 
 fn void_zone_growth_system(
     time: Res<Time>,
-    mut void_zone_growths: Query<&mut VoidZoneGrowth>,
     mut void_zones: Query<(&mut CollisionRadius, &mut Transform), With<VoidZone>>,
 ) {
-    let void_zone_growth = &mut void_zone_growths.single_mut().0;
-
-    void_zone_growth.tick(time.delta());
-
-    let growing = void_zone_growth.just_finished();
-
     for (mut collision_radius, mut transform) in &mut void_zones {
-        if growing {
-            collision_radius.0 += VOID_ZONE_GROWTH_AMOUNT;
-            let new_scale = collision_radius.0 / VOID_ZONE_START_RADIUS;
-            transform.scale.x = new_scale;
-            transform.scale.y = new_scale;
-        }
+        collision_radius.0 +=
+            VOID_ZONE_GROWTH_AMOUNT / VOID_ZONE_GROWTH_DURATION_SECS * time.delta().as_secs_f32();
+        let new_scale = collision_radius.0 / VOID_ZONE_START_RADIUS;
+        transform.scale.x = new_scale;
+        transform.scale.y = new_scale;
     }
 }
 
@@ -746,13 +735,6 @@ pub fn setup_phase(
             .insert(CollisionRadius(ECHO_RADIUS))
             .insert(PhaseEntity);
     }
-
-    commands
-        .spawn(VoidZoneGrowth(Timer::from_seconds(
-            VOID_ZONE_GROWTH_DURATION_SECS,
-            TimerMode::Repeating,
-        )))
-        .insert(PhaseEntity);
 
     commands
         .spawn(VoidZoneCrabSpawn(Timer::from_seconds(
