@@ -41,6 +41,20 @@ impl ToString for AiRole {
     }
 }
 
+impl AiRole {
+    fn is_blink_enabled(&self) -> bool {
+        match self {
+            AiRole::Virt1 | AiRole::Virt2 | AiRole::Ham1 | AiRole::Ham2 => true,
+            AiRole::Herald1
+            | AiRole::Herald2
+            | AiRole::Dps1
+            | AiRole::Dps2
+            | AiRole::Dps3
+            | AiRole::Dps4 => false,
+        }
+    }
+}
+
 #[derive(Component)]
 pub struct AiPlayer {
     pub role: AiRole,
@@ -626,6 +640,11 @@ fn make_movement_safe(
     if safe_movement.length_squared() < movement.length_squared() {
         safe_movement = safe_movement.clamp_length_min(movement.length());
     }
+
+    // Re-clamp to map bounds since we may have overcorrected by increasing the length
+    let unsafe_translation = player_pos.add(safe_movement);
+    let safe_translation = unsafe_translation.clamp_length(safe_inner_radius, safe_map_radius);
+    let safe_movement = safe_translation.sub(player_pos);
     safe_movement.extend(0.)
 }
 
@@ -671,7 +690,7 @@ fn act_on_thought(
 
                     player.invuln = Timer::from_seconds(DODGE_DURATION_S, TimerMode::Once);
                     player.dodge_cooldown.reset();
-                } else if player.blink_cooldown.finished() {
+                } else if player.blink_cooldown.finished() && role.is_blink_enabled() {
                     let blink_range = 1200.0 * GAME_TO_PX;
                     let blink_speed = blink_range / 0.1;
 
