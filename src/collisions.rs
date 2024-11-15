@@ -187,6 +187,7 @@ pub fn collisions_players_edge_system(mut players: Query<(&mut Player, &Transfor
     for (mut player, transform_player) in &mut players {
         if !collide(transform_player.translation, 0., Vec3::ZERO, MAP_RADIUS) {
             player.damage(999., "player fell off the edge");
+            info!("player fell off the edge: {}", transform_player.translation);
         }
     }
 }
