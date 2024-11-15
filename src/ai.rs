@@ -150,7 +150,7 @@ fn is_safe_for_orb(
         .sub(player_pos)
         .truncate();
 
-    let angle_orb = (ORB_RADIUS * 2.).atan2(orb_dist).clamp(0., PI / 2.);
+    let angle_orb = (ORB_RADIUS * 1.4).atan2(orb_dist).clamp(0., PI / 2.);
     let mut angle_shoot = orb_dir_after.angle_between(shoot_dir);
 
     if angle_shoot < 0. {
