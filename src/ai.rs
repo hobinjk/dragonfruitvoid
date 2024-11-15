@@ -264,7 +264,7 @@ fn think_push_orb(
                 // Only start pre-moving if the dragon is a little low
                 return Thought::REST;
             }
-            hp.0 > 2.
+            hp.0 > 1.5
         }
         Err(_) => false,
     };
@@ -288,7 +288,7 @@ fn think_push_orb(
 
     // cos(angle between vels) means that 1 is good, 0 is bad
     let push_goodness = des_push_vel.dot(cur_push_vel);
-    if push_goodness > 0.99 && is_active && !saltspray_exists {
+    if push_goodness > 0.99 && push_utility > 0.3 && is_active && !saltspray_exists {
         // roughly +-8 degrees
         return Thought {
             utility: push_utility,
