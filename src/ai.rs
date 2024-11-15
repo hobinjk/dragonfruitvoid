@@ -127,7 +127,12 @@ fn think_jump_wave(
     Thought::REST
 }
 
-fn is_safe_for_orb(player_pos: Vec3, orb_pos: Vec3, enemy_pos: Vec3) -> bool {
+fn is_safe_for_orb(
+    player_pos: Vec3,
+    orb_pos: Vec3,
+    orb_velocity: &Velocity,
+    enemy_pos: Vec3,
+) -> bool {
     let shoot_dir = enemy_pos.sub(player_pos).truncate();
     let orb_dir = orb_pos.sub(player_pos).truncate();
 
@@ -136,10 +141,17 @@ fn is_safe_for_orb(player_pos: Vec3, orb_pos: Vec3, enemy_pos: Vec3) -> bool {
         return false;
     }
 
-    let angle_orb = (ORB_RADIUS * 3.5)
-        .atan2(orb_dir.length())
-        .clamp(0., PI / 2.);
-    let mut angle_shoot = orb_dir.angle_between(shoot_dir);
+    let orb_vel = orb_velocity.0;
+    let orb_dist = orb_dir.length();
+
+    let seconds_to_orb = orb_dist / BULLET_SPEED;
+    let orb_dir_after = orb_pos
+        .add(orb_vel.mul(seconds_to_orb))
+        .sub(player_pos)
+        .truncate();
+
+    let angle_orb = (ORB_RADIUS * 2.).atan2(orb_dist).clamp(0., PI / 2.);
+    let mut angle_shoot = orb_dir_after.angle_between(shoot_dir);
 
     if angle_shoot < 0. {
         angle_shoot += 2. * PI;
@@ -157,13 +169,14 @@ fn is_safe_for_orb(player_pos: Vec3, orb_pos: Vec3, enemy_pos: Vec3) -> bool {
 fn think_shoot_crab(
     player_pos: Vec3,
     orb_pos: Vec3,
+    orb_velocity: &Velocity,
     enemies: &Query<(&Enemy, &Transform), Without<Player>>,
 ) -> Thought {
     let mut closest_enemy: Option<(f32, Vec3)> = None;
     let mut unsafe_enemy_pos = None;
     for (_enemy, transform_enemy) in enemies {
         let enemy_pos: Vec3 = transform_enemy.translation;
-        if !is_safe_for_orb(player_pos, orb_pos, enemy_pos) {
+        if !is_safe_for_orb(player_pos, orb_pos, orb_velocity, enemy_pos) {
             unsafe_enemy_pos = Some(enemy_pos);
             continue;
         }
@@ -893,7 +906,7 @@ pub fn player_ai_purification_phase_system(
 
         let mut thoughts: Vec<Thought> = vec![
             think_dont_fall_off_edge(&player_pos),
-            think_shoot_crab(player_pos, orb_pos, &enemies),
+            think_shoot_crab(player_pos, orb_pos, &orb_velocity, &enemies),
             think_avoid_soups(player_pos, &soups),
             think_avoid_aoes(entity_player, player_pos, &aoes),
         ];
