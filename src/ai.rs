@@ -319,7 +319,7 @@ pub fn player_ai_boss_phase_system(
     greens: Query<(&StackGreen, &Children)>,
     indicators: Query<(&StackGreenIndicator, &Transform), Without<Player>>,
     puddle_spawns: Query<&PuddleSpawn>,
-    puddles: Query<&Puddle>,
+    puddles: Query<(&Puddle, &CollisionRadius, &Transform), Without<Player>>,
     soups: Query<(&Soup, &Transform, &CollisionRadius), Without<Player>>,
     aoes: Query<(&Aoe, &Transform, &CollisionRadius, Option<&AoeFollow>), Without<Player>>,
     void_zones: Query<(&CollisionRadius, &Transform), (With<VoidZone>, Without<Player>)>,
@@ -428,7 +428,7 @@ fn think_do_puddles(
     player_pos: Vec3,
     role: &AiRole,
     puddle_spawns: &Query<&PuddleSpawn>,
-    puddles: &Query<&Puddle>,
+    puddles: &Query<(&Puddle, &CollisionRadius, &Transform), Without<Player>>,
     void_zones: &Query<(&CollisionRadius, &Transform), (With<VoidZone>, Without<Player>)>,
 ) -> Thought {
     match role {
@@ -443,7 +443,19 @@ fn think_do_puddles(
         AiRole::Ham1 | AiRole::Ham2 => {}
     };
 
-    for puddle in puddles {
+    let mut target_theta = PI;
+
+    for (puddle, radius, puddle_transform) in puddles {
+        if puddle.drop.finished() {
+            let puddle_pos = puddle_transform.translation;
+            let theta = puddle_pos.x.atan2(puddle_pos.y).abs();
+            let new_target_theta = theta - (radius.0 / puddle_pos.length()).sin();
+            if new_target_theta < PI / 3. {
+                continue;
+            }
+            target_theta = target_theta.min(new_target_theta);
+        }
+
         if puddle.drop.percent() < 4. / 6. {
             let r = MAP_RADIUS - PLAYER_RADIUS;
             let theta = player_pos.x.atan2(player_pos.y);
@@ -466,7 +478,7 @@ fn think_do_puddles(
             continue;
         }
 
-        // Be as close to the center as possible while rotating to the back
+        // Be as close to the center as possible while rotating to the next safe drop location
         let r = center_void_zone_radius.0 + PLAYER_RADIUS * 0.5;
         let mut theta = player_pos.x.atan2(player_pos.y);
         if theta < 0. {
@@ -474,7 +486,7 @@ fn think_do_puddles(
         } else {
             theta += 0.2;
         }
-        theta = theta.clamp(-PI + 0.05, PI - 0.05);
+        theta = theta.clamp(-target_theta, target_theta);
         let target_pos = Vec3::new(r * theta.sin(), r * theta.cos(), 0.);
 
         let mut utility = 0.8;
