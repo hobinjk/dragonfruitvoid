@@ -53,7 +53,11 @@ pub fn collisions_bullets_orbs_system(
             if collide(bullet_pos, BULLET_SIZE / 2., orb_pos, ORB_RADIUS) {
                 has_hit.0.insert(entity_orb);
 
-                let transform_player = players.get(bullet.firer).unwrap();
+                let player = players.get(bullet.firer);
+                if player.is_err() {
+                    continue;
+                }
+                let transform_player = player.unwrap();
                 let push_str = 4.;
                 let orb_max_vel = 60.;
                 let mut diff = orb_pos.sub(transform_player.translation);
