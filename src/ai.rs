@@ -11,8 +11,8 @@ use crate::orbs::ORB_RADIUS;
 use crate::{
     collide, Aoe, AoeFollow, Boss, Bullet, CollisionRadius, EffectForcedMarch, Game, GameState,
     HasHit, Hp, MobOrb, MobSaltspray, OrbTarget, PhaseEntity, Soup, StackGreenIndicator, Velocity,
-    VoidZone, Wave, BULLET_DAMAGE, BULLET_SIZE, BULLET_SPEED, GAME_TO_PX, JUMP_DURATION_S,
-    LAYER_BULLET, MAP_RADIUS, PLAYER_RADIUS, WAVE_MAX_RADIUS,
+    VoidZone, Wave, BULLET_DAMAGE, BULLET_SIZE, BULLET_SPEED, DODGE_DURATION_S, GAME_TO_PX,
+    JUMP_DURATION_S, LAYER_BULLET, MAP_RADIUS, PLAYER_RADIUS, WAVE_MAX_RADIUS,
 };
 
 #[derive(Copy, Clone, PartialEq)]
@@ -598,6 +598,37 @@ fn act_on_thoughts(
     );
 }
 
+fn make_movement_safe(
+    player_pos: Vec3,
+    target_pos: Vec3,
+    speed: f32,
+    center_void_zone_radius: Option<f32>,
+    safe_margin: f32,
+) -> Vec3 {
+    let safe_map_radius = MAP_RADIUS - PLAYER_RADIUS * 1.2;
+    let safe_inner_radius = if let Some(center_void_zone_radius) = center_void_zone_radius {
+        center_void_zone_radius + PLAYER_RADIUS * safe_margin
+    } else {
+        0.
+    };
+
+    let player_pos = player_pos.truncate();
+
+    let movement = target_pos
+        .truncate()
+        .sub(player_pos)
+        .clamp_length(0., speed);
+    let unsafe_translation = player_pos.add(movement);
+    let safe_translation = unsafe_translation.clamp_length(safe_inner_radius, safe_map_radius);
+
+    let mut safe_movement = safe_translation.sub(player_pos);
+
+    if safe_movement.length_squared() < movement.length_squared() {
+        safe_movement = safe_movement.clamp_length_min(movement.length());
+    }
+    safe_movement.extend(0.)
+}
+
 fn act_on_thought(
     thought: &Thought,
     time: &Res<Time>,
@@ -617,30 +648,59 @@ fn act_on_thought(
     match thought.action {
         Action::Rest => {}
         Action::Move(target_pos) => {
-            let safe_map_radius = MAP_RADIUS - PLAYER_RADIUS * 1.2;
-            let safe_inner_radius = if let Some(center_void_zone_radius) = center_void_zone_radius {
-                center_void_zone_radius + PLAYER_RADIUS * safe_margin
-            } else {
-                0.
-            };
+            let player_pos = player_transform.translation;
+            let remaining_len = player_pos.sub(target_pos).truncate().length_squared();
+            let dodge_range = 300. * GAME_TO_PX;
 
-            let player_pos = player_transform.translation.truncate();
+            if thought.utility > 0.9 && remaining_len > dodge_range * dodge_range {
+                if player.dodge_cooldown.finished() {
+                    let dodge_speed = dodge_range / DODGE_DURATION_S;
+                    let safe_movement = make_movement_safe(
+                        player_pos,
+                        target_pos,
+                        dodge_range,
+                        center_void_zone_radius,
+                        safe_margin,
+                    );
+                    let target_pos = player_transform.translation.add(safe_movement);
 
-            let movement = target_pos
-                .sub(player_transform.translation)
-                .truncate()
-                .clamp_length(0., speed);
-            let unsafe_translation = player_pos.add(movement);
-            let safe_translation =
-                unsafe_translation.clamp_length(safe_inner_radius, safe_map_radius);
+                    commands.entity(entity_player).insert(EffectForcedMarch {
+                        target: target_pos,
+                        speed: dodge_speed,
+                    });
 
-            let mut safe_movement = safe_translation.sub(player_pos);
+                    player.invuln = Timer::from_seconds(DODGE_DURATION_S, TimerMode::Once);
+                    player.dodge_cooldown.reset();
+                } else if player.blink_cooldown.finished() {
+                    let blink_range = 1200.0 * GAME_TO_PX;
+                    let blink_speed = blink_range / 0.1;
 
-            if safe_movement.length_squared() < movement.length_squared() {
-                safe_movement = safe_movement.clamp_length_min(movement.length());
+                    let safe_movement = make_movement_safe(
+                        player_pos,
+                        target_pos,
+                        blink_range,
+                        center_void_zone_radius,
+                        safe_margin,
+                    );
+                    let target_pos = player_transform.translation.add(safe_movement);
+
+                    commands.entity(entity_player).insert(EffectForcedMarch {
+                        target: target_pos,
+                        speed: blink_speed,
+                    });
+
+                    player.invuln = Timer::from_seconds(0.1, TimerMode::Once);
+                    player.blink_cooldown.reset();
+                }
             }
-            player_transform.translation =
-                player_transform.translation.add(safe_movement.extend(0.));
+            let safe_movement = make_movement_safe(
+                player_transform.translation,
+                target_pos,
+                speed,
+                center_void_zone_radius,
+                safe_margin,
+            );
+            player_transform.translation = player_transform.translation.add(safe_movement);
         }
         Action::Shoot(dir) => {
             let player_pos = player_transform.translation;
