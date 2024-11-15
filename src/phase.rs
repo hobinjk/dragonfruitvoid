@@ -90,7 +90,7 @@ fn effect_forced_march_system(
         diff.z = 0.;
         let speed = effect.speed * time.delta_seconds();
         let vel = diff.clamp_length(speed, speed);
-        if diff.length_squared() > 1. && vel.length_squared() > diff.length_squared() {
+        if diff.length_squared() < speed * speed {
             transform.translation = target;
             commands.entity(ent).remove::<EffectForcedMarch>();
         } else {
