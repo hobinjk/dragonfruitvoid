@@ -9,10 +9,10 @@ use crate::greens::StackGreen;
 use crate::mobs::Enemy;
 use crate::orbs::ORB_RADIUS;
 use crate::{
-    collide, Aoe, AoeFollow, Boss, Bullet, CollisionRadius, Game, GameState, HasHit, Hp, MobOrb,
-    MobSaltspray, OrbTarget, PhaseEntity, Soup, StackGreenIndicator, Velocity, VoidZone, Wave,
-    BULLET_DAMAGE, BULLET_SIZE, BULLET_SPEED, GAME_TO_PX, JUMP_DURATION_S, LAYER_BULLET,
-    MAP_RADIUS, PLAYER_RADIUS, WAVE_MAX_RADIUS,
+    collide, Aoe, AoeFollow, Boss, Bullet, CollisionRadius, EffectForcedMarch, Game, GameState,
+    HasHit, Hp, MobOrb, MobSaltspray, OrbTarget, PhaseEntity, Soup, StackGreenIndicator, Velocity,
+    VoidZone, Wave, BULLET_DAMAGE, BULLET_SIZE, BULLET_SPEED, GAME_TO_PX, JUMP_DURATION_S,
+    LAYER_BULLET, MAP_RADIUS, PLAYER_RADIUS, WAVE_MAX_RADIUS,
 };
 
 #[derive(Copy, Clone, PartialEq)]
@@ -297,7 +297,10 @@ pub fn player_ai_boss_phase_system(
     time: Res<Time>,
     game_state: Res<State<GameState>>,
     mut commands: Commands,
-    mut players: Query<(Entity, &mut Player, &AiPlayer, &mut Transform)>,
+    mut players: Query<
+        (Entity, &mut Player, &AiPlayer, &mut Transform),
+        Without<EffectForcedMarch>,
+    >,
     enemies: Query<(&Enemy, &Transform, &Visibility, Option<&Boss>), Without<Player>>,
     greens: Query<(&StackGreen, &Children)>,
     indicators: Query<(&StackGreenIndicator, &Transform), Without<Player>>,
@@ -754,7 +757,10 @@ pub fn player_ai_purification_phase_system(
     game: Res<Game>,
     game_state: Res<State<GameState>>,
     mut commands: Commands,
-    mut players: Query<(Entity, &mut Player, &AiPlayer, &mut Transform)>,
+    mut players: Query<
+        (Entity, &mut Player, &AiPlayer, &mut Transform),
+        Without<EffectForcedMarch>,
+    >,
     enemies: Query<(&Enemy, &Transform), Without<Player>>,
     orb: Query<(&MobOrb, &Transform, &Velocity), Without<Player>>,
     orb_targets: Query<(&OrbTarget, &Transform), Without<Player>>,
