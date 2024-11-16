@@ -25,6 +25,7 @@ pub enum ButtonOnOff {
     Puddles(),
     Greens(),
     AI(),
+    AIBars(),
     Role(),
 }
 
@@ -159,6 +160,7 @@ pub fn setup_menu_system(
                     let phases = vec![
                         ("Hints", ButtonOnOff::Hints(), game.hints_enabled),
                         ("Friends", ButtonOnOff::AI(), game.ai_enabled),
+                        ("Friend Info", ButtonOnOff::AIBars(), game.ai_bars_enabled),
                         ("Require Greens", ButtonOnOff::Greens(), game.greens_enabled),
                         ("Spawn Reds", ButtonOnOff::Puddles(), game.puddles_enabled),
                         (
@@ -413,6 +415,16 @@ pub fn update_menu_onoff_system(
                         for &child in children.iter() {
                             if let Ok(mut text) = texts.get_mut(child) {
                                 text.sections[0].value = format!("Friends: {}", onoff);
+                            }
+                        }
+                    }
+                    ButtonOnOff::AIBars() => {
+                        game.ai_bars_enabled = !game.ai_bars_enabled;
+                        let onoff = if game.ai_bars_enabled { "ON" } else { "OFF" };
+
+                        for &child in children.iter() {
+                            if let Ok(mut text) = texts.get_mut(child) {
+                                text.sections[0].value = format!("Friend Info: {}", onoff);
                             }
                         }
                     }

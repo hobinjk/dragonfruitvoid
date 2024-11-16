@@ -1466,6 +1466,7 @@ fn main() {
         puddles_enabled: true,
         unlimited_range_enabled: true,
         ai_enabled: true,
+        ai_bars_enabled: true,
         player_role: Some(AiRole::Virt1),
     };
 

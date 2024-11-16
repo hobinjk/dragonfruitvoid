@@ -165,6 +165,7 @@ pub struct Game {
     pub echo_enabled: bool,
     pub hints_enabled: bool,
     pub ai_enabled: bool,
+    pub ai_bars_enabled: bool,
     pub hint: Option<&'static str>,
     pub puddles_enabled: bool,
     pub greens_enabled: bool,

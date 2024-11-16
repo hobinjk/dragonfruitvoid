@@ -702,6 +702,10 @@ pub fn setup_phase(
                     .insert(Player::new(role.to_string()))
                     .insert(AiPlayer { role })
                     .with_children(|parent| {
+                        if !game.ai_bars_enabled {
+                            return;
+                        }
+
                         let player_healthbar = PlayerHealthbar {
                             player: parent.parent_entity(),
                         };
