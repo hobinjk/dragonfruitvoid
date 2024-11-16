@@ -678,14 +678,17 @@ fn make_movement_safe(
         return safe_movement.extend(0.);
     }
 
-    if safe_movement.length_squared() < movement.length_squared() {
+    if safe_movement.length_squared() < movement.length_squared()
+        && unsafe_translation.length_squared() < safe_inner_radius * safe_inner_radius
+    {
+        // Refund some of the length since we can easily adjust around the center void zone
         safe_movement = safe_movement.clamp_length_min(movement.length());
-    }
 
-    // Re-clamp to map bounds since we may have overcorrected by increasing the length
-    let unsafe_translation = player_pos.add(safe_movement);
-    let safe_translation = unsafe_translation.clamp_length(safe_inner_radius, safe_map_radius);
-    let safe_movement = safe_translation.sub(player_pos);
+        // Re-clamp to map bounds since we may have overcorrected by increasing the length
+        let unsafe_translation = player_pos.add(safe_movement);
+        let safe_translation = unsafe_translation.clamp_length(safe_inner_radius, safe_map_radius);
+        safe_movement = safe_translation.sub(player_pos);
+    }
     safe_movement.extend(0.)
 }
 
