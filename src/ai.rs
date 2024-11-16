@@ -60,7 +60,7 @@ pub struct AiPlayer {
     pub role: AiRole,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 enum Action {
     Move(Vec3),
     Shoot(Vec3),
@@ -68,6 +68,7 @@ enum Action {
     Rest,
 }
 
+#[derive(Debug)]
 struct Thought {
     utility: f32,
     action: Action,
