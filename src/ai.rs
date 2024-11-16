@@ -475,9 +475,15 @@ fn think_do_puddles(
             let r = MAP_RADIUS - PLAYER_RADIUS;
             let theta = player_pos.x.atan2(player_pos.y);
             let target_pos = Vec3::new(r * theta.sin(), r * theta.cos(), 0.);
+            let player_r = player_pos.length();
+
+            let mut utility = 0.97; // even more important than greens
+            if r - player_r < PLAYER_RADIUS * 2. {
+                utility = 0.15;
+            }
 
             return Thought {
-                utility: 0.97, // even more important than greens
+                utility,
                 action: Action::Move(target_pos),
             };
         }
