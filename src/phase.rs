@@ -589,6 +589,17 @@ pub fn add_update_phase_set(app: &mut App) {
 
     app.add_systems(
         Update,
+        (
+            player_healthbar_update_gauge_system,
+            player_cooldown_update_gauge_system,
+            update_gauge_bars_system,
+            update_gauge_visibility_system,
+        )
+            .in_set(PhaseSet::UpdatePhase),
+    );
+
+    app.add_systems(
+        Update,
         (damage_flash_system, tint_untint_system)
             .chain()
             .in_set(PhaseSet::UpdatePhase),
@@ -676,6 +687,8 @@ pub fn setup_phase(
                     }
                 }
 
+                let bar_height = 4.;
+
                 commands
                     .spawn(SpriteBundle {
                         sprite: Sprite {
@@ -687,7 +700,132 @@ pub fn setup_phase(
                         ..default()
                     })
                     .insert(Player::new(role.to_string()))
-                    .insert(AiPlayer { role });
+                    .insert(AiPlayer { role })
+                    .with_children(|parent| {
+                        let player_healthbar = PlayerHealthbar {
+                            player: parent.parent_entity(),
+                        };
+                        parent
+                            .spawn(Gauge {
+                                value: 1.,
+                                hide_when_full: true,
+                            })
+                            .insert(player_healthbar)
+                            .insert(SpatialBundle {
+                                transform: Transform::from_translation(Vec3::ZERO),
+                                ..default()
+                            })
+                            .with_children(|parent| {
+                                parent
+                                    .spawn(SpriteBundle {
+                                        sprite: Sprite {
+                                            color: Color::rgb(0.2, 0.8, 0.2),
+                                            custom_size: Some(Vec2::new(
+                                                PLAYER_RADIUS * 2.,
+                                                bar_height,
+                                            )),
+                                            anchor: Anchor::CenterLeft,
+                                            ..default()
+                                        },
+                                        transform: Transform::from_xyz(
+                                            -PLAYER_RADIUS,
+                                            PLAYER_RADIUS + bar_height * 2.,
+                                            0.2,
+                                        ),
+                                        ..default()
+                                    })
+                                    .insert(GaugeBar);
+
+                                parent.spawn(SpriteBundle {
+                                    sprite: Sprite {
+                                        color: Color::rgb(0.3, 0.3, 0.3),
+                                        custom_size: Some(Vec2::new(
+                                            PLAYER_RADIUS * 2.,
+                                            bar_height,
+                                        )),
+                                        anchor: Anchor::CenterLeft,
+                                        ..default()
+                                    },
+                                    transform: Transform::from_xyz(
+                                        -PLAYER_RADIUS,
+                                        PLAYER_RADIUS + bar_height * 2.,
+                                        0.1,
+                                    ),
+                                    ..default()
+                                });
+                            });
+
+                        let mut cooldowns = vec![PlayerCooldown::Dodge, PlayerCooldown::Jump];
+
+                        match role {
+                            AiRole::Ham1 | AiRole::Ham2 | AiRole::Virt1 | AiRole::Virt2 => {
+                                cooldowns.push(PlayerCooldown::Blink)
+                            }
+                            AiRole::Herald1
+                            | AiRole::Herald2
+                            | AiRole::Dps1
+                            | AiRole::Dps2
+                            | AiRole::Dps3
+                            | AiRole::Dps4 => {}
+                        }
+
+                        let cooldown_bars: Vec<PlayerCooldownBar> = cooldowns
+                            .into_iter()
+                            .map(|cooldown| PlayerCooldownBar {
+                                player: parent.parent_entity(),
+                                cooldown,
+                            })
+                            .collect();
+
+                        let bar_width = PLAYER_RADIUS * 2. / (cooldown_bars.len() as f32);
+
+                        for (i, bar) in cooldown_bars.into_iter().enumerate() {
+                            let bar_color = bar.cooldown.color();
+                            parent
+                                .spawn(Gauge {
+                                    value: 1.,
+                                    hide_when_full: false,
+                                })
+                                .insert(bar)
+                                .insert(SpatialBundle {
+                                    transform: Transform::from_translation(Vec3::ZERO),
+                                    ..default()
+                                })
+                                .with_children(|parent| {
+                                    parent
+                                        .spawn(SpriteBundle {
+                                            sprite: Sprite {
+                                                color: bar_color,
+                                                custom_size: Some(Vec2::new(bar_width, 4.)),
+                                                anchor: Anchor::CenterLeft,
+                                                ..default()
+                                            },
+                                            transform: Transform::from_xyz(
+                                                -PLAYER_RADIUS + bar_width * (i as f32),
+                                                PLAYER_RADIUS + bar_height,
+                                                0.2,
+                                            ),
+                                            ..default()
+                                        })
+                                        .insert(GaugeBar);
+
+                                    parent.spawn(SpriteBundle {
+                                        sprite: Sprite {
+                                            color: Color::rgb(0.3, 0.3, 0.3),
+                                            custom_size: Some(Vec2::new(bar_width, 4.)),
+                                            anchor: Anchor::CenterLeft,
+                                            ..default()
+                                        },
+                                        transform: Transform::from_xyz(
+                                            -PLAYER_RADIUS + bar_width * (i as f32),
+                                            PLAYER_RADIUS + bar_height,
+                                            0.1,
+                                        ),
+                                        ..default()
+                                    });
+                                });
+                        }
+                    });
                 x += 1.;
             }
         }
