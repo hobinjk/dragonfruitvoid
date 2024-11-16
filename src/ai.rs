@@ -944,12 +944,13 @@ pub fn player_ai_purification_phase_system(
 
         // Dark orb everyone gets to push
         if *game_state.get() == GameState::PurificationFour {
-            let role_index = ai_player.role as i32;
-            let orb_target_pos = if role_index % 2 == 0 {
-                Vec3::new(MAP_RADIUS / 4., 0., 0.)
-            } else {
-                Vec3::new(-MAP_RADIUS / 4., 0., 0.)
-            };
+            let role_index = ai_player.role as i32 as f32;
+            let r = 320. * GAME_TO_PX;
+            let orb_target_pos = Vec3::new(
+                r * (role_index / 10. * 2. * PI).cos(),
+                r * (role_index / 10. * 2. * PI).sin(),
+                0.,
+            );
             let orb_dest_pos = orb_target_pos;
             thoughts.push(think_push_orb(
                 player_pos,
