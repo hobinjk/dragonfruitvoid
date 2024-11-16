@@ -259,17 +259,18 @@ fn think_push_orb(
     orb_dest_pos: Vec3,
     saltspray: &Query<(&MobSaltspray, &Hp)>,
     is_active: bool,
-) -> Thought {
+) -> Vec<Thought> {
     let saltspray_exists = match saltspray.get_single() {
         Ok((_, hp)) => {
             if hp.0 > 20. {
                 // Only start pre-moving if the dragon is a little low
-                return Thought::REST;
+                return vec![Thought::REST];
             }
             hp.0 > 1.5
         }
         Err(_) => false,
     };
+    let mut thoughts = vec![];
 
     let cur_vel = orb_vel.0.truncate();
     // The velocity change that happens if we push the orb from here
@@ -292,10 +293,10 @@ fn think_push_orb(
     let push_goodness = des_push_vel.dot(cur_push_vel);
     if push_goodness > 0.99 && push_utility > 0.3 && is_active && !saltspray_exists {
         // roughly +-8 degrees
-        return Thought {
+        thoughts.push(Thought {
             utility: push_utility,
             action: Action::Shoot(des_push_vel.extend(0.)),
-        };
+        });
     }
 
     if is_active {
@@ -304,10 +305,11 @@ fn think_push_orb(
 
         let good_push_pos = orb_pos.sub(des_push_vel.extend(0.).mul(closer_dist));
 
-        return Thought {
+        thoughts.push(Thought {
             utility: 0.4,
             action: Action::Move(good_push_pos),
-        };
+        });
+        return thoughts;
     }
 
     let mut utility = 0.25;
@@ -316,10 +318,11 @@ fn think_push_orb(
     }
 
     let good_prep_pos = orb_dest_pos.sub(des_push_vel.extend(0.).mul(ORB_RADIUS * 1.3));
-    return Thought {
+    thoughts.push(Thought {
         utility,
         action: Action::Move(good_prep_pos),
-    };
+    });
+    thoughts
 }
 
 pub fn player_ai_boss_phase_system(
@@ -931,7 +934,7 @@ pub fn player_ai_purification_phase_system(
         ];
 
         if let (Some(orb_target_pos), Some(orb_dest_pos)) = (orb_target_pos, orb_dest_pos) {
-            thoughts.push(think_push_orb(
+            thoughts.append(&mut think_push_orb(
                 player_pos,
                 orb_pos,
                 orb_velocity,
@@ -952,7 +955,7 @@ pub fn player_ai_purification_phase_system(
                 0.,
             );
             let orb_dest_pos = orb_target_pos;
-            thoughts.push(think_push_orb(
+            thoughts.append(&mut think_push_orb(
                 player_pos,
                 orb_pos,
                 orb_velocity,
