@@ -624,6 +624,10 @@ fn act_on_thoughts(
         center_void_zone_radius,
     );
 
+    if player_transform.translation.x.is_nan() {
+        info!("thought caused nan: {:?}", best_not_shoot_thought);
+    }
+
     let best_shoot_thought = thoughts
         .iter()
         .filter(|a| match a.action {
