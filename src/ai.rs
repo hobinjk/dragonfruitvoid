@@ -83,6 +83,7 @@ impl Thought {
 
 fn think_dont_fall_off_edge(player_pos: &Vec3) -> Thought {
     let safe_map_radius = MAP_RADIUS - PLAYER_RADIUS * 1.1;
+    let player_pos = player_pos.truncate();
     if player_pos.length_squared() < safe_map_radius * safe_map_radius {
         return Thought {
             utility: 0.,
@@ -92,7 +93,7 @@ fn think_dont_fall_off_edge(player_pos: &Vec3) -> Thought {
 
     Thought {
         utility: 1.,
-        action: Action::Move(Vec3::new(0., 0., 0.)),
+        action: Action::Move(player_pos.clamp_length_max(safe_map_radius).extend(0.)),
     }
 }
 
