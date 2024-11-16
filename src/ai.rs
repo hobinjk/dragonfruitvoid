@@ -139,7 +139,7 @@ fn is_safe_for_orb(
     let orb_dir = orb_pos.sub(player_pos).truncate();
 
     // Inside the orb, hitting no matter what
-    if orb_dir.length_squared() < (ORB_RADIUS * 1.1) * (ORB_RADIUS * 1.1) {
+    if orb_dir.length_squared() < (ORB_RADIUS * 1.4) * (ORB_RADIUS * 1.4) {
         return false;
     }
 
@@ -152,7 +152,7 @@ fn is_safe_for_orb(
         .sub(player_pos)
         .truncate();
 
-    let angle_orb = (ORB_RADIUS * 1.4).atan2(orb_dist).clamp(0., PI / 2.);
+    let angle_orb = (ORB_RADIUS * 1.4 / orb_dist).asin().clamp(0., PI / 2.);
     let mut angle_shoot = orb_dir_after.angle_between(shoot_dir);
 
     if angle_shoot < 0. {
