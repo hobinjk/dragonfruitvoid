@@ -467,7 +467,7 @@ fn think_do_puddles(
         if puddle.drop.finished() {
             let puddle_pos = puddle_transform.translation;
             let theta = puddle_pos.x.atan2(puddle_pos.y).abs();
-            let new_target_theta = theta - (radius.0 / puddle_pos.length()).sin();
+            let new_target_theta = theta - (radius.0 / puddle_pos.length()).sin() - 0.1;
             if new_target_theta < PI / 3. {
                 continue;
             }
