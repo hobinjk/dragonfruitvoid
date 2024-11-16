@@ -668,11 +668,15 @@ fn make_movement_safe(
     let movement = target_pos
         .truncate()
         .sub(player_pos)
-        .clamp_length(0., speed);
+        .clamp_length_max(speed);
     let unsafe_translation = player_pos.add(movement);
     let safe_translation = unsafe_translation.clamp_length(safe_inner_radius, safe_map_radius);
 
     let mut safe_movement = safe_translation.sub(player_pos);
+
+    if safe_movement.length() < 0.1 {
+        return safe_movement.extend(0.);
+    }
 
     if safe_movement.length_squared() < movement.length_squared() {
         safe_movement = safe_movement.clamp_length_min(movement.length());
