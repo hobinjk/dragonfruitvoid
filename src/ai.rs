@@ -279,12 +279,12 @@ fn think_push_orb(
         .sub(orb_pos)
         .truncate()
         .normalize()
-        .mul(250. * GAME_TO_PX);
+        .mul(240. * GAME_TO_PX);
     // The push we want to apply to the orb
     let mut des_push_vel = des_orb_vel.sub(cur_vel);
 
     // The greater the difference the more we need to push the orb
-    let push_utility = des_push_vel.length() / (300. * GAME_TO_PX);
+    let push_utility = des_push_vel.length() / (320. * GAME_TO_PX);
 
     des_push_vel = des_push_vel.normalize();
 
