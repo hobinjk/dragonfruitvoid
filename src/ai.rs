@@ -730,10 +730,12 @@ fn act_on_thought(
                     );
                     let target_pos = player_transform.translation.add(safe_movement);
 
-                    commands.entity(entity_player).insert(EffectForcedMarch {
-                        target: target_pos,
-                        speed: dodge_speed,
-                    });
+                    if let Some(mut com_player) = commands.get_entity(entity_player) {
+                        com_player.insert(EffectForcedMarch {
+                            target: target_pos,
+                            speed: dodge_speed,
+                        });
+                    }
 
                     player.invuln = Timer::from_seconds(DODGE_DURATION_S, TimerMode::Once);
                     player.dodge_cooldown.reset();
@@ -750,10 +752,12 @@ fn act_on_thought(
                     );
                     let target_pos = player_transform.translation.add(safe_movement);
 
-                    commands.entity(entity_player).insert(EffectForcedMarch {
-                        target: target_pos,
-                        speed: blink_speed,
-                    });
+                    if let Some(mut com_player) = commands.get_entity(entity_player) {
+                        com_player.insert(EffectForcedMarch {
+                            target: target_pos,
+                            speed: blink_speed,
+                        });
+                    }
 
                     player.invuln = Timer::from_seconds(0.1, TimerMode::Once);
                     player.blink_cooldown.reset();

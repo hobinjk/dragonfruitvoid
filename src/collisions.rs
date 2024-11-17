@@ -340,9 +340,9 @@ pub fn collisions_players_enemy_bullets_system(
                     let target =
                         player_pos.add(velocity.0.clamp_length(bullet.knockback, bullet.knockback));
                     let speed = bullet.knockback / 0.2;
-                    commands
-                        .entity(entity_player)
-                        .insert(EffectForcedMarch { target, speed });
+                    if let Some(mut com_player) = commands.get_entity(entity_player) {
+                        com_player.insert(EffectForcedMarch { target, speed });
+                    }
                 }
                 // Brief invuln from being damaged
                 player.invuln = Timer::from_seconds(0.1, TimerMode::Once);

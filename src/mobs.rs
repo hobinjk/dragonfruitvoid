@@ -245,9 +245,9 @@ pub fn wyvern_system(
                 .clamp_length(0., WYVERN_CHARGE_RANGE);
             let target = transform.translation.add(diff);
 
-            commands
-                .entity(entity)
-                .insert(EffectForcedMarch { target, speed });
+            if let Some(mut com_ent) = commands.get_entity(entity) {
+                com_ent.insert(EffectForcedMarch { target, speed });
+            }
         }
     }
 }
