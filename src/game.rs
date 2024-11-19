@@ -70,7 +70,7 @@ pub const BULLET_SPEED: f32 = 200.0;
 pub const BULLET_RANGE: f32 = 1200. * GAME_TO_PX;
 
 pub const PLAYER_RADIUS: f32 = 20.;
-pub const PLAYER_REGEN: f32 = 2.;
+pub const PLAYER_REGEN: f32 = 1.5;
 
 pub const CRAB_SIZE: f32 = 40.;
 
