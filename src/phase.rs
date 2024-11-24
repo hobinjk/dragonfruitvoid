@@ -9,13 +9,19 @@ use std::collections::HashSet;
 use std::ops::{Add, Mul, Sub};
 use std::time::Duration;
 
-use crate::collisions::*;
-use crate::damage_flash::*;
-use crate::game::*;
-use crate::hints::{scheduled_hint_system, setup_hints};
 use crate::mobs::*;
 use crate::ui::*;
 use crate::{ai::AiPlayer, ai::AiRole, aoes::soup_duration_system};
+use crate::{audio::setup_audio, damage_flash::*};
+use crate::{audio::AudioPhaseTheme, collisions::*};
+use crate::{
+    audio::SfxSource,
+    hints::{scheduled_hint_system, setup_hints},
+};
+use crate::{
+    audio::{play_sfx, Sfx},
+    game::*,
+};
 
 pub const VOID_ZONE_GROWTH_DURATION_SECS: f32 = 4.;
 pub const VOID_ZONE_START_RADIUS: f32 = 30.;
@@ -131,6 +137,7 @@ fn game_player_damage_system(mut game: ResMut<Game>, players: Query<&Player>) {
 
 fn handle_mouse_events_system(
     game: Res<Game>,
+    asset_server: Res<AssetServer>,
     mouse_button_input: Res<Input<MouseButton>>,
     keyboard_input: Res<Input<KeyCode>>,
     mut commands: Commands,
@@ -172,6 +179,14 @@ fn handle_mouse_events_system(
                 })
                 .insert(HasHit(HashSet::new()))
                 .insert(PhaseEntity);
+
+            play_sfx(
+                &mut commands,
+                &asset_server,
+                Sfx::EnemyShoot,
+                SfxSource::Player,
+            );
+
             player.shoot_cooldown.reset();
         }
     }
@@ -201,6 +216,8 @@ fn handle_spellcasts_system(
         if player.jump_cooldown.finished() && keyboard_input.pressed(KeyCode::Space) {
             player.jump = Timer::from_seconds(JUMP_DURATION_S, TimerMode::Once);
             player.jump_cooldown.reset();
+
+            play_sfx(&mut commands, &asset_server, Sfx::Jump, SfxSource::Player);
         }
 
         if player.dodge_cooldown.finished() && keyboard_input.pressed(KeyCode::V) {
@@ -235,6 +252,8 @@ fn handle_spellcasts_system(
 
             player.invuln = Timer::from_seconds(0.1, TimerMode::Once);
             player.blink_cooldown.reset();
+
+            play_sfx(&mut commands, &asset_server, Sfx::Blink, SfxSource::Player);
         }
 
         if player.pull_cooldown.finished() && keyboard_input.pressed(KeyCode::Key4) {
@@ -258,6 +277,8 @@ fn handle_spellcasts_system(
             }
 
             player.pull_cooldown.reset();
+
+            play_sfx(&mut commands, &asset_server, Sfx::Pull, SfxSource::Player);
         }
 
         if player.portal_cooldown.finished() && keyboard_input.just_pressed(KeyCode::R) {
@@ -282,6 +303,13 @@ fn handle_spellcasts_system(
                     .insert(PhaseEntity);
 
                 player.portal_cooldown = Timer::from_seconds(0.5, TimerMode::Once);
+
+                play_sfx(
+                    &mut commands,
+                    &asset_server,
+                    Sfx::PortalEnter,
+                    SfxSource::Player,
+                );
             } else if portal_exits.is_empty() {
                 commands
                     .spawn(SpriteBundle {
@@ -301,6 +329,13 @@ fn handle_spellcasts_system(
                     .insert(PhaseEntity);
 
                 player.portal_cooldown = Timer::from_seconds(60., TimerMode::Once);
+
+                play_sfx(
+                    &mut commands,
+                    &asset_server,
+                    Sfx::PortalExit,
+                    SfxSource::Player,
+                );
             }
         }
 
@@ -644,6 +679,7 @@ pub fn setup_phase(
     mut players: Query<(&mut Player, Option<&AiPlayer>)>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    phase_theme: Query<&AudioSink, With<AudioPhaseTheme>>,
 ) {
     setup_hints(&mut commands, &game, state);
 
@@ -908,6 +944,18 @@ pub fn setup_phase(
 
     if game.player_role.is_some() {
         setup_player_ui(&mut commands, &asset_server, &mut meshes, &mut materials);
+    }
+
+    if phase_theme.is_empty() {
+        setup_audio(&mut commands, &asset_server);
+    } else {
+        let phase_theme = phase_theme.single();
+        if !game.continuous {
+            phase_theme.stop();
+            phase_theme.play();
+        } else if phase_theme.is_paused() {
+            phase_theme.play();
+        }
     }
 }
 

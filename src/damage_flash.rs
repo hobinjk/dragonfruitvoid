@@ -2,6 +2,12 @@ use bevy::prelude::*;
 
 use std::collections::HashSet;
 
+use crate::{
+    ai::AiPlayer,
+    audio::{play_sfx, Sfx, SfxSource},
+    Player,
+};
+
 #[derive(Event)]
 pub struct DamageFlashEvent {
     pub entity: Entity,
@@ -16,8 +22,10 @@ pub struct TintUntint {
 }
 
 pub fn damage_flash_system(
+    asset_server: Res<AssetServer>,
     mut events: EventReader<DamageFlashEvent>,
     mut commands: Commands,
+    entities: Query<(Entity, Option<&Player>, Option<&AiPlayer>)>,
     mut sprites: Query<&mut Sprite, Without<TintUntint>>,
 ) {
     let mut touched = HashSet::new();
@@ -35,6 +43,14 @@ pub fn damage_flash_system(
                 tint_timer: Timer::from_seconds(0.2, TimerMode::Once),
                 untint_timer: Timer::from_seconds(0.5, TimerMode::Once),
             });
+
+            if let Ok((_, player, ai_player)) = entities.get(event.entity) {
+                if ai_player.is_some() {
+                    play_sfx(&mut commands, &asset_server, Sfx::Hurt, SfxSource::AiPlayer);
+                } else if player.is_some() {
+                    play_sfx(&mut commands, &asset_server, Sfx::Hurt, SfxSource::Player);
+                }
+            }
         }
     }
 }

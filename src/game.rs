@@ -171,6 +171,7 @@ pub struct Game {
     pub greens_enabled: bool,
     pub unlimited_range_enabled: bool,
     pub player_role: Option<AiRole>,
+    pub audio_enabled: bool,
 }
 
 pub fn next_game_state(game_state: GameState) -> GameState {

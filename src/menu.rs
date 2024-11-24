@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
     ai::AiRole,
+    audio::{play_sfx, PhaseAudio, Sfx, SfxSource},
     game::{Game, GameState, MenuState, Player, HEIGHT, WIDTH},
 };
 
@@ -27,6 +28,7 @@ pub enum ButtonOnOff {
     AI(),
     AIBars(),
     Role(),
+    Audio(),
 }
 
 #[derive(Event)]
@@ -43,6 +45,7 @@ pub fn setup_menu_system(
     game: Res<Game>,
     asset_server: Res<AssetServer>,
     players: Query<Entity, With<Player>>,
+    audio_sinks: Query<Entity, (With<AudioSink>, With<PhaseAudio>)>,
 ) {
     let button_width = Val::Px(350.0);
     let button_height = Val::Px(65.0);
@@ -158,6 +161,7 @@ pub fn setup_menu_system(
                     let echo_eggs = if game.echo_enabled { 0 } else { 17 };
 
                     let phases = vec![
+                        ("Sound", ButtonOnOff::Audio(), game.audio_enabled),
                         ("Hints", ButtonOnOff::Hints(), game.hints_enabled),
                         ("Friends", ButtonOnOff::AI(), game.ai_enabled),
                         ("Friend Info", ButtonOnOff::AIBars(), game.ai_bars_enabled),
@@ -211,6 +215,10 @@ pub fn setup_menu_system(
         .insert(MenuContainer);
 
     for entity in &players {
+        commands.entity(entity).despawn_recursive();
+    }
+
+    for entity in &audio_sinks {
         commands.entity(entity).despawn_recursive();
     }
 }
@@ -279,6 +287,8 @@ pub fn update_menu_system(
     mut res_next_game_state: ResMut<NextState<GameState>>,
     mut res_next_menu_state: ResMut<NextState<MenuState>>,
     mut game: ResMut<Game>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
     mut interaction_query: Query<
         (&Interaction, &mut BackgroundColor, &ButtonNextState),
         (Changed<Interaction>, With<Button>),
@@ -288,6 +298,13 @@ pub fn update_menu_system(
     for (interaction, mut color, next_state) in &mut interaction_query {
         match *interaction {
             Interaction::Pressed => {
+                play_sfx(
+                    &mut commands,
+                    &asset_server,
+                    Sfx::MenuClick,
+                    SfxSource::Player,
+                );
+
                 *color = PRESSED_BUTTON.into();
                 match next_state {
                     ButtonNextState::GoTo(next_state) => {
@@ -347,6 +364,9 @@ fn player_role_to_string(role: &Option<AiRole>) -> String {
 
 pub fn update_menu_onoff_system(
     mut game: ResMut<Game>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut global_volume: ResMut<GlobalVolume>,
     mut interaction_query: Query<
         (
             &Interaction,
@@ -361,6 +381,13 @@ pub fn update_menu_onoff_system(
     for (interaction, mut color, children, mut button) in &mut interaction_query {
         match *interaction {
             Interaction::Pressed => {
+                play_sfx(
+                    &mut commands,
+                    &asset_server,
+                    Sfx::MenuClick,
+                    SfxSource::Player,
+                );
+
                 *color = PRESSED_BUTTON.into();
 
                 match *button {
@@ -483,6 +510,23 @@ pub fn update_menu_onoff_system(
                             if let Ok(mut text) = texts.get_mut(child) {
                                 text.sections[0].value =
                                     format!("Role: {}", player_role_to_string(&next_role));
+                            }
+                        }
+                    }
+
+                    ButtonOnOff::Audio() => {
+                        game.audio_enabled = !game.audio_enabled;
+                        let onoff = if game.audio_enabled { "ON" } else { "OFF" };
+
+                        if game.audio_enabled {
+                            *global_volume.volume = 1.0;
+                        } else {
+                            *global_volume.volume = 0.0;
+                        }
+
+                        for &child in children.iter() {
+                            if let Ok(mut text) = texts.get_mut(child) {
+                                text.sections[0].value = format!("Sound: {}", onoff);
                             }
                         }
                     }

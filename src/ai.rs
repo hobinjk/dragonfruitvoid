@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use std::f32::consts::PI;
 use std::ops::{Add, Mul, Sub};
 
+use crate::audio::{play_sfx, Sfx, SfxSource};
 use crate::boss_phase::{Puddle, PuddleSpawn};
 use crate::game::Player;
 use crate::greens::StackGreen;
@@ -328,6 +329,7 @@ fn think_push_orb(
 pub fn player_ai_boss_phase_system(
     time: Res<Time>,
     game_state: Res<State<GameState>>,
+    asset_server: Res<AssetServer>,
     mut commands: Commands,
     mut players: Query<
         (Entity, &mut Player, &AiPlayer, &mut Transform),
@@ -370,6 +372,7 @@ pub fn player_ai_boss_phase_system(
             &thoughts,
             &time,
             &mut commands,
+            &asset_server,
             &mut player,
             &ai_player.role,
             entity_player,
@@ -601,6 +604,7 @@ fn act_on_thoughts(
     thoughts: &Vec<Thought>,
     time: &Res<Time>,
     mut commands: &mut Commands,
+    asset_server: &Res<AssetServer>,
     mut player: &mut Player,
     role: &AiRole,
     entity_player: Entity,
@@ -620,6 +624,7 @@ fn act_on_thoughts(
         best_not_shoot_thought,
         &time,
         &mut commands,
+        &asset_server,
         &mut player,
         &role,
         entity_player,
@@ -644,6 +649,7 @@ fn act_on_thoughts(
         best_shoot_thought,
         &time,
         &mut commands,
+        &asset_server,
         &mut player,
         &role,
         entity_player,
@@ -698,7 +704,8 @@ fn make_movement_safe(
 fn act_on_thought(
     thought: &Thought,
     time: &Res<Time>,
-    commands: &mut Commands,
+    mut commands: &mut Commands,
+    asset_server: &Res<AssetServer>,
     player: &mut Player,
     role: &AiRole,
     entity_player: Entity,
@@ -761,6 +768,13 @@ fn act_on_thought(
 
                     player.invuln = Timer::from_seconds(0.1, TimerMode::Once);
                     player.blink_cooldown.reset();
+
+                    play_sfx(
+                        &mut commands,
+                        &asset_server,
+                        Sfx::Blink,
+                        SfxSource::AiPlayer,
+                    );
                 }
             }
             let safe_movement = make_movement_safe(
@@ -798,12 +812,21 @@ fn act_on_thought(
                     .insert(HasHit(HashSet::new()))
                     .insert(PhaseEntity);
                 player.shoot_cooldown.reset();
+
+                play_sfx(
+                    &mut commands,
+                    &asset_server,
+                    Sfx::Shoot,
+                    SfxSource::AiPlayer,
+                );
             }
         }
         Action::Jump => {
             if player.jump_cooldown.finished() {
                 player.jump = Timer::from_seconds(JUMP_DURATION_S, TimerMode::Once);
                 player.jump_cooldown.reset();
+
+                play_sfx(&mut commands, &asset_server, Sfx::Jump, SfxSource::AiPlayer);
             }
         }
     }
@@ -886,6 +909,7 @@ pub fn player_ai_purification_phase_system(
     time: Res<Time>,
     game: Res<Game>,
     game_state: Res<State<GameState>>,
+    asset_server: Res<AssetServer>,
     mut commands: Commands,
     mut players: Query<
         (Entity, &mut Player, &AiPlayer, &mut Transform),
@@ -974,6 +998,7 @@ pub fn player_ai_purification_phase_system(
             &thoughts,
             &time,
             &mut commands,
+            &asset_server,
             &mut player,
             &ai_player.role,
             entity_player,

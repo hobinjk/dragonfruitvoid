@@ -13,6 +13,7 @@ use std::time::Duration;
 
 mod ai;
 mod aoes;
+mod audio;
 mod boss_phase;
 mod collisions;
 mod damage_flash;
@@ -1468,6 +1469,7 @@ fn main() {
         ai_enabled: true,
         ai_bars_enabled: true,
         player_role: Some(AiRole::Virt1),
+        audio_enabled: true,
     };
 
     let binding = App::new();

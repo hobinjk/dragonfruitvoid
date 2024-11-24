@@ -4,8 +4,11 @@ use bevy::{
 };
 use std::ops::Add;
 
-use crate::collisions::collide;
 use crate::game::*;
+use crate::{
+    audio::{play_sfx, Sfx, SfxSource},
+    collisions::collide,
+};
 
 pub const GREEN_RADIUS: f32 = 160. * GAME_TO_PX;
 
@@ -181,12 +184,20 @@ pub fn greens_system(
 
 pub fn greens_detonation_system(
     game: ResMut<Game>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
     mut players: Query<(&mut Player, &Transform)>,
     greens: Query<(&StackGreen, &Children)>,
     indicators: Query<(&StackGreenIndicator, &Transform)>,
 ) {
     for (green, children) in &greens {
         if green.detonation.just_finished() {
+            play_sfx(
+                &mut commands,
+                &asset_server,
+                Sfx::GreenPop,
+                SfxSource::Enemy,
+            );
             let mut any_collide = false;
             for (_, transform_player) in &players {
                 for &child in children.iter() {

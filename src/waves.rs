@@ -1,4 +1,7 @@
-use crate::game::*;
+use crate::{
+    audio::{play_sfx, Sfx, SfxSource},
+    game::*,
+};
 use bevy::prelude::*;
 
 #[derive(Component)]
@@ -22,6 +25,8 @@ pub const WAVE_GROWTH_DURATION: f32 = WAVE_MAX_RADIUS / WAVE_VELOCITY;
 pub const WAVE_DAMAGE: f32 = 75.;
 
 pub fn waves_system(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
     time: Res<Time>,
     mut waves: Query<(&mut Wave, &mut Visibility, &mut Transform)>,
 ) {
@@ -30,6 +35,15 @@ pub fn waves_system(
         if !wave.visibility_start.finished() {
             wave.visibility_start.tick(time.delta());
             visible = Visibility::Hidden;
+
+            if wave.visibility_start.just_finished() {
+                play_sfx(
+                    &mut commands,
+                    &asset_server,
+                    Sfx::Shockwave,
+                    SfxSource::Enemy,
+                );
+            }
         } else {
             wave.growth.tick(time.delta());
         }

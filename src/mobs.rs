@@ -5,6 +5,7 @@ use core::f32::consts::PI;
 use std::ops::{Add, Sub};
 
 use crate::aoes::{spawn_aoe, Aoe, AoeDesc};
+use crate::audio::{play_sfx, Sfx, SfxSource};
 use crate::collisions::CollisionRadius;
 use crate::game::*;
 use crate::phase::{EffectForcedMarch, Velocity};
@@ -118,6 +119,7 @@ fn get_closest_pos(players: &Query<&Transform, With<Player>>, pos: Vec3) -> Opti
 
 pub fn goliath_system(
     time: Res<Time>,
+    asset_server: Res<AssetServer>,
     mut commands: Commands,
     mut goliaths: Query<(&mut MobGoliath, &Transform, &mut Velocity), Without<EffectForcedMarch>>,
     players: Query<&Transform, With<Player>>,
@@ -141,6 +143,13 @@ pub fn goliath_system(
         goliath.shoot_cooldown.tick(time.delta());
         if goliath.shoot_cooldown.finished() {
             goliath.shoot_cooldown.reset();
+
+            play_sfx(
+                &mut commands,
+                &asset_server,
+                Sfx::EnemyShootBig,
+                SfxSource::Enemy,
+            );
 
             commands
                 .spawn(SpriteBundle {
@@ -166,6 +175,7 @@ pub fn goliath_system(
 pub fn wyvern_system(
     time: Res<Time>,
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
     mut wyverns: Query<(Entity, &mut MobWyvern, &Transform), Without<EffectForcedMarch>>,
     players: Query<&Transform, With<Player>>,
 ) {
@@ -183,6 +193,13 @@ pub fn wyvern_system(
         wyvern.shoot_cooldown.tick(time.delta());
         if wyvern.shoot_cooldown.finished() {
             wyvern.shoot_cooldown.reset();
+
+            play_sfx(
+                &mut commands,
+                &asset_server,
+                Sfx::EnemyShoot,
+                SfxSource::Enemy,
+            );
 
             commands
                 .spawn(SpriteBundle {
@@ -206,6 +223,13 @@ pub fn wyvern_system(
         wyvern.shockwave_cooldown.tick(time.delta());
         if wyvern.shockwave_cooldown.finished() {
             wyvern.shockwave_cooldown.reset();
+
+            play_sfx(
+                &mut commands,
+                &asset_server,
+                Sfx::EnemyShootBig,
+                SfxSource::Enemy,
+            );
 
             for bullet_i in 0..16 {
                 let theta = (bullet_i as f32) / 16. * 2. * PI;
@@ -248,6 +272,8 @@ pub fn wyvern_system(
             if let Some(mut com_ent) = commands.get_entity(entity) {
                 com_ent.insert(EffectForcedMarch { target, speed });
             }
+
+            play_sfx(&mut commands, &asset_server, Sfx::Roar, SfxSource::Enemy);
         }
     }
 }
@@ -288,6 +314,7 @@ pub fn noodle_system(
 
 pub fn saltspray_system(
     time: Res<Time>,
+    asset_server: Res<AssetServer>,
     mut commands: Commands,
     mut saltsprays: Query<(&mut MobSaltspray, &Transform)>,
     players: Query<&Transform, With<Player>>,
@@ -332,12 +359,20 @@ pub fn saltspray_system(
                     None,
                 );
             }
+
+            play_sfx(
+                &mut commands,
+                &asset_server,
+                Sfx::EnemyShootBig,
+                SfxSource::Enemy,
+            );
         }
     }
 }
 
 pub fn timecaster_system(
     time: Res<Time>,
+    asset_server: Res<AssetServer>,
     mut commands: Commands,
     mut timecasters: Query<(&mut MobTimeCaster, &Transform), Without<EffectForcedMarch>>,
 ) {
@@ -345,6 +380,14 @@ pub fn timecaster_system(
         mob.shoot_cooldown.tick(time.delta());
         if mob.shoot_cooldown.finished() {
             mob.shoot_cooldown.reset();
+
+            play_sfx(
+                &mut commands,
+                &asset_server,
+                Sfx::EnemyShoot,
+                SfxSource::Enemy,
+            );
+
             for step in 0..3 {
                 let theta = time.elapsed_seconds() / 2. + (step as f32) * PI * 2. / 3.;
                 let vel = Vec3::new(

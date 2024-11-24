@@ -5,13 +5,19 @@ use bevy::{
 
 use std::ops::Sub;
 
-use crate::collisions::{collisions_players_waves_system, CollisionRadius};
-use crate::game::*;
-use crate::greens::*;
 use crate::mobs::*;
 use crate::ui::boss_healthbar_system;
 use crate::waves::*;
 use crate::{ai::player_ai_boss_phase_system, aoes::*};
+use crate::{ai::AiPlayer, greens::*};
+use crate::{
+    audio::SfxSource,
+    collisions::{collisions_players_waves_system, CollisionRadius},
+};
+use crate::{
+    audio::{play_sfx, Sfx},
+    game::*,
+};
 
 pub const SPREAD_DAMAGE: f32 = 10.;
 const SPREAD_DETONATION: f32 = 6.5; // timed on primordus
@@ -133,8 +139,10 @@ fn get_puddle_target_sorted_players(
 fn puddle_spawns_system(
     time: Res<Time>,
     players: Query<(Entity, &Transform), With<Player>>,
+    ai_players: Query<&AiPlayer>,
     mut puddle_spawns: Query<(Entity, &mut PuddleSpawn)>,
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     for (entity, mut puddle_spawn) in &mut puddle_spawns {
@@ -146,6 +154,11 @@ fn puddle_spawns_system(
         commands.entity(entity).despawn_recursive();
 
         for &entity_player in get_puddle_target_sorted_players(&players).iter().take(2) {
+            let sfx_src = if ai_players.get(entity_player).is_ok() {
+                SfxSource::AiPlayer
+            } else {
+                SfxSource::Player
+            };
             commands
                 .spawn(MaterialMesh2dBundle {
                     mesh: puddle_spawn.mesh.clone(),
@@ -163,6 +176,8 @@ fn puddle_spawns_system(
                     duration: None,
                 })
                 .insert(PhaseEntity);
+
+            play_sfx(&mut commands, &asset_server, Sfx::RedTarget, sfx_src);
         }
     }
 }

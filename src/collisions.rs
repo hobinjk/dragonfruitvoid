@@ -4,6 +4,7 @@ use std::collections::HashSet;
 use std::ops::{Add, Mul, Sub};
 
 use crate::aoes::*;
+use crate::audio::{play_sfx, Sfx, SfxSource};
 use crate::game::*;
 use crate::mobs::*;
 use crate::orbs::*;
@@ -111,6 +112,8 @@ pub fn collisions_bullets_enemies_system(
 }
 
 pub fn collisions_crabs_orbs_system(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
     mut players: Query<&mut Player>,
     crabs: Query<&Transform, With<MobCrab>>,
     orbs: Query<&Transform, With<MobOrb>>,
@@ -123,6 +126,12 @@ pub fn collisions_crabs_orbs_system(
                 for mut player in &mut players {
                     player.damage(999., "crab hit orb");
                 }
+                play_sfx(
+                    &mut commands,
+                    &asset_server,
+                    Sfx::OrbHitEdge,
+                    SfxSource::Enemy,
+                );
                 info!("crab hit orb");
             }
         }
@@ -146,6 +155,8 @@ pub fn collisions_enemies_orbs_system(
 
 pub fn collisions_orb_targets_system(
     mut game: ResMut<Game>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
     game_state: Res<State<GameState>>,
     mut res_next_game_state: ResMut<NextState<GameState>>,
     mut next_menu_state: ResMut<NextState<MenuState>>,
@@ -166,6 +177,13 @@ pub fn collisions_orb_targets_system(
             if collide(orb_pos, ORB_RADIUS, orb_target_pos, ORB_TARGET_RADIUS) {
                 game.orb_target += 1;
                 velocity_orb.0 = velocity_orb.0 * ORB_VELOCITY_DECAY;
+
+                play_sfx(
+                    &mut commands,
+                    &asset_server,
+                    Sfx::OrbHitTarget,
+                    SfxSource::Enemy,
+                );
             }
         }
     }
@@ -286,6 +304,8 @@ pub fn collisions_players_waves_system(
 }
 
 pub fn collisions_orbs_edge_system(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
     mut players: Query<&mut Player>,
     orbs: Query<(&MobOrb, &Transform)>,
 ) {
@@ -300,6 +320,13 @@ pub fn collisions_orbs_edge_system(
                 player.damage(999., "orb hit the edge");
             }
             info!("orb hit the edge: {}", transform_orb.translation);
+
+            play_sfx(
+                &mut commands,
+                &asset_server,
+                Sfx::OrbHitEdge,
+                SfxSource::Enemy,
+            );
         }
     }
 }
