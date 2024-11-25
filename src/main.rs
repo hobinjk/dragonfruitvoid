@@ -1209,8 +1209,8 @@ fn setup_soowontwo(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    let puddle_starts: Vec<f32> = vec![11., 32., 57., 77., 103.];
-    let spread_starts: Vec<f32> = vec![21., 67., 113.];
+    let puddle_starts: Vec<f32> = vec![10.7, 28.3, 52., 73.9, 103.];
+    let spread_starts: Vec<f32> = vec![20.2, 61.5, 103. + 9.5];
 
     setup_boss_phase(
         &mut commands,
@@ -1238,7 +1238,7 @@ fn setup_soowontwo(
             ..default()
         })
         .insert(Wave {
-            visibility_start: Timer::from_seconds(13.5, TimerMode::Once),
+            visibility_start: Timer::from_seconds(13.8, TimerMode::Once),
             ..default()
         })
         .insert(PhaseEntity);
@@ -1251,7 +1251,7 @@ fn setup_soowontwo(
             ..default()
         })
         .insert(Wave {
-            visibility_start: Timer::from_seconds(38.5, TimerMode::Once),
+            visibility_start: Timer::from_seconds(34.9, TimerMode::Once),
             ..default()
         })
         .insert(PhaseEntity);
@@ -1264,7 +1264,7 @@ fn setup_soowontwo(
             ..default()
         })
         .insert(Wave {
-            visibility_start: Timer::from_seconds(54., TimerMode::Once),
+            visibility_start: Timer::from_seconds(55.4, TimerMode::Once),
             ..default()
         })
         .insert(PhaseEntity);
@@ -1277,7 +1277,7 @@ fn setup_soowontwo(
             ..default()
         })
         .insert(Wave {
-            visibility_start: Timer::from_seconds(79., TimerMode::Once),
+            visibility_start: Timer::from_seconds(80.6, TimerMode::Once),
             ..default()
         })
         .insert(PhaseEntity);
@@ -1290,7 +1290,7 @@ fn setup_soowontwo(
             ..default()
         })
         .insert(Wave {
-            visibility_start: Timer::from_seconds(99.5, TimerMode::Once),
+            visibility_start: Timer::from_seconds(106., TimerMode::Once),
             ..default()
         })
         .insert(PhaseEntity);
