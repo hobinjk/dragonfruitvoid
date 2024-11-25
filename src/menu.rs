@@ -36,9 +36,9 @@ pub struct RestartEvent {
     game_state: GameState,
 }
 
-const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
-const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
-const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
+const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
+const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);
+const PRESSED_BUTTON: Color = Color::srgb(0.35, 0.75, 0.35);
 
 pub fn setup_menu_system(
     mut commands: Commands,
@@ -66,7 +66,7 @@ pub fn setup_menu_system(
     let text_style = TextStyle {
         font: asset_server.load("trebuchet_ms.ttf"),
         font_size: 40.0,
-        color: Color::rgb(0.9, 0.9, 0.9),
+        color: Color::srgb(0.9, 0.9, 0.9),
     };
 
     commands
@@ -243,7 +243,7 @@ pub fn setup_pause_menu_system(mut commands: Commands, asset_server: Res<AssetSe
     let text_style = TextStyle {
         font: asset_server.load("trebuchet_ms.ttf"),
         font_size: 40.0,
-        color: Color::rgb(0.9, 0.9, 0.9),
+        color: Color::srgb(0.9, 0.9, 0.9),
     };
 
     commands
@@ -561,7 +561,7 @@ pub fn setup_success_system(
 
     setup_result_screen(
         success_message,
-        Color::rgb(0.3, 1.0, 0.3),
+        Color::srgb(0.3, 1.0, 0.3),
         game,
         &mut commands,
         asset_server,
@@ -594,7 +594,7 @@ fn setup_result_screen(
     let text_style = TextStyle {
         font: asset_server.load("trebuchet_ms.ttf"),
         font_size: 40.0,
-        color: Color::rgb(0.9, 0.9, 0.9),
+        color: Color::srgb(0.9, 0.9, 0.9),
     };
 
     commands
@@ -624,7 +624,7 @@ fn setup_result_screen(
                         align_items: AlignItems::Center,
                         ..default()
                     },
-                    background_color: Color::rgba(0., 0., 0., 0.6).into(),
+                    background_color: Color::srgba(0., 0., 0., 0.6).into(),
                     ..default()
                 })
                 .with_children(|parent| {
@@ -702,7 +702,7 @@ pub fn setup_failure_system(
 ) {
     setup_result_screen(
         "You died :(",
-        Color::rgb(0.9, 0.2, 0.2),
+        Color::srgb(0.9, 0.2, 0.2),
         game,
         &mut commands,
         asset_server,
@@ -735,7 +735,7 @@ pub fn setup_show_hint_system(
     let text_style = TextStyle {
         font: asset_server.load("trebuchet_ms.ttf"),
         font_size: 28.0,
-        color: Color::rgb(0.9, 0.9, 0.9),
+        color: Color::srgb(0.9, 0.9, 0.9),
     };
 
     commands
@@ -765,7 +765,7 @@ pub fn setup_show_hint_system(
                         align_items: AlignItems::Center,
                         ..default()
                     },
-                    background_color: Color::rgba(0., 0., 0., 0.8).into(),
+                    background_color: Color::srgba(0., 0., 0., 0.8).into(),
                     ..default()
                 })
                 .with_children(|parent| {

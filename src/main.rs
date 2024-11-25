@@ -1,7 +1,6 @@
 use ai::{player_ai_purification_phase_system, AiRole};
 use bevy::{
     prelude::*,
-    render::color::Color,
     sprite::{Anchor, MaterialMesh2dBundle, Mesh2dHandle},
     time::Stopwatch,
     window::WindowResolution,
@@ -107,7 +106,7 @@ fn setup_purification_one(
     }
 
     let orb_target_mesh: Mesh2dHandle = meshes.add(Circle::new(ORB_TARGET_RADIUS)).into();
-    let orb_target_material = ColorMaterial::from(Color::rgb(0.5, 0.5, 0.5));
+    let orb_target_material = ColorMaterial::from(Color::srgb(0.5, 0.5, 0.5));
 
     commands
         .spawn(MaterialMesh2dBundle {
@@ -147,7 +146,7 @@ fn setup_purification_two(
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     let bee_mesh: Mesh2dHandle = meshes.add(Circle::new(ORB_RADIUS)).into();
-    let bee_material = materials.add(ColorMaterial::from(Color::rgba(0.9, 0.0, 0.0, 0.7)));
+    let bee_material = materials.add(ColorMaterial::from(Color::srgba(0.9, 0.0, 0.0, 0.7)));
 
     commands
         .spawn(OhNoNotTheBees {
@@ -171,7 +170,7 @@ fn setup_purification_two(
     }
 
     let orb_target_mesh: Mesh2dHandle = meshes.add(Circle::new(ORB_TARGET_RADIUS)).into();
-    let orb_target_material = ColorMaterial::from(Color::rgb(0.5, 0.5, 0.5));
+    let orb_target_material = ColorMaterial::from(Color::srgb(0.5, 0.5, 0.5));
 
     commands
         .spawn(MaterialMesh2dBundle {
@@ -281,11 +280,11 @@ fn setup_purification_three(
     }
 
     let laser_mesh: Mesh2dHandle = meshes.add(Circle::new(LASER_RADIUS)).into();
-    let laser_material = materials.add(ColorMaterial::from(Color::rgba(0.7, 0.9, 1.0, 0.5)));
+    let laser_material = materials.add(ColorMaterial::from(Color::srgba(0.7, 0.9, 1.0, 0.5)));
     let material_detonation = materials.add(ColorMaterial::from(AOE_DETONATION_COLOR));
 
     let orb_target_mesh: Mesh2dHandle = meshes.add(Circle::new(ORB_TARGET_RADIUS)).into();
-    let orb_target_material = ColorMaterial::from(Color::rgb(0.5, 0.5, 0.5));
+    let orb_target_material = ColorMaterial::from(Color::srgb(0.5, 0.5, 0.5));
 
     commands
         .spawn(MaterialMesh2dBundle {
@@ -344,7 +343,7 @@ fn setup_purification_four(
     commands
         .spawn(MaterialMesh2dBundle {
             mesh: meshes.add(Circle::new(ORB_RADIUS)).into(),
-            material: materials.add(ColorMaterial::from(Color::rgb(0., 0., 0.))),
+            material: materials.add(ColorMaterial::from(Color::srgb(0., 0., 0.))),
             transform: Transform::from_xyz(0., 0., LAYER_MOB),
             ..default()
         })
@@ -359,7 +358,7 @@ fn setup_purification_four(
     commands
         .spawn(SpriteBundle {
             sprite: Sprite {
-                color: Color::rgb(1., 0., 0.),
+                color: Color::srgb(1., 0., 0.),
                 custom_size: Some(Vec2::new(256., 32.)),
                 anchor: Anchor::CenterLeft,
                 ..default()
@@ -377,7 +376,7 @@ fn setup_purification_four(
                 TextStyle {
                     font: asset_server.load("trebuchet_ms.ttf"),
                     font_size: 16.,
-                    color: Color::rgb(1.0, 1.0, 1.0),
+                    color: Color::srgb(1.0, 1.0, 1.0),
                 },
             )
             .with_justify(JustifyText::Center),
@@ -400,7 +399,7 @@ fn setup_purification_four(
                 TextStyle {
                     font: asset_server.load("trebuchet_ms.ttf"),
                     font_size: 32.,
-                    color: Color::rgb(0.0, 0.8, 0.8),
+                    color: Color::srgb(0.0, 0.8, 0.8),
                 },
             )
             .with_justify(JustifyText::Left),
@@ -500,7 +499,7 @@ fn setup_boss_phase(
     commands
         .spawn(MaterialMesh2dBundle {
             mesh: meshes.add(Circle::new(BOSS_RADIUS)).into(),
-            material: materials.add(ColorMaterial::from(Color::rgba(1.0, 0.0, 0.0, 0.5))),
+            material: materials.add(ColorMaterial::from(Color::srgba(1.0, 0.0, 0.0, 0.5))),
             transform: Transform::from_xyz(0., HEIGHT / 2. + 20., LAYER_MOB),
             ..default()
         })
@@ -515,7 +514,7 @@ fn setup_boss_phase(
     commands
         .spawn(SpriteBundle {
             sprite: Sprite {
-                color: Color::rgb(1., 0., 0.),
+                color: Color::srgb(1., 0., 0.),
                 custom_size: Some(Vec2::new(256., 32.)),
                 anchor: Anchor::CenterLeft,
                 ..default()
@@ -533,7 +532,7 @@ fn setup_boss_phase(
                 TextStyle {
                     font: asset_server.load("trebuchet_ms.ttf"),
                     font_size: 16.,
-                    color: Color::rgb(1.0, 1.0, 1.0),
+                    color: Color::srgb(1.0, 1.0, 1.0),
                 },
             )
             .with_justify(JustifyText::Center),
@@ -555,7 +554,7 @@ fn setup_boss_phase(
                 TextStyle {
                     font: asset_server.load("trebuchet_ms.ttf"),
                     font_size: 32.,
-                    color: Color::rgb(0.0, 0.8, 0.8),
+                    color: Color::srgb(0.0, 0.8, 0.8),
                 },
             )
             .with_justify(JustifyText::Left),
@@ -572,7 +571,7 @@ fn setup_boss_phase(
     let void_zone_positions = [Vec3::new(0., 0., LAYER_VOID)];
 
     let void_zone_mesh: Mesh2dHandle = meshes.add(Circle::new(VOID_ZONE_START_RADIUS)).into();
-    let void_zone_material = ColorMaterial::from(Color::rgba(0.0, 0.0, 0.0, 0.9));
+    let void_zone_material = ColorMaterial::from(Color::srgba(0.0, 0.0, 0.0, 0.9));
 
     for pos in void_zone_positions {
         commands
@@ -592,7 +591,7 @@ fn setup_boss_phase(
     }
 
     let puddle_mesh: Mesh2dHandle = meshes.add(Circle::new(PUDDLE_RADIUS)).into();
-    let puddle_material = ColorMaterial::from(Color::rgba(0.5, 0.0, 0.0, 0.3));
+    let puddle_material = ColorMaterial::from(Color::srgba(0.5, 0.0, 0.0, 0.3));
 
     if game.puddles_enabled {
         for puddle_start in puddle_starts {
@@ -651,7 +650,7 @@ fn setup_jormag(
 
     let rotating_soup_mesh: Mesh2dHandle = meshes.add(Circle::new(70.)).into();
     let rotating_soup_material =
-        materials.add(ColorMaterial::from(Color::rgba(0.0, 0.0, 0.0, 0.3)));
+        materials.add(ColorMaterial::from(Color::srgba(0.0, 0.0, 0.0, 0.3)));
 
     for i in 0..4 {
         let radius = 0.;
@@ -790,7 +789,7 @@ fn setup_kralkatorrik(
 
     let mesh: Mesh2dHandle = meshes.add(Circle::new(line_radius)).into();
     let material_base = materials.add(ColorMaterial::from(AOE_BASE_COLOR));
-    let material_detonation = materials.add(ColorMaterial::from(Color::rgb(0., 0., 0.)));
+    let material_detonation = materials.add(ColorMaterial::from(Color::srgb(0., 0., 0.)));
 
     let aoe_desc = AoeDesc {
         mesh,
@@ -1146,7 +1145,7 @@ fn setup_soowonone(
 
     let rotating_soup_mesh: Mesh2dHandle = meshes.add(Circle::new(ROTATING_SOUP_RADIUS)).into();
     let rotating_soup_material =
-        materials.add(ColorMaterial::from(Color::rgba(0.0, 0.0, 0.0, 0.3)));
+        materials.add(ColorMaterial::from(Color::srgba(0.0, 0.0, 0.0, 0.3)));
 
     for i in 1..=5 {
         let radius = (i as f32) / 5. * (HEIGHT / 2. - 20.);
@@ -1279,7 +1278,7 @@ fn setup_soowontwo(
 
     let rotating_soup_mesh: Mesh2dHandle = meshes.add(Circle::new(ROTATING_SOUP_RADIUS)).into();
     let rotating_soup_material =
-        materials.add(ColorMaterial::from(Color::rgba(0.0, 0.0, 0.0, 0.3)));
+        materials.add(ColorMaterial::from(Color::srgba(0.0, 0.0, 0.0, 0.3)));
 
     for i in 1..=5 {
         let radius = (i as f32) / 5. * (HEIGHT / 2. - 20.);
@@ -1466,7 +1465,7 @@ fn main() {
     .add_event::<DamageFlashEvent>()
     .add_event::<RestartEvent>()
     .insert_resource(game)
-    .insert_resource(ClearColor(Color::rgb(0.3, 0.3, 0.3)))
+    .insert_resource(ClearColor(Color::srgb(0.3, 0.3, 0.3)))
     .insert_resource(AssetsLoading(vec![]))
     .add_systems(Startup, setup)
     .add_systems(OnEnter(MenuState::Loading), setup_loading_system)

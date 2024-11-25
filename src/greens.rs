@@ -235,8 +235,8 @@ pub fn setup_greens(
     green_spawns: Vec<GreenSpawn>,
 ) {
     let green_mesh: Mesh2dHandle = meshes.add(Circle::new(GREEN_RADIUS)).into();
-    let green_bright_material = ColorMaterial::from(Color::rgb(0., 1.0, 0.));
-    let green_dull_material = ColorMaterial::from(Color::rgba(0., 0.7, 0., 0.5));
+    let green_bright_material = ColorMaterial::from(Color::srgb(0., 1.0, 0.));
+    let green_dull_material = ColorMaterial::from(Color::srgba(0., 0.7, 0., 0.5));
 
     for green_spawn in &green_spawns {
         commands

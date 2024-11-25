@@ -208,9 +208,9 @@ fn puddles_system(
 
         if puddle.drop.just_finished() {
             soup.damage = PUDDLE_DAMAGE;
-            materials.get_mut(material).unwrap().color.set_a(0.9);
+            materials.get_mut(material).unwrap().color.set_alpha(0.9);
         } else if puddle.drop.fraction() > 4. / 6. {
-            materials.get_mut(material).unwrap().color.set_a(0.7);
+            materials.get_mut(material).unwrap().color.set_alpha(0.7);
         }
     }
 }

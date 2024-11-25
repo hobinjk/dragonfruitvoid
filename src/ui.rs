@@ -39,9 +39,9 @@ pub enum PlayerCooldown {
 impl PlayerCooldown {
     pub fn color(&self) -> Color {
         match self {
-            PlayerCooldown::Blink => Color::rgb(0.89, 0.39, 0.95),
-            PlayerCooldown::Jump => Color::rgb(0.3, 0.9, 0.9),
-            PlayerCooldown::Dodge => Color::rgb(0.9, 0.9, 0.3),
+            PlayerCooldown::Blink => Color::srgb(0.89, 0.39, 0.95),
+            PlayerCooldown::Jump => Color::srgb(0.3, 0.9, 0.9),
+            PlayerCooldown::Dodge => Color::srgb(0.9, 0.9, 0.3),
         }
     }
 }
@@ -78,16 +78,16 @@ fn set_cooldown_text_display(
     }
 
     if left < 0.001 {
-        text.sections[0].style.color.set_a(0.0);
+        text.sections[0].style.color.set_alpha(0.0);
     } else {
-        text.sections[0].style.color.set_a(1.0);
+        text.sections[0].style.color.set_alpha(1.0);
     }
 
     if let Some(sprite_handle) = text_display.sprite {
         let color = if left < 0.001 {
-            Color::rgba(1.0, 1.0, 1.0, 1.0)
+            Color::srgba(1.0, 1.0, 1.0, 1.0)
         } else {
-            Color::rgba(0.7, 0.7, 0.7, 0.7)
+            Color::srgba(0.7, 0.7, 0.7, 0.7)
         };
         sprites.get_mut(sprite_handle).unwrap().color = color;
     }

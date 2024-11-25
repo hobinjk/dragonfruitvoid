@@ -1,6 +1,5 @@
 use bevy::{
     prelude::*,
-    render::color::Color,
     sprite::{Anchor, MaterialMesh2dBundle},
     window::CursorMoved,
 };
@@ -164,7 +163,7 @@ fn handle_mouse_events_system(
             commands
                 .spawn(SpriteBundle {
                     sprite: Sprite {
-                        color: Color::rgb(0.89, 0.39, 0.95),
+                        color: Color::srgb(0.89, 0.39, 0.95),
                         custom_size: Some(Vec2::new(BULLET_SIZE, BULLET_SIZE)),
                         ..default()
                     },
@@ -288,7 +287,7 @@ fn handle_spellcasts_system(
                 commands
                     .spawn(SpriteBundle {
                         sprite: Sprite {
-                            color: Color::rgb(0., 1., 1.),
+                            color: Color::srgb(0., 1., 1.),
                             custom_size: Some(Vec2::new(PORTAL_RADIUS * 2., PORTAL_RADIUS * 2.)),
                             ..default()
                         },
@@ -314,7 +313,7 @@ fn handle_spellcasts_system(
                 commands
                     .spawn(SpriteBundle {
                         sprite: Sprite {
-                            color: Color::rgb(1., 0.7, 0.),
+                            color: Color::srgb(1., 0.7, 0.),
                             custom_size: Some(Vec2::new(PORTAL_RADIUS * 2., PORTAL_RADIUS * 2.)),
                             ..default()
                         },
@@ -760,7 +759,7 @@ pub fn setup_phase(
                                 parent
                                     .spawn(SpriteBundle {
                                         sprite: Sprite {
-                                            color: Color::rgb(0.2, 0.8, 0.2),
+                                            color: Color::srgb(0.2, 0.8, 0.2),
                                             custom_size: Some(Vec2::new(
                                                 PLAYER_RADIUS * 2.,
                                                 bar_height,
@@ -779,7 +778,7 @@ pub fn setup_phase(
 
                                 parent.spawn(SpriteBundle {
                                     sprite: Sprite {
-                                        color: Color::rgb(0.3, 0.3, 0.3),
+                                        color: Color::srgb(0.3, 0.3, 0.3),
                                         custom_size: Some(Vec2::new(
                                             PLAYER_RADIUS * 2.,
                                             bar_height,
@@ -852,7 +851,7 @@ pub fn setup_phase(
 
                                     parent.spawn(SpriteBundle {
                                         sprite: Sprite {
-                                            color: Color::rgb(0.3, 0.3, 0.3),
+                                            color: Color::srgb(0.3, 0.3, 0.3),
                                             custom_size: Some(Vec2::new(bar_width, 4.)),
                                             anchor: Anchor::CenterLeft,
                                             ..default()
@@ -898,7 +897,7 @@ pub fn setup_phase(
         commands
             .spawn(SpriteBundle {
                 sprite: Sprite {
-                    // color: Color::rgb(0.0, 0.0, 0.0),
+                    // color: Color::srgb(0.0, 0.0, 0.0),
                     custom_size: Some(Vec2::new(ECHO_RADIUS * 2., ECHO_RADIUS * 2.)),
                     ..default()
                 },
@@ -925,7 +924,7 @@ pub fn setup_phase(
     commands
         .spawn(SpriteBundle {
             sprite: Sprite {
-                color: Color::rgb(0.9, 0., 0.),
+                color: Color::srgb(0.9, 0., 0.),
                 custom_size: Some(Vec2::new(4., 4.)),
                 ..default()
             },
@@ -969,13 +968,13 @@ fn setup_player_ui(
     let text_style = TextStyle {
         font: asset_server.load("trebuchet_ms.ttf"),
         font_size: 64.,
-        color: Color::rgb(0.1, 0.7, 0.1),
+        color: Color::srgb(0.1, 0.7, 0.1),
     };
 
     let text_binding_style = TextStyle {
         font: asset_server.load("trebuchet_ms.ttf"),
         font_size: 28.,
-        color: Color::rgb(0.4, 0.2, 0.),
+        color: Color::srgb(0.4, 0.2, 0.),
     };
     let binding_y = 18.;
 
@@ -995,7 +994,7 @@ fn setup_player_ui(
     commands
         .spawn(MaterialMesh2dBundle {
             mesh: meshes.add(Circle::new(50.)).into(),
-            material: materials.add(ColorMaterial::from(Color::rgb(0.6, 0.1, 0.1))),
+            material: materials.add(ColorMaterial::from(Color::srgb(0.6, 0.1, 0.1))),
             transform: Transform::from_xyz(0., -HEIGHT / 2. + 55., LAYER_UI),
             ..default()
         })
@@ -1008,7 +1007,7 @@ fn setup_player_ui(
                 TextStyle {
                     font: asset_server.load("trebuchet_ms.ttf"),
                     font_size: 80.,
-                    color: Color::rgb(0.7, 0.7, 0.1),
+                    color: Color::srgb(0.7, 0.7, 0.1),
                 },
             )
             .with_justify(JustifyText::Center),
@@ -1029,7 +1028,7 @@ fn setup_player_ui(
                 TextStyle {
                     font: asset_server.load("trebuchet_ms.ttf"),
                     font_size: 80.,
-                    color: Color::rgb(0.1, 0.7, 0.7),
+                    color: Color::srgb(0.1, 0.7, 0.7),
                 },
             )
             .with_justify(JustifyText::Right),

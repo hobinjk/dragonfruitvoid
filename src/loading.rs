@@ -95,7 +95,7 @@ pub fn setup_loading_system(
             let text_style = TextStyle {
                 font: asset_server.load("trebuchet_ms.ttf"),
                 font_size: 80.,
-                color: Color::rgb(0.9, 0.9, 0.9),
+                color: Color::srgb(0.9, 0.9, 0.9),
             };
 
             big_container

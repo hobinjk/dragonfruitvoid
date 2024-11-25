@@ -89,7 +89,7 @@ pub fn spawn_crab(commands: &mut Commands, asset_server: &Res<AssetServer>, crab
     commands
         .spawn(SpriteBundle {
             sprite: Sprite {
-                // color: Color::rgb(0.0, 0.0, 0.0),
+                // color: Color::srgb(0.0, 0.0, 0.0),
                 custom_size: Some(Vec2::new(CRAB_SIZE, CRAB_SIZE * 80. / 120.)),
                 ..default()
             },
@@ -154,7 +154,7 @@ pub fn goliath_system(
             commands
                 .spawn(SpriteBundle {
                     sprite: Sprite {
-                        color: Color::rgb(0.4, 0., 0.4),
+                        color: Color::srgb(0.4, 0., 0.4),
                         custom_size: Some(Vec2::new(bullet_radius * 2., bullet_radius * 2.)),
                         ..default()
                     },
@@ -204,7 +204,7 @@ pub fn wyvern_system(
             commands
                 .spawn(SpriteBundle {
                     sprite: Sprite {
-                        color: Color::rgb(1.0, 0., 0.),
+                        color: Color::srgb(1.0, 0., 0.),
                         custom_size: Some(Vec2::new(BULLET_SIZE, BULLET_SIZE)),
                         ..default()
                     },
@@ -243,7 +243,7 @@ pub fn wyvern_system(
                 commands
                     .spawn(SpriteBundle {
                         sprite: Sprite {
-                            color: Color::rgb(0.8, 0., 0.4),
+                            color: Color::srgb(0.8, 0., 0.4),
                             custom_size: Some(Vec2::new(bullet_radius * 2., bullet_radius * 2.)),
                             ..default()
                         },
@@ -399,7 +399,7 @@ pub fn timecaster_system(
                 commands
                     .spawn(SpriteBundle {
                         sprite: Sprite {
-                            color: Color::rgb(1.0, 0., 0.),
+                            color: Color::srgb(1.0, 0., 0.),
                             custom_size: Some(Vec2::new(BULLET_SIZE, BULLET_SIZE)),
                             ..default()
                         },

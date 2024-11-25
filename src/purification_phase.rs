@@ -1,6 +1,5 @@
 use bevy::{
     prelude::*,
-    render::color::Color,
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
 use std::ops::{Add, Mul, Sub};
@@ -93,7 +92,7 @@ pub fn setup_purification(
     commands
         .spawn(MaterialMesh2dBundle {
             mesh: meshes.add(Circle::new(ORB_RADIUS)).into(),
-            material: materials.add(ColorMaterial::from(Color::rgb(0.9, 1.0, 1.0))),
+            material: materials.add(ColorMaterial::from(Color::srgb(0.9, 1.0, 1.0))),
             transform: Transform::from_xyz(0., 0., LAYER_MOB),
             ..default()
         })
@@ -110,7 +109,7 @@ pub fn setup_purification(
     ];
 
     let void_zone_mesh: Mesh2dHandle = meshes.add(Circle::new(VOID_ZONE_START_RADIUS)).into();
-    let void_zone_material = ColorMaterial::from(Color::rgba(0.0, 0.0, 0.0, 0.9));
+    let void_zone_material = ColorMaterial::from(Color::srgba(0.0, 0.0, 0.0, 0.9));
 
     for pos in void_zone_positions {
         commands

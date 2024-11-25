@@ -796,7 +796,7 @@ fn act_on_thought(
                 commands
                     .spawn(SpriteBundle {
                         sprite: Sprite {
-                            color: Color::rgb(0.89, 0.39, 0.95),
+                            color: Color::srgb(0.89, 0.39, 0.95),
                             custom_size: Some(Vec2::new(BULLET_SIZE, BULLET_SIZE)),
                             ..default()
                         },

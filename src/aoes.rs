@@ -8,8 +8,8 @@ use crate::collisions::{collide, CollisionRadius};
 use crate::damage_flash::DamageFlashEvent;
 use crate::game::{PhaseEntity, Player, GAME_RADIUS, GAME_TO_PX, LAYER_AOE};
 
-pub const AOE_BASE_COLOR: Color = Color::rgba(0.9, 0.9, 0., 0.4);
-pub const AOE_DETONATION_COLOR: Color = Color::rgba(0.7, 0., 0., 0.7);
+pub const AOE_BASE_COLOR: Color = Color::srgba(0.9, 0.9, 0., 0.4);
+pub const AOE_DETONATION_COLOR: Color = Color::srgba(0.7, 0., 0., 0.7);
 
 pub const SPEW_DAMAGE: f32 = 40.;
 pub const SPEW_RADIUS: f32 = 200. * GAME_TO_PX;
