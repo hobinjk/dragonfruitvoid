@@ -431,7 +431,8 @@ fn handle_keyboard_system(
             MenuState::Paused | MenuState::PausedShowHint => {
                 next_menu_state.set(MenuState::Unpaused);
             }
-            MenuState::StartMenu | MenuState::Failure | MenuState::Success => {}
+            MenuState::StartMenu | MenuState::Failure | MenuState::Success | MenuState::Loading => {
+            }
             MenuState::Unpaused => {
                 next_menu_state.set(MenuState::Paused);
             }

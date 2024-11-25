@@ -7,6 +7,7 @@ use bevy::{
     window::WindowResolution,
 };
 use core::f32::consts::PI;
+use loading::{setup_loading_system, update_loading_system, AssetsLoading};
 use rand::Rng;
 use std::ops::Add;
 use std::time::Duration;
@@ -20,6 +21,7 @@ mod damage_flash;
 mod game;
 mod greens;
 mod hints;
+mod loading;
 mod menu;
 mod mobs;
 mod orbs;
@@ -1487,7 +1489,14 @@ fn main() {
     .add_event::<RestartEvent>()
     .insert_resource(game)
     .insert_resource(ClearColor(Color::rgb(0.3, 0.3, 0.3)))
+    .insert_resource(AssetsLoading(vec![]))
     .add_systems(Startup, setup)
+    .add_systems(OnEnter(MenuState::Loading), setup_loading_system)
+    .add_systems(
+        Update,
+        (update_loading_system).run_if(in_state(MenuState::Loading)),
+    )
+    .add_systems(OnExit(MenuState::Loading), cleanup_menu_system)
     .add_systems(OnEnter(MenuState::StartMenu), setup_menu_system)
     .add_systems(
         Update,

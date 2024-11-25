@@ -24,6 +24,7 @@ pub enum GameState {
 #[derive(States, Clone, Copy, Eq, PartialEq, Debug, Hash, Default)]
 pub enum MenuState {
     #[default]
+    Loading,
     StartMenu,
     Failure,
     Success,
