@@ -106,9 +106,7 @@ fn setup_purification_one(
         spawn_crab(&mut commands, &asset_server, crab_pos);
     }
 
-    let orb_target_mesh: Mesh2dHandle = meshes
-        .add(shape::Circle::new(ORB_TARGET_RADIUS).into())
-        .into();
+    let orb_target_mesh: Mesh2dHandle = meshes.add(Circle::new(ORB_TARGET_RADIUS)).into();
     let orb_target_material = ColorMaterial::from(Color::rgb(0.5, 0.5, 0.5));
 
     commands
@@ -148,7 +146,7 @@ fn setup_purification_two(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    let bee_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(ORB_RADIUS).into()).into();
+    let bee_mesh: Mesh2dHandle = meshes.add(Circle::new(ORB_RADIUS)).into();
     let bee_material = materials.add(ColorMaterial::from(Color::rgba(0.9, 0.0, 0.0, 0.7)));
 
     commands
@@ -172,9 +170,7 @@ fn setup_purification_two(
         spawn_crab(&mut commands, &asset_server, crab_pos);
     }
 
-    let orb_target_mesh: Mesh2dHandle = meshes
-        .add(shape::Circle::new(ORB_TARGET_RADIUS).into())
-        .into();
+    let orb_target_mesh: Mesh2dHandle = meshes.add(Circle::new(ORB_TARGET_RADIUS)).into();
     let orb_target_material = ColorMaterial::from(Color::rgb(0.5, 0.5, 0.5));
 
     commands
@@ -284,13 +280,11 @@ fn setup_purification_three(
         spawn_crab(&mut commands, &asset_server, crab_pos);
     }
 
-    let laser_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(LASER_RADIUS).into()).into();
+    let laser_mesh: Mesh2dHandle = meshes.add(Circle::new(LASER_RADIUS)).into();
     let laser_material = materials.add(ColorMaterial::from(Color::rgba(0.7, 0.9, 1.0, 0.5)));
     let material_detonation = materials.add(ColorMaterial::from(AOE_DETONATION_COLOR));
 
-    let orb_target_mesh: Mesh2dHandle = meshes
-        .add(shape::Circle::new(ORB_TARGET_RADIUS).into())
-        .into();
+    let orb_target_mesh: Mesh2dHandle = meshes.add(Circle::new(ORB_TARGET_RADIUS)).into();
     let orb_target_material = ColorMaterial::from(Color::rgb(0.5, 0.5, 0.5));
 
     commands
@@ -349,7 +343,7 @@ fn setup_purification_four(
 ) {
     commands
         .spawn(MaterialMesh2dBundle {
-            mesh: meshes.add(shape::Circle::new(ORB_RADIUS).into()).into(),
+            mesh: meshes.add(Circle::new(ORB_RADIUS)).into(),
             material: materials.add(ColorMaterial::from(Color::rgb(0., 0., 0.))),
             transform: Transform::from_xyz(0., 0., LAYER_MOB),
             ..default()
@@ -386,7 +380,7 @@ fn setup_purification_four(
                     color: Color::rgb(1.0, 1.0, 1.0),
                 },
             )
-            .with_alignment(TextAlignment::Center),
+            .with_justify(JustifyText::Center),
             text_anchor: Anchor::Center,
 
             transform: Transform::from_xyz(
@@ -409,7 +403,7 @@ fn setup_purification_four(
                     color: Color::rgb(0.0, 0.8, 0.8),
                 },
             )
-            .with_alignment(TextAlignment::Left),
+            .with_justify(JustifyText::Left),
             text_anchor: Anchor::BottomLeft,
             transform: Transform::from_xyz(
                 -WIDTH / 2. + 20.,
@@ -427,12 +421,8 @@ fn setup_claw_swipes(
     materials: &mut ResMut<Assets<ColorMaterial>>,
     claw_swipe_starts: Vec<f32>,
 ) {
-    let chonk_mesh: Mesh2dHandle = meshes
-        .add(shape::Circle::new(SWIPE_CHONK_RADIUS).into())
-        .into();
-    let ball_mesh: Mesh2dHandle = meshes
-        .add(shape::Circle::new(SWIPE_BALL_RADIUS).into())
-        .into();
+    let chonk_mesh: Mesh2dHandle = meshes.add(Circle::new(SWIPE_CHONK_RADIUS)).into();
+    let ball_mesh: Mesh2dHandle = meshes.add(Circle::new(SWIPE_BALL_RADIUS)).into();
     let material_base = materials.add(ColorMaterial::from(AOE_BASE_COLOR));
     let material_detonation = materials.add(ColorMaterial::from(AOE_DETONATION_COLOR));
 
@@ -509,7 +499,7 @@ fn setup_boss_phase(
 ) {
     commands
         .spawn(MaterialMesh2dBundle {
-            mesh: meshes.add(shape::Circle::new(BOSS_RADIUS).into()).into(),
+            mesh: meshes.add(Circle::new(BOSS_RADIUS)).into(),
             material: materials.add(ColorMaterial::from(Color::rgba(1.0, 0.0, 0.0, 0.5))),
             transform: Transform::from_xyz(0., HEIGHT / 2. + 20., LAYER_MOB),
             ..default()
@@ -546,7 +536,7 @@ fn setup_boss_phase(
                     color: Color::rgb(1.0, 1.0, 1.0),
                 },
             )
-            .with_alignment(TextAlignment::Center),
+            .with_justify(JustifyText::Center),
             text_anchor: Anchor::Center,
             transform: Transform::from_xyz(
                 -WIDTH / 2. + 20. + 128.,
@@ -568,7 +558,7 @@ fn setup_boss_phase(
                     color: Color::rgb(0.0, 0.8, 0.8),
                 },
             )
-            .with_alignment(TextAlignment::Left),
+            .with_justify(JustifyText::Left),
             text_anchor: Anchor::BottomLeft,
             transform: Transform::from_xyz(
                 -WIDTH / 2. + 20.,
@@ -581,9 +571,7 @@ fn setup_boss_phase(
 
     let void_zone_positions = [Vec3::new(0., 0., LAYER_VOID)];
 
-    let void_zone_mesh: Mesh2dHandle = meshes
-        .add(shape::Circle::new(VOID_ZONE_START_RADIUS).into())
-        .into();
+    let void_zone_mesh: Mesh2dHandle = meshes.add(Circle::new(VOID_ZONE_START_RADIUS)).into();
     let void_zone_material = ColorMaterial::from(Color::rgba(0.0, 0.0, 0.0, 0.9));
 
     for pos in void_zone_positions {
@@ -603,7 +591,7 @@ fn setup_boss_phase(
             .insert(PhaseEntity);
     }
 
-    let puddle_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(PUDDLE_RADIUS).into()).into();
+    let puddle_mesh: Mesh2dHandle = meshes.add(Circle::new(PUDDLE_RADIUS)).into();
     let puddle_material = ColorMaterial::from(Color::rgba(0.5, 0.0, 0.0, 0.3));
 
     if game.puddles_enabled {
@@ -618,7 +606,7 @@ fn setup_boss_phase(
         }
     }
 
-    let spread_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(SPREAD_RADIUS).into()).into();
+    let spread_mesh: Mesh2dHandle = meshes.add(Circle::new(SPREAD_RADIUS)).into();
     let spread_material_base = materials.add(ColorMaterial::from(AOE_BASE_COLOR));
     let spread_material_detonation = materials.add(ColorMaterial::from(AOE_DETONATION_COLOR));
     commands
@@ -661,7 +649,7 @@ fn setup_jormag(
 
     // TODO roving frost beam things properly
 
-    let rotating_soup_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(70.).into()).into();
+    let rotating_soup_mesh: Mesh2dHandle = meshes.add(Circle::new(70.)).into();
     let rotating_soup_material =
         materials.add(ColorMaterial::from(Color::rgba(0.0, 0.0, 0.0, 0.3)));
 
@@ -719,10 +707,8 @@ fn setup_primordus(
     let chomp_radius = CHOMP_TARGET_Y - BOSS_RADIUS;
     let minichomp_radius = MINICHOMP_TARGET_Y - BOSS_RADIUS;
 
-    let chomp_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(chomp_radius).into()).into();
-    let minichomp_mesh: Mesh2dHandle = meshes
-        .add(shape::Circle::new(minichomp_radius).into())
-        .into();
+    let chomp_mesh: Mesh2dHandle = meshes.add(Circle::new(chomp_radius)).into();
+    let minichomp_mesh: Mesh2dHandle = meshes.add(Circle::new(minichomp_radius)).into();
     let material_base = materials.add(ColorMaterial::from(AOE_BASE_COLOR));
     let material_detonation = materials.add(ColorMaterial::from(AOE_DETONATION_COLOR));
 
@@ -802,7 +788,7 @@ fn setup_kralkatorrik(
     let line_spacing = line_radius;
     let line_circles = (GAME_WIDTH / line_spacing) as i32;
 
-    let mesh: Mesh2dHandle = meshes.add(shape::Circle::new(line_radius).into()).into();
+    let mesh: Mesh2dHandle = meshes.add(Circle::new(line_radius)).into();
     let material_base = materials.add(ColorMaterial::from(AOE_BASE_COLOR));
     let material_detonation = materials.add(ColorMaterial::from(Color::rgb(0., 0., 0.)));
 
@@ -925,7 +911,7 @@ fn setup_mordremoth(
         }
     }
 
-    let spew_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(SPEW_RADIUS).into()).into();
+    let spew_mesh: Mesh2dHandle = meshes.add(Circle::new(SPEW_RADIUS)).into();
     let material_base = materials.add(ColorMaterial::from(AOE_BASE_COLOR));
     let material_detonation = materials.add(ColorMaterial::from(AOE_DETONATION_COLOR));
 
@@ -967,13 +953,9 @@ fn setup_zhaitan(
     );
 
     let spew_radius_nerfed = SPEW_RADIUS * 0.9;
-    let spew_mesh: Mesh2dHandle = meshes
-        .add(shape::Circle::new(spew_radius_nerfed).into())
-        .into();
-    let fear_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(WIDTH / 2.).into()).into();
-    let noodle_aoe_mesh: Mesh2dHandle = meshes
-        .add(shape::Circle::new(NOODLE_SLAM_RADIUS).into())
-        .into();
+    let spew_mesh: Mesh2dHandle = meshes.add(Circle::new(spew_radius_nerfed)).into();
+    let fear_mesh: Mesh2dHandle = meshes.add(Circle::new(WIDTH / 2.)).into();
+    let noodle_aoe_mesh: Mesh2dHandle = meshes.add(Circle::new(NOODLE_SLAM_RADIUS)).into();
     let material_base = materials.add(ColorMaterial::from(AOE_BASE_COLOR));
     let material_detonation = materials.add(ColorMaterial::from(AOE_DETONATION_COLOR));
 
@@ -1162,9 +1144,7 @@ fn setup_soowonone(
         })
         .insert(PhaseEntity);
 
-    let rotating_soup_mesh: Mesh2dHandle = meshes
-        .add(shape::Circle::new(ROTATING_SOUP_RADIUS).into())
-        .into();
+    let rotating_soup_mesh: Mesh2dHandle = meshes.add(Circle::new(ROTATING_SOUP_RADIUS)).into();
     let rotating_soup_material =
         materials.add(ColorMaterial::from(Color::rgba(0.0, 0.0, 0.0, 0.3)));
 
@@ -1297,9 +1277,7 @@ fn setup_soowontwo(
         })
         .insert(PhaseEntity);
 
-    let rotating_soup_mesh: Mesh2dHandle = meshes
-        .add(shape::Circle::new(ROTATING_SOUP_RADIUS).into())
-        .into();
+    let rotating_soup_mesh: Mesh2dHandle = meshes.add(Circle::new(ROTATING_SOUP_RADIUS)).into();
     let rotating_soup_material =
         materials.add(ColorMaterial::from(Color::rgba(0.0, 0.0, 0.0, 0.3)));
 
@@ -1483,8 +1461,8 @@ fn main() {
         }),
         ..default()
     }))
-    .add_state::<GameState>()
-    .add_state::<MenuState>()
+    .init_state::<GameState>()
+    .init_state::<MenuState>()
     .add_event::<DamageFlashEvent>()
     .add_event::<RestartEvent>()
     .insert_resource(game)

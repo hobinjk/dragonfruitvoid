@@ -57,6 +57,6 @@ pub fn waves_system(
             continue;
         }
 
-        transform.scale = Vec3::splat(wave.growth.percent());
+        transform.scale = Vec3::splat(wave.growth.fraction());
     }
 }

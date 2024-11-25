@@ -184,9 +184,9 @@ pub fn player_cooldown_update_gauge_system(
     for (mut gauge, player_cooldown_bar) in &mut gauges {
         if let Ok(player) = players.get(player_cooldown_bar.player) {
             let remaining = match player_cooldown_bar.cooldown {
-                PlayerCooldown::Jump => player.jump_cooldown.percent(),
-                PlayerCooldown::Blink => player.blink_cooldown.percent(),
-                PlayerCooldown::Dodge => player.dodge_cooldown.percent(),
+                PlayerCooldown::Jump => player.jump_cooldown.fraction(),
+                PlayerCooldown::Blink => player.blink_cooldown.fraction(),
+                PlayerCooldown::Dodge => player.dodge_cooldown.fraction(),
             };
             gauge.value = remaining.clamp(0., 1.);
         }

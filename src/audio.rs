@@ -42,7 +42,7 @@ pub fn setup_audio(commands: &mut Commands, asset_server: &Res<AssetServer>) {
             source: asset_server.load("sounds/phase_theme.ogg"),
             settings: PlaybackSettings {
                 mode: PlaybackMode::Loop,
-                volume: Volume::new_relative(0.5),
+                volume: Volume::new(0.5),
                 ..default()
             },
         })
@@ -101,7 +101,7 @@ pub fn play_sfx(
     commands
         .spawn(AudioBundle {
             source: asset_server.load(path),
-            settings: PlaybackSettings::REMOVE.with_volume(Volume::new_relative(volume)),
+            settings: PlaybackSettings::REMOVE.with_volume(Volume::new(volume)),
         })
         .insert(PhaseAudio);
 }

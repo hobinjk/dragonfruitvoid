@@ -138,8 +138,8 @@ fn game_player_damage_system(mut game: ResMut<Game>, players: Query<&Player>) {
 fn handle_mouse_events_system(
     game: Res<Game>,
     asset_server: Res<AssetServer>,
-    mouse_button_input: Res<Input<MouseButton>>,
-    keyboard_input: Res<Input<KeyCode>>,
+    mouse_button_input: Res<ButtonInput<MouseButton>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     mut commands: Commands,
     mut cursor_moved_events: EventReader<CursorMoved>,
     mut players: Query<(Entity, &Transform, &mut Player), (Without<CursorMark>, Without<AiPlayer>)>,
@@ -154,7 +154,7 @@ fn handle_mouse_events_system(
         let player_loc = transform_player.translation;
         if player.shoot_cooldown.finished()
             && (mouse_button_input.pressed(MouseButton::Left)
-                || keyboard_input.pressed(KeyCode::Key1))
+                || keyboard_input.pressed(KeyCode::Digit1))
         {
             let cursor = cursors.single();
             let mut vel = cursor.translation.sub(player_loc);
@@ -199,7 +199,7 @@ fn handle_mouse_events_system(
 }
 
 fn handle_spellcasts_system(
-    keyboard_input: Res<Input<KeyCode>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut players: Query<(Entity, &Transform, &mut Player), (Without<CursorMark>, Without<AiPlayer>)>,
@@ -220,7 +220,7 @@ fn handle_spellcasts_system(
             play_sfx(&mut commands, &asset_server, Sfx::Jump, SfxSource::Player);
         }
 
-        if player.dodge_cooldown.finished() && keyboard_input.pressed(KeyCode::V) {
+        if player.dodge_cooldown.finished() && keyboard_input.pressed(KeyCode::KeyV) {
             let dodge_range = 300. * GAME_TO_PX;
             let dodge_speed = dodge_range / 0.75;
             let diff = cursor_loc
@@ -237,7 +237,7 @@ fn handle_spellcasts_system(
             player.dodge_cooldown.reset();
         }
 
-        if player.blink_cooldown.finished() && keyboard_input.pressed(KeyCode::E) {
+        if player.blink_cooldown.finished() && keyboard_input.pressed(KeyCode::KeyE) {
             let blink_range = 1200.0 * GAME_TO_PX;
             let blink_speed = blink_range / 0.1;
             let mut diff = cursor_loc.sub(player_loc);
@@ -256,7 +256,7 @@ fn handle_spellcasts_system(
             play_sfx(&mut commands, &asset_server, Sfx::Blink, SfxSource::Player);
         }
 
-        if player.pull_cooldown.finished() && keyboard_input.pressed(KeyCode::Key4) {
+        if player.pull_cooldown.finished() && keyboard_input.pressed(KeyCode::Digit4) {
             let pull_loc = cursor_loc;
             let pull_range = 600.0 * GAME_TO_PX;
             let pull_speed = pull_range / 0.3;
@@ -281,7 +281,7 @@ fn handle_spellcasts_system(
             play_sfx(&mut commands, &asset_server, Sfx::Pull, SfxSource::Player);
         }
 
-        if player.portal_cooldown.finished() && keyboard_input.just_pressed(KeyCode::R) {
+        if player.portal_cooldown.finished() && keyboard_input.just_pressed(KeyCode::KeyR) {
             let portal_loc = player_loc;
 
             if portal_entries.is_empty() {
@@ -339,7 +339,7 @@ fn handle_spellcasts_system(
             }
         }
 
-        if keyboard_input.just_pressed(KeyCode::F)
+        if keyboard_input.just_pressed(KeyCode::KeyF)
             && !portal_entries.is_empty()
             && !portal_exits.is_empty()
         {
@@ -422,7 +422,7 @@ fn portal_despawn_system(
 }
 
 fn handle_keyboard_system(
-    keyboard_input: Res<Input<KeyCode>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     menu_state: Res<State<MenuState>>,
     mut next_menu_state: ResMut<NextState<MenuState>>,
 ) {
@@ -453,7 +453,7 @@ fn move_rotating_soup_system(
 
 fn move_player_system(
     time: Res<Time>,
-    keyboard_input: Res<Input<KeyCode>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     mut transforms: Query<
         (&mut Transform, &Player),
         (Without<EffectForcedMarch>, Without<AiPlayer>),
@@ -463,16 +463,16 @@ fn move_player_system(
     let speed = 250.0 * GAME_TO_PX * time.delta_seconds();
     for (mut transform, _player) in &mut transforms {
         let mut movement = Vec3::ZERO;
-        if keyboard_input.pressed(KeyCode::Up) || keyboard_input.pressed(KeyCode::W) {
+        if keyboard_input.pressed(KeyCode::ArrowUp) || keyboard_input.pressed(KeyCode::KeyW) {
             movement.y += speed;
         }
-        if keyboard_input.pressed(KeyCode::Down) || keyboard_input.pressed(KeyCode::S) {
+        if keyboard_input.pressed(KeyCode::ArrowDown) || keyboard_input.pressed(KeyCode::KeyS) {
             movement.y -= speed;
         }
-        if keyboard_input.pressed(KeyCode::Left) || keyboard_input.pressed(KeyCode::A) {
+        if keyboard_input.pressed(KeyCode::ArrowLeft) || keyboard_input.pressed(KeyCode::KeyA) {
             movement.x -= speed;
         }
-        if keyboard_input.pressed(KeyCode::Right) || keyboard_input.pressed(KeyCode::D) {
+        if keyboard_input.pressed(KeyCode::ArrowRight) || keyboard_input.pressed(KeyCode::KeyD) {
             movement.x += speed;
         }
         movement = movement.clamp_length(0., speed);
@@ -981,8 +981,7 @@ fn setup_player_ui(
 
     commands
         .spawn(Text2dBundle {
-            text: Text::from_section("hp", text_style.clone())
-                .with_alignment(TextAlignment::Center),
+            text: Text::from_section("hp", text_style.clone()).with_justify(JustifyText::Center),
             text_anchor: Anchor::Center,
             transform: Transform::from_xyz(0., -HEIGHT / 2. + 55., LAYER_TEXT),
             ..default()
@@ -995,7 +994,7 @@ fn setup_player_ui(
 
     commands
         .spawn(MaterialMesh2dBundle {
-            mesh: meshes.add(shape::Circle::new(50.).into()).into(),
+            mesh: meshes.add(Circle::new(50.)).into(),
             material: materials.add(ColorMaterial::from(Color::rgb(0.6, 0.1, 0.1))),
             transform: Transform::from_xyz(0., -HEIGHT / 2. + 55., LAYER_UI),
             ..default()
@@ -1012,7 +1011,7 @@ fn setup_player_ui(
                     color: Color::rgb(0.7, 0.7, 0.1),
                 },
             )
-            .with_alignment(TextAlignment::Center),
+            .with_justify(JustifyText::Center),
             text_anchor: Anchor::Center,
             transform: Transform::from_xyz(0., -HEIGHT / 2. + 155., LAYER_TEXT),
             ..default()
@@ -1033,7 +1032,7 @@ fn setup_player_ui(
                     color: Color::rgb(0.1, 0.7, 0.7),
                 },
             )
-            .with_alignment(TextAlignment::Right),
+            .with_justify(JustifyText::Right),
             text_anchor: Anchor::CenterRight,
             transform: Transform::from_xyz(-90., -HEIGHT / 2. + 155., LAYER_TEXT),
             ..default()
@@ -1055,7 +1054,7 @@ fn setup_player_ui(
 
     commands
         .spawn(Text2dBundle {
-            text: Text::from_section("", text_style.clone()).with_alignment(TextAlignment::Center),
+            text: Text::from_section("", text_style.clone()).with_justify(JustifyText::Center),
             text_anchor: Anchor::Center,
             transform: Transform::from_xyz(-128., -HEIGHT / 2. + 55., LAYER_TEXT),
             ..default()
@@ -1069,7 +1068,7 @@ fn setup_player_ui(
     commands
         .spawn(Text2dBundle {
             text: Text::from_section("4", text_binding_style.clone())
-                .with_alignment(TextAlignment::Center),
+                .with_justify(JustifyText::Center),
             text_anchor: Anchor::Center,
             transform: Transform::from_xyz(-128., -HEIGHT / 2. + binding_y, LAYER_TEXT),
             ..default()
@@ -1087,7 +1086,7 @@ fn setup_player_ui(
 
     commands
         .spawn(Text2dBundle {
-            text: Text::from_section("", text_style.clone()).with_alignment(TextAlignment::Center),
+            text: Text::from_section("", text_style.clone()).with_justify(JustifyText::Center),
             text_anchor: Anchor::Center,
             transform: Transform::from_xyz(128., -HEIGHT / 2. + 55., LAYER_TEXT),
             ..default()
@@ -1101,7 +1100,7 @@ fn setup_player_ui(
     commands
         .spawn(Text2dBundle {
             text: Text::from_section("E", text_binding_style.clone())
-                .with_alignment(TextAlignment::Center),
+                .with_justify(JustifyText::Center),
             text_anchor: Anchor::Center,
             transform: Transform::from_xyz(128., -HEIGHT / 2. + binding_y, LAYER_TEXT),
             ..default()
@@ -1119,7 +1118,7 @@ fn setup_player_ui(
 
     commands
         .spawn(Text2dBundle {
-            text: Text::from_section("", text_style.clone()).with_alignment(TextAlignment::Center),
+            text: Text::from_section("", text_style.clone()).with_justify(JustifyText::Center),
             text_anchor: Anchor::Center,
             transform: Transform::from_xyz(256., -HEIGHT / 2. + 55., LAYER_TEXT),
             ..default()
@@ -1133,7 +1132,7 @@ fn setup_player_ui(
     commands
         .spawn(Text2dBundle {
             text: Text::from_section("R", text_binding_style.clone())
-                .with_alignment(TextAlignment::Center),
+                .with_justify(JustifyText::Center),
             text_anchor: Anchor::Center,
             transform: Transform::from_xyz(256., -HEIGHT / 2. + binding_y, LAYER_TEXT),
             ..default()

@@ -172,7 +172,7 @@ pub fn greens_system(
             continue;
         }
 
-        let det_scale = green.detonation.percent_left();
+        let det_scale = green.detonation.fraction_remaining();
 
         for &child in children.iter() {
             if let Ok((_, mut transform_indicator)) = indicators.get_mut(child) {
@@ -234,7 +234,7 @@ pub fn setup_greens(
     materials: &mut ResMut<Assets<ColorMaterial>>,
     green_spawns: Vec<GreenSpawn>,
 ) {
-    let green_mesh: Mesh2dHandle = meshes.add(shape::Circle::new(GREEN_RADIUS).into()).into();
+    let green_mesh: Mesh2dHandle = meshes.add(Circle::new(GREEN_RADIUS)).into();
     let green_bright_material = ColorMaterial::from(Color::rgb(0., 1.0, 0.));
     let green_dull_material = ColorMaterial::from(Color::rgba(0., 0.7, 0., 0.5));
 

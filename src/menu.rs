@@ -519,9 +519,9 @@ pub fn update_menu_onoff_system(
                         let onoff = if game.audio_enabled { "ON" } else { "OFF" };
 
                         if game.audio_enabled {
-                            *global_volume.volume = 1.0;
+                            *global_volume = GlobalVolume::new(1.0);
                         } else {
-                            *global_volume.volume = 0.0;
+                            *global_volume = GlobalVolume::new(0.0);
                         }
 
                         for &child in children.iter() {

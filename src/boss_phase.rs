@@ -199,7 +199,7 @@ fn puddles_system(
         }
 
         puddle.drop.tick(time.delta());
-        if puddle.drop.percent() < 4. / 6. {
+        if puddle.drop.fraction() < 4. / 6. {
             if let Ok(transform_player) = players.get(puddle.target) {
                 transform.translation = transform_player.translation;
                 transform.translation.z = LAYER_AOE - 0.1;
@@ -209,7 +209,7 @@ fn puddles_system(
         if puddle.drop.just_finished() {
             soup.damage = PUDDLE_DAMAGE;
             materials.get_mut(material).unwrap().color.set_a(0.9);
-        } else if puddle.drop.percent() > 4. / 6. {
+        } else if puddle.drop.fraction() > 4. / 6. {
             materials.get_mut(material).unwrap().color.set_a(0.7);
         }
     }

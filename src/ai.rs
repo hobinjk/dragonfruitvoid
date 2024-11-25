@@ -477,7 +477,7 @@ fn think_do_puddles(
             target_theta = target_theta.min(new_target_theta);
         }
 
-        if puddle.drop.percent() < 4. / 6. {
+        if puddle.drop.fraction() < 4. / 6. {
             let r = MAP_RADIUS - PLAYER_RADIUS;
             let theta = player_pos.x.atan2(player_pos.y);
             let target_pos = Vec3::new(r * theta.sin(), r * theta.cos(), 0.);

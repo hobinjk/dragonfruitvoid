@@ -72,7 +72,7 @@ pub fn aoes_system(
 
         aoe.detonation.tick(time.delta());
 
-        let det_scale = aoe.detonation.percent();
+        let det_scale = aoe.detonation.fraction();
 
         for &child in children.iter() {
             if let Ok((_, mut transform_indicator)) = indicators.get_mut(child) {

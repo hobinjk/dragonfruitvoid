@@ -92,7 +92,7 @@ pub fn setup_purification(
 
     commands
         .spawn(MaterialMesh2dBundle {
-            mesh: meshes.add(shape::Circle::new(ORB_RADIUS).into()).into(),
+            mesh: meshes.add(Circle::new(ORB_RADIUS)).into(),
             material: materials.add(ColorMaterial::from(Color::rgb(0.9, 1.0, 1.0))),
             transform: Transform::from_xyz(0., 0., LAYER_MOB),
             ..default()
@@ -109,9 +109,7 @@ pub fn setup_purification(
         Vec3::new(0., void_zone_offset, LAYER_VOID),
     ];
 
-    let void_zone_mesh: Mesh2dHandle = meshes
-        .add(shape::Circle::new(VOID_ZONE_START_RADIUS).into())
-        .into();
+    let void_zone_mesh: Mesh2dHandle = meshes.add(Circle::new(VOID_ZONE_START_RADIUS)).into();
     let void_zone_material = ColorMaterial::from(Color::rgba(0.0, 0.0, 0.0, 0.9));
 
     for pos in void_zone_positions {
