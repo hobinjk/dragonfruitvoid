@@ -1191,7 +1191,7 @@ fn setup_soowontwo(
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     let puddle_starts: Vec<f32> = vec![10.7, 28.3, 52., 73.9, 103.];
-    let spread_starts: Vec<f32> = vec![20.2, 61.5, 103. + 9.5];
+    let spread_starts: Vec<f32> = vec![20.2, 65.9, 103. + 9.5];
 
     setup_boss_phase(
         &mut commands,
@@ -1312,7 +1312,7 @@ fn setup_soowontwo(
         &mut commands,
         &mut meshes,
         &mut materials,
-        vec![22., 68., 114.],
+        vec![22.3, 68., 103. + 9.5 + 2.1],
     );
 
     commands
