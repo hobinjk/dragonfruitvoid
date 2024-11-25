@@ -20,8 +20,7 @@ impl Default for Wave {
 }
 
 pub const WAVE_MAX_RADIUS: f32 = WIDTH / 2.;
-pub const WAVE_VELOCITY: f32 = GAME_RADIUS / 3.2 * GAME_TO_PX;
-pub const WAVE_GROWTH_DURATION: f32 = WAVE_MAX_RADIUS / WAVE_VELOCITY;
+pub const WAVE_GROWTH_DURATION: f32 = 3.2;
 pub const WAVE_DAMAGE: f32 = 75.;
 
 pub fn waves_system(
