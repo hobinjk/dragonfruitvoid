@@ -145,7 +145,7 @@ fn handle_mouse_events_system(
     mut cursors: Query<&mut Transform, With<CursorMark>>,
 ) {
     let base_bullet_damage = if game.ai_enabled {
-        BULLET_DAMAGE
+        BULLET_DAMAGE * 2.
     } else {
         BULLET_DAMAGE * 10.
     };

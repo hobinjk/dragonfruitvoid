@@ -503,9 +503,9 @@ fn setup_boss_phase(
             transform: Transform::from_xyz(0., HEIGHT / 2. + 20., LAYER_MOB),
             ..default()
         })
-        .insert(Boss { max_hp: 100. })
+        .insert(Boss { max_hp: 130. })
         .insert(Enemy)
-        .insert(Hp(100.))
+        .insert(Hp(130.))
         .insert(CollisionRadius(BOSS_RADIUS))
         .insert(PhaseEntity);
 
