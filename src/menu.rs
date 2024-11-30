@@ -51,7 +51,7 @@ pub fn setup_menu_system(
     let button_height = Val::Px(65.0);
     let button_margin = UiRect::all(Val::Px(10.));
 
-    let button_style = Style {
+    let button_node = Node {
         width: button_width,
         height: button_height,
         // center button
@@ -70,34 +70,28 @@ pub fn setup_menu_system(
     };
 
     commands
-        .spawn(NodeBundle {
-            style: Style {
-                width: Val::Px(WIDTH),
-                height: Val::Px(HEIGHT),
-                flex_direction: FlexDirection::Row,
-                // horizontally center children
-                justify_content: JustifyContent::Center,
-                // vertically center children
-                align_items: AlignItems::Center,
-                ..default()
-            },
+        .spawn((Node {
+            width: Val::Px(WIDTH),
+            height: Val::Px(HEIGHT),
+            flex_direction: FlexDirection::Row,
+            // horizontally center children
+            justify_content: JustifyContent::Center,
+            // vertically center children
+            align_items: AlignItems::Center,
             ..default()
-        })
+        },))
         .with_children(|container| {
             container
-                .spawn(NodeBundle {
-                    style: Style {
-                        width: Val::Px(WIDTH / 2.),
-                        height: Val::Px(HEIGHT),
-                        flex_direction: FlexDirection::Column,
-                        // horizontally center children
-                        justify_content: JustifyContent::Center,
-                        // vertically center children
-                        align_items: AlignItems::Center,
-                        ..default()
-                    },
+                .spawn((Node {
+                    width: Val::Px(WIDTH / 2.),
+                    height: Val::Px(HEIGHT),
+                    flex_direction: FlexDirection::Column,
+                    // horizontally center children
+                    justify_content: JustifyContent::Center,
+                    // vertically center children
+                    align_items: AlignItems::Center,
                     ..default()
-                })
+                },))
                 .with_children(|container| {
                     let phases = vec![
                         ("The Whole Fight", ButtonNextState::StartContinuous()),
@@ -131,32 +125,29 @@ pub fn setup_menu_system(
 
                     for (label, state) in phases {
                         container
-                            .spawn(ButtonBundle {
-                                style: button_style.clone(),
-                                background_color: NORMAL_BUTTON.into(),
-                                ..default()
-                            })
+                            .spawn((
+                                Button,
+                                button_node.clone(),
+                                BackgroundColor(NORMAL_BUTTON),
+                                state,
+                            ))
                             .with_children(|parent| {
                                 parent.spawn(TextBundle::from_section(label, text_style.clone()));
-                            })
-                            .insert(state);
+                            });
                     }
                 });
 
             container
-                .spawn(NodeBundle {
-                    style: Style {
-                        width: Val::Px(WIDTH / 2.),
-                        height: Val::Px(HEIGHT),
-                        flex_direction: FlexDirection::Column,
-                        // horizontally center children
-                        justify_content: JustifyContent::Center,
-                        // vertically center children
-                        align_items: AlignItems::Center,
-                        ..default()
-                    },
+                .spawn((Node {
+                    width: Val::Px(WIDTH / 2.),
+                    height: Val::Px(HEIGHT),
+                    flex_direction: FlexDirection::Column,
+                    // horizontally center children
+                    justify_content: JustifyContent::Center,
+                    // vertically center children
+                    align_items: AlignItems::Center,
                     ..default()
-                })
+                },))
                 .with_children(|container| {
                     let echo_eggs = if game.echo_enabled { 0 } else { 17 };
 
@@ -180,35 +171,35 @@ pub fn setup_menu_system(
                     ];
 
                     container
-                        .spawn(ButtonBundle {
-                            style: button_style.clone(),
-                            background_color: NORMAL_BUTTON.into(),
-                            ..default()
-                        })
+                        .spawn((
+                            Button,
+                            button_node.clone(),
+                            BackgroundColor(NORMAL_BUTTON),
+                            ButtonOnOff::Role(),
+                        ))
                         .with_children(|parent| {
                             let value = player_role_to_string(&game.player_role);
                             parent.spawn(TextBundle::from_section(
                                 format!("Role: {}", value),
                                 text_style.clone(),
                             ));
-                        })
-                        .insert(ButtonOnOff::Role());
+                        });
 
                     for (label, state, onoff_enabled) in phases {
                         container
-                            .spawn(ButtonBundle {
-                                style: button_style.clone(),
-                                background_color: NORMAL_BUTTON.into(),
-                                ..default()
-                            })
+                            .spawn((
+                                Button,
+                                button_node.clone(),
+                                BackgroundColor(NORMAL_BUTTON),
+                                state,
+                            ))
                             .with_children(|parent| {
                                 let onoff = if onoff_enabled { "ON" } else { "OFF" };
                                 parent.spawn(TextBundle::from_section(
                                     format!("{}: {}", label, onoff),
                                     text_style.clone(),
                                 ));
-                            })
-                            .insert(state);
+                            });
                     }
                 });
         })
@@ -228,7 +219,7 @@ pub fn setup_pause_menu_system(mut commands: Commands, asset_server: Res<AssetSe
     let button_height = Val::Px(65.0);
     let button_margin = UiRect::all(Val::Px(10.));
 
-    let button_style = Style {
+    let button_node = Node {
         width: button_width,
         height: button_height,
         // center button
@@ -247,8 +238,8 @@ pub fn setup_pause_menu_system(mut commands: Commands, asset_server: Res<AssetSe
     };
 
     commands
-        .spawn(NodeBundle {
-            style: Style {
+        .spawn((
+            Node {
                 width: Val::Px(WIDTH),
                 height: Val::Px(HEIGHT),
                 flex_direction: FlexDirection::Column,
@@ -258,8 +249,8 @@ pub fn setup_pause_menu_system(mut commands: Commands, asset_server: Res<AssetSe
                 align_items: AlignItems::Center,
                 ..default()
             },
-            ..default()
-        })
+            MenuContainer,
+        ))
         .with_children(|container| {
             let buttons = vec![
                 ("Resume", ButtonNextState::Resume()),
@@ -268,18 +259,17 @@ pub fn setup_pause_menu_system(mut commands: Commands, asset_server: Res<AssetSe
 
             for (label, state) in buttons {
                 container
-                    .spawn(ButtonBundle {
-                        style: button_style.clone(),
-                        background_color: NORMAL_BUTTON.into(),
-                        ..default()
-                    })
+                    .spawn((
+                        Button,
+                        button_node.clone(),
+                        BackgroundColor(NORMAL_BUTTON),
+                        state,
+                    ))
                     .with_children(|parent| {
                         parent.spawn(TextBundle::from_section(label, text_style.clone()));
-                    })
-                    .insert(state);
+                    });
             }
-        })
-        .insert(MenuContainer);
+        });
 }
 
 pub fn update_menu_system(
@@ -579,7 +569,7 @@ fn setup_result_screen(
     let button_height = Val::Px(65.0);
     let button_margin = UiRect::all(Val::Px(10.));
 
-    let button_style = Style {
+    let button_node = Node {
         width: button_width,
         height: button_height,
         // center button
@@ -598,8 +588,8 @@ fn setup_result_screen(
     };
 
     commands
-        .spawn(NodeBundle {
-            style: Style {
+        .spawn((
+            Node {
                 width: Val::Px(WIDTH),
                 height: Val::Px(HEIGHT / 2.),
                 margin: UiRect::all(Val::Auto), // UiRect::new(Val::Px(0.), Val::Px(0.), Val::Px(0.), Val::Px(HEIGHT / 4.)),
@@ -610,12 +600,12 @@ fn setup_result_screen(
                 flex_direction: FlexDirection::Column,
                 ..default()
             },
-            ..default()
-        })
+            MenuContainer,
+        ))
         .with_children(|big_container| {
             big_container
-                .spawn(NodeBundle {
-                    style: Style {
+                .spawn((
+                    Node {
                         width: Val::Px(WIDTH),
                         height: Val::Px(240.0),
                         // horizontally center child text
@@ -624,9 +614,8 @@ fn setup_result_screen(
                         align_items: AlignItems::Center,
                         ..default()
                     },
-                    background_color: Color::srgba(0., 0., 0., 0.6).into(),
-                    ..default()
-                })
+                    BackgroundColor(Color::srgba(0., 0., 0., 0.6)),
+                ))
                 .with_children(|parent| {
                     let text_style = TextStyle {
                         font: asset_server.load("trebuchet_ms.ttf"),
@@ -660,18 +649,15 @@ fn setup_result_screen(
                 });
 
             big_container
-                .spawn(NodeBundle {
-                    style: Style {
-                        width: Val::Px(WIDTH),
-                        height: Val::Px(100.),
-                        // horizontally center children
-                        justify_content: JustifyContent::Center,
-                        // vertically center children
-                        align_items: AlignItems::Center,
-                        ..default()
-                    },
+                .spawn((Node {
+                    width: Val::Px(WIDTH),
+                    height: Val::Px(100.),
+                    // horizontally center children
+                    justify_content: JustifyContent::Center,
+                    // vertically center children
+                    align_items: AlignItems::Center,
                     ..default()
-                })
+                },))
                 .with_children(|parent| {
                     let buttons = vec![
                         ("Restart", ButtonNextState::Restart()),
@@ -680,19 +666,18 @@ fn setup_result_screen(
 
                     for (label, state) in buttons {
                         parent
-                            .spawn(ButtonBundle {
-                                style: button_style.clone(),
-                                background_color: NORMAL_BUTTON.into(),
-                                ..default()
-                            })
+                            .spawn((
+                                Button,
+                                button_node.clone(),
+                                BackgroundColor(NORMAL_BUTTON),
+                                state,
+                            ))
                             .with_children(|button| {
                                 button.spawn(TextBundle::from_section(label, text_style.clone()));
-                            })
-                            .insert(state);
+                            });
                     }
                 });
-        })
-        .insert(MenuContainer);
+        });
 }
 
 pub fn setup_failure_system(
@@ -720,7 +705,7 @@ pub fn setup_show_hint_system(
     let button_height = Val::Px(65.0);
     let button_margin = UiRect::all(Val::Px(10.));
 
-    let button_style = Style {
+    let button_node = Node {
         width: button_width,
         height: button_height,
         // center button
@@ -739,8 +724,8 @@ pub fn setup_show_hint_system(
     };
 
     commands
-        .spawn(NodeBundle {
-            style: Style {
+        .spawn((
+            Node {
                 width: Val::Px(WIDTH / 2.),
                 height: Val::Px(HEIGHT / 2.),
                 margin: UiRect::all(Val::Auto), // UiRect::new(Val::Px(0.), Val::Px(0.), Val::Px(0.), Val::Px(HEIGHT / 4.)),
@@ -751,12 +736,12 @@ pub fn setup_show_hint_system(
                 flex_direction: FlexDirection::Column,
                 ..default()
             },
-            ..default()
-        })
+            MenuContainer,
+        ))
         .with_children(|big_container| {
             big_container
-                .spawn(NodeBundle {
-                    style: Style {
+                .spawn((
+                    Node {
                         width: Val::Px(WIDTH / 2. - 20.),
                         height: Val::Px(240.0),
                         // horizontally center child text
@@ -765,9 +750,8 @@ pub fn setup_show_hint_system(
                         align_items: AlignItems::Center,
                         ..default()
                     },
-                    background_color: Color::srgba(0., 0., 0., 0.8).into(),
-                    ..default()
-                })
+                    BackgroundColor(Color::srgba(0., 0., 0., 0.8)),
+                ))
                 .with_children(|parent| {
                     parent.spawn(TextBundle::from_sections([TextSection::new(
                         hint_text,
@@ -776,34 +760,30 @@ pub fn setup_show_hint_system(
                 });
 
             big_container
-                .spawn(NodeBundle {
-                    style: Style {
-                        width: Val::Px(WIDTH),
-                        height: Val::Px(100.),
-                        // horizontally center children
-                        justify_content: JustifyContent::Center,
-                        // vertically center children
-                        align_items: AlignItems::Center,
-                        ..default()
-                    },
+                .spawn((Node {
+                    width: Val::Px(WIDTH),
+                    height: Val::Px(100.),
+                    // horizontally center children
+                    justify_content: JustifyContent::Center,
+                    // vertically center children
+                    align_items: AlignItems::Center,
                     ..default()
-                })
+                },))
                 .with_children(|parent| {
                     let buttons = vec![("Continue", ButtonNextState::Resume())];
 
                     for (label, state) in buttons {
                         parent
-                            .spawn(ButtonBundle {
-                                style: button_style.clone(),
-                                background_color: NORMAL_BUTTON.into(),
-                                ..default()
-                            })
+                            .spawn((
+                                Button,
+                                button_node.clone(),
+                                BackgroundColor(NORMAL_BUTTON),
+                                state,
+                            ))
                             .with_children(|button| {
                                 button.spawn(TextBundle::from_section(label, text_style.clone()));
-                            })
-                            .insert(state);
+                            });
                     }
                 });
-        })
-        .insert(MenuContainer);
+        });
 }

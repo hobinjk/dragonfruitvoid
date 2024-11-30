@@ -77,8 +77,8 @@ pub fn setup_loading_system(
     }
 
     commands
-        .spawn(NodeBundle {
-            style: Style {
+        .spawn((
+            Node {
                 width: Val::Px(WIDTH),
                 height: Val::Px(HEIGHT),
                 margin: UiRect::all(Val::Auto), // UiRect::new(Val::Px(0.), Val::Px(0.), Val::Px(0.), Val::Px(HEIGHT / 4.)),
@@ -89,8 +89,8 @@ pub fn setup_loading_system(
                 flex_direction: FlexDirection::Column,
                 ..default()
             },
-            ..default()
-        })
+            MenuContainer,
+        ))
         .with_children(|big_container| {
             let text_style = TextStyle {
                 font: asset_server.load("trebuchet_ms.ttf"),
@@ -104,8 +104,7 @@ pub fn setup_loading_system(
                     text_style.clone(),
                 ))
                 .insert(LoadingText);
-        })
-        .insert(MenuContainer);
+        });
 }
 
 pub fn update_loading_system(
