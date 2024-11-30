@@ -65,7 +65,7 @@ pub fn setup_menu_system(
 
     let text_font = TextFont {
         font: asset_server.load("trebuchet_ms.ttf"),
-        font_size: 40.0,
+        font_size: 36.0,
         ..default()
     };
     let text_color = TextColor(Color::srgb(0.9, 0.9, 0.9));
@@ -237,7 +237,7 @@ pub fn setup_pause_menu_system(mut commands: Commands, asset_server: Res<AssetSe
 
     let text_font = TextFont {
         font: asset_server.load("trebuchet_ms.ttf"),
-        font_size: 40.0,
+        font_size: 36.0,
         ..default()
     };
     let text_color = TextColor(Color::srgb(0.9, 0.9, 0.9));
@@ -587,7 +587,7 @@ fn setup_result_screen(
 
     let text_font = TextFont {
         font: asset_server.load("trebuchet_ms.ttf"),
-        font_size: 40.0,
+        font_size: 36.0,
         ..default()
     };
     let text_color = TextColor(Color::srgb(0.9, 0.9, 0.9));
@@ -629,7 +629,7 @@ fn setup_result_screen(
                     };
                     let text_color = TextColor(result_color);
 
-                    let text_font_small = text_font.clone().with_font_size(40.);
+                    let text_font_small = text_font.clone().with_font_size(36.);
 
                     let minutes = (game.time_elapsed.elapsed_secs() / 60.).floor() as i32;
                     let seconds = (game.time_elapsed.elapsed_secs() % 60.).floor() as i32;
