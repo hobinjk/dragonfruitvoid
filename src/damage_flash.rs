@@ -37,7 +37,7 @@ pub fn damage_flash_system(
         if let Ok(sprite) = sprites.get_mut(event.entity) {
             let prev_color = sprite.color.clone();
             touched.insert(event.entity);
-            commands.entity(event.entity).insert(TintUntint {
+            commands.entity(event.entity).try_insert(TintUntint {
                 color: prev_color,
                 tint_color: Color::srgba(1.0, 0., 0., 0.7),
                 tint_timer: Timer::from_seconds(0.2, TimerMode::Once),
