@@ -813,6 +813,7 @@ pub fn setup_phase(
                                     },
                                     bar,
                                     Transform::from_translation(Vec3::ZERO),
+                                    Visibility::default(),
                                 ))
                                 .with_children(|parent| {
                                     parent.spawn((
