@@ -793,24 +793,22 @@ fn act_on_thought(
                 vel.z = 0.;
                 vel = vel.clamp_length(BULLET_SPEED, BULLET_SPEED);
 
-                commands
-                    .spawn(SpriteBundle {
-                        sprite: Sprite {
-                            color: Color::srgb(0.89, 0.39, 0.95),
-                            custom_size: Some(Vec2::new(BULLET_SIZE, BULLET_SIZE)),
-                            ..default()
-                        },
-                        transform: Transform::from_xyz(player_pos.x, player_pos.y, LAYER_BULLET),
+                commands.spawn((
+                    Sprite {
+                        color: Color::srgb(0.89, 0.39, 0.95),
+                        custom_size: Some(Vec2::new(BULLET_SIZE, BULLET_SIZE)),
                         ..default()
-                    })
-                    .insert(Velocity(vel))
-                    .insert(Bullet {
+                    },
+                    Transform::from_xyz(player_pos.x, player_pos.y, LAYER_BULLET),
+                    Velocity(vel),
+                    Bullet {
                         age: 0.,
                         firer: entity_player,
                         base_damage: BULLET_DAMAGE,
-                    })
-                    .insert(HasHit(HashSet::new()))
-                    .insert(PhaseEntity);
+                    },
+                    HasHit(HashSet::new()),
+                    PhaseEntity,
+                ));
                 player.shoot_cooldown.reset();
 
                 play_sfx(

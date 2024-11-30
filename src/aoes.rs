@@ -1,7 +1,4 @@
-use bevy::{
-    prelude::*,
-    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
-};
+use bevy::prelude::*;
 use std::ops::Add;
 
 use crate::collisions::{collide, CollisionRadius};
@@ -34,7 +31,7 @@ pub struct AoeIndicator;
 
 #[derive(Clone)]
 pub struct AoeDesc {
-    pub mesh: Mesh2dHandle,
+    pub mesh: Handle<Mesh>,
     pub radius: f32,
     pub material_base: Handle<ColorMaterial>,
     pub material_detonation: Handle<ColorMaterial>,
@@ -156,26 +153,23 @@ pub fn spawn_aoe(
     aoe_follow: Option<AoeFollow>,
 ) -> Entity {
     let id = commands
-        .spawn(MaterialMesh2dBundle {
-            transform: Transform::from_translation(position),
-            mesh: aoe_desc.mesh.clone(),
-            material: aoe_desc.material_base.clone(),
-            ..default()
-        })
+        .spawn((
+            Mesh2d(aoe_desc.mesh.clone()),
+            MeshMaterial2d(aoe_desc.material_base.clone()),
+            Transform::from_translation(position),
+            aoe,
+            CollisionRadius(aoe_desc.radius),
+            PhaseEntity,
+        ))
         .with_children(|parent| {
             let position_above = Vec3::new(0., 0., 0.1);
-            parent
-                .spawn(MaterialMesh2dBundle {
-                    mesh: aoe_desc.mesh.clone(),
-                    transform: Transform::from_translation(position_above).with_scale(Vec3::ZERO),
-                    material: aoe_desc.material_detonation.clone(),
-                    ..default()
-                })
-                .insert(AoeIndicator);
+            parent.spawn((
+                Mesh2d(aoe_desc.mesh.clone()),
+                Transform::from_translation(position_above).with_scale(Vec3::ZERO),
+                MeshMaterial2d(aoe_desc.material_detonation.clone()),
+                AoeIndicator,
+            ));
         })
-        .insert(aoe)
-        .insert(CollisionRadius(aoe_desc.radius))
-        .insert(PhaseEntity)
         .id();
 
     if let Some(aoe_follow) = aoe_follow {

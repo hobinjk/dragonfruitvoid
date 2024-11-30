@@ -86,22 +86,20 @@ pub struct MobSaltspray {
 }
 
 pub fn spawn_crab(commands: &mut Commands, asset_server: &Res<AssetServer>, crab_pos: Vec3) {
-    commands
-        .spawn(SpriteBundle {
-            sprite: Sprite {
-                // color: Color::srgb(0.0, 0.0, 0.0),
-                custom_size: Some(Vec2::new(CRAB_SIZE, CRAB_SIZE * 80. / 120.)),
-                ..default()
-            },
-            texture: asset_server.load("crab.png"),
-            transform: Transform::from_translation(crab_pos),
+    commands.spawn((
+        Sprite {
+            // color: Color::srgb(0.0, 0.0, 0.0),
+            custom_size: Some(Vec2::new(CRAB_SIZE, CRAB_SIZE * 80. / 120.)),
+            image: asset_server.load("crab.png"),
             ..default()
-        })
-        .insert(MobCrab)
-        .insert(Enemy)
-        .insert(CollisionRadius(CRAB_SIZE / 2.))
-        .insert(Hp(0.1))
-        .insert(PhaseEntity);
+        },
+        Transform::from_translation(crab_pos),
+        MobCrab,
+        Enemy,
+        CollisionRadius(CRAB_SIZE / 2.),
+        Hp(0.1),
+        PhaseEntity,
+    ));
 }
 
 fn get_closest_pos(players: &Query<&Transform, With<Player>>, pos: Vec3) -> Option<Vec3> {
@@ -151,23 +149,21 @@ pub fn goliath_system(
                 SfxSource::Enemy,
             );
 
-            commands
-                .spawn(SpriteBundle {
-                    sprite: Sprite {
-                        color: Color::srgb(0.4, 0., 0.4),
-                        custom_size: Some(Vec2::new(bullet_radius * 2., bullet_radius * 2.)),
-                        ..default()
-                    },
-                    transform: Transform::from_translation(transform.translation),
+            commands.spawn((
+                Sprite {
+                    color: Color::srgb(0.4, 0., 0.4),
+                    custom_size: Some(Vec2::new(bullet_radius * 2., bullet_radius * 2.)),
                     ..default()
-                })
-                .insert(Velocity(vel))
-                .insert(EnemyBullet {
+                },
+                Transform::from_translation(transform.translation),
+                Velocity(vel),
+                EnemyBullet {
                     damage: GOLIATH_BULLET_DAMAGE,
                     knockback: GOLIATH_BULLET_KNOCKBACK,
-                })
-                .insert(CollisionRadius(bullet_radius))
-                .insert(PhaseEntity);
+                },
+                CollisionRadius(bullet_radius),
+                PhaseEntity,
+            ));
         }
     }
 }
@@ -201,23 +197,21 @@ pub fn wyvern_system(
                 SfxSource::Enemy,
             );
 
-            commands
-                .spawn(SpriteBundle {
-                    sprite: Sprite {
-                        color: Color::srgb(1.0, 0., 0.),
-                        custom_size: Some(Vec2::new(BULLET_SIZE, BULLET_SIZE)),
-                        ..default()
-                    },
-                    transform: Transform::from_translation(transform.translation),
+            commands.spawn((
+                Sprite {
+                    color: Color::srgb(1.0, 0., 0.),
+                    custom_size: Some(Vec2::new(BULLET_SIZE, BULLET_SIZE)),
                     ..default()
-                })
-                .insert(Velocity(vel))
-                .insert(EnemyBullet {
+                },
+                Transform::from_translation(transform.translation),
+                Velocity(vel),
+                EnemyBullet {
                     damage: WYVERN_BULLET_DAMAGE,
                     knockback: 0.,
-                })
-                .insert(CollisionRadius(BULLET_SIZE / 2.))
-                .insert(PhaseEntity);
+                },
+                CollisionRadius(BULLET_SIZE / 2.),
+                PhaseEntity,
+            ));
         }
 
         wyvern.shockwave_cooldown.tick(time.delta());
@@ -240,23 +234,21 @@ pub fn wyvern_system(
                 );
                 let bullet_radius = BULLET_SIZE / 3.;
 
-                commands
-                    .spawn(SpriteBundle {
-                        sprite: Sprite {
-                            color: Color::srgb(0.8, 0., 0.4),
-                            custom_size: Some(Vec2::new(bullet_radius * 2., bullet_radius * 2.)),
-                            ..default()
-                        },
-                        transform: Transform::from_translation(transform.translation),
+                commands.spawn((
+                    Sprite {
+                        color: Color::srgb(0.8, 0., 0.4),
+                        custom_size: Some(Vec2::new(bullet_radius * 2., bullet_radius * 2.)),
                         ..default()
-                    })
-                    .insert(Velocity(vel))
-                    .insert(EnemyBullet {
+                    },
+                    Transform::from_translation(transform.translation),
+                    Velocity(vel),
+                    EnemyBullet {
                         damage: WYVERN_BULLET_DAMAGE,
                         knockback: 80. * GAME_TO_PX,
-                    })
-                    .insert(CollisionRadius(bullet_radius))
-                    .insert(PhaseEntity);
+                    },
+                    CollisionRadius(bullet_radius),
+                    PhaseEntity,
+                ));
             }
         }
 
@@ -396,23 +388,21 @@ pub fn timecaster_system(
                     0.,
                 );
 
-                commands
-                    .spawn(SpriteBundle {
-                        sprite: Sprite {
-                            color: Color::srgb(1.0, 0., 0.),
-                            custom_size: Some(Vec2::new(BULLET_SIZE, BULLET_SIZE)),
-                            ..default()
-                        },
-                        transform: Transform::from_translation(transform.translation),
+                commands.spawn((
+                    Sprite {
+                        color: Color::srgb(1.0, 0., 0.),
+                        custom_size: Some(Vec2::new(BULLET_SIZE, BULLET_SIZE)),
                         ..default()
-                    })
-                    .insert(Velocity(vel))
-                    .insert(EnemyBullet {
+                    },
+                    Transform::from_translation(transform.translation),
+                    Velocity(vel),
+                    EnemyBullet {
                         damage: TIMECASTER_BULLET_DAMAGE,
                         knockback: 10.,
-                    })
-                    .insert(CollisionRadius(BULLET_SIZE / 2.))
-                    .insert(PhaseEntity);
+                    },
+                    CollisionRadius(BULLET_SIZE / 2.),
+                    PhaseEntity,
+                ));
             }
         }
     }

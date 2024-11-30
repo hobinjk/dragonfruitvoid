@@ -1,7 +1,4 @@
-use bevy::{
-    prelude::*,
-    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
-};
+use bevy::prelude::*;
 
 use std::ops::Sub;
 
@@ -35,7 +32,7 @@ pub struct SpreadAoeSpawn {
 #[derive(Component)]
 pub struct PuddleSpawn {
     pub visibility_start: Timer,
-    pub mesh: Mesh2dHandle,
+    pub mesh: Handle<Mesh>,
     pub material: ColorMaterial,
 }
 
@@ -159,23 +156,21 @@ fn puddle_spawns_system(
             } else {
                 SfxSource::Player
             };
-            commands
-                .spawn(MaterialMesh2dBundle {
-                    mesh: puddle_spawn.mesh.clone(),
-                    material: materials.add(puddle_spawn.material.clone()),
-                    transform: Transform::from_xyz(0., 0., 0.),
-                    ..default()
-                })
-                .insert(Puddle {
+            commands.spawn((
+                Mesh2d(puddle_spawn.mesh.clone()),
+                MeshMaterial2d(materials.add(puddle_spawn.material.clone())),
+                Transform::from_xyz(0., 0., 0.),
+                Puddle {
                     drop: Timer::from_seconds(6., TimerMode::Once),
                     target: entity_player,
-                })
-                .insert(CollisionRadius(PUDDLE_RADIUS))
-                .insert(Soup {
+                },
+                CollisionRadius(PUDDLE_RADIUS),
+                Soup {
                     damage: 0.,
                     duration: None,
-                })
-                .insert(PhaseEntity);
+                },
+                PhaseEntity,
+            ));
 
             play_sfx(&mut commands, &asset_server, Sfx::RedTarget, sfx_src);
         }
@@ -189,7 +184,7 @@ fn puddles_system(
         &mut Puddle,
         &mut Soup,
         &mut Transform,
-        &Handle<ColorMaterial>,
+        &MeshMaterial2d<ColorMaterial>,
     )>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {

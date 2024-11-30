@@ -1,8 +1,4 @@
-use bevy::{
-    prelude::*,
-    sprite::{Anchor, MaterialMesh2dBundle},
-    window::CursorMoved,
-};
+use bevy::{prelude::*, sprite::Anchor, window::CursorMoved};
 
 use std::collections::HashSet;
 use std::ops::{Add, Mul, Sub};
@@ -160,24 +156,22 @@ fn handle_mouse_events_system(
             vel.z = 0.;
             vel = vel.clamp_length(BULLET_SPEED, BULLET_SPEED);
 
-            commands
-                .spawn(SpriteBundle {
-                    sprite: Sprite {
-                        color: Color::srgb(0.89, 0.39, 0.95),
-                        custom_size: Some(Vec2::new(BULLET_SIZE, BULLET_SIZE)),
-                        ..default()
-                    },
-                    transform: Transform::from_xyz(player_loc.x, player_loc.y, LAYER_BULLET),
+            commands.spawn((
+                Sprite {
+                    color: Color::srgb(0.89, 0.39, 0.95),
+                    custom_size: Some(Vec2::new(BULLET_SIZE, BULLET_SIZE)),
                     ..default()
-                })
-                .insert(Velocity(vel))
-                .insert(Bullet {
+                },
+                Transform::from_xyz(player_loc.x, player_loc.y, LAYER_BULLET),
+                Velocity(vel),
+                Bullet {
                     age: 0.,
                     firer: entity_player,
                     base_damage: base_bullet_damage,
-                })
-                .insert(HasHit(HashSet::new()))
-                .insert(PhaseEntity);
+                },
+                HasHit(HashSet::new()),
+                PhaseEntity,
+            ));
 
             play_sfx(
                 &mut commands,
@@ -284,22 +278,20 @@ fn handle_spellcasts_system(
             let portal_loc = player_loc;
 
             if portal_entries.is_empty() {
-                commands
-                    .spawn(SpriteBundle {
-                        sprite: Sprite {
-                            color: Color::srgb(0., 1., 1.),
-                            custom_size: Some(Vec2::new(PORTAL_RADIUS * 2., PORTAL_RADIUS * 2.)),
-                            ..default()
-                        },
-                        texture: asset_server.load("ring.png"),
-                        transform: Transform::from_translation(portal_loc),
+                commands.spawn((
+                    Sprite {
+                        color: Color::srgb(0., 1., 1.),
+                        custom_size: Some(Vec2::new(PORTAL_RADIUS * 2., PORTAL_RADIUS * 2.)),
+                        image: asset_server.load("ring.png"),
                         ..default()
-                    })
-                    .insert(PortalEntry {
+                    },
+                    Transform::from_translation(portal_loc),
+                    PortalEntry {
                         despawn_timer: Timer::from_seconds(60., TimerMode::Once),
                         owner: entity_player,
-                    })
-                    .insert(PhaseEntity);
+                    },
+                    PhaseEntity,
+                ));
 
                 player.portal_cooldown = Timer::from_seconds(0.5, TimerMode::Once);
 
@@ -310,22 +302,20 @@ fn handle_spellcasts_system(
                     SfxSource::Player,
                 );
             } else if portal_exits.is_empty() {
-                commands
-                    .spawn(SpriteBundle {
-                        sprite: Sprite {
-                            color: Color::srgb(1., 0.7, 0.),
-                            custom_size: Some(Vec2::new(PORTAL_RADIUS * 2., PORTAL_RADIUS * 2.)),
-                            ..default()
-                        },
-                        texture: asset_server.load("ring.png"),
-                        transform: Transform::from_translation(portal_loc),
+                commands.spawn((
+                    Sprite {
+                        color: Color::srgb(1., 0.7, 0.),
+                        custom_size: Some(Vec2::new(PORTAL_RADIUS * 2., PORTAL_RADIUS * 2.)),
+                        image: asset_server.load("ring.png"),
                         ..default()
-                    })
-                    .insert(PortalExit {
+                    },
+                    Transform::from_translation(portal_loc),
+                    PortalExit {
                         despawn_timer: Timer::from_seconds(10., TimerMode::Once),
                         owner: entity_player,
-                    })
-                    .insert(PhaseEntity);
+                    },
+                    PhaseEntity,
+                ));
 
                 player.portal_cooldown = Timer::from_seconds(60., TimerMode::Once);
 
@@ -726,17 +716,16 @@ pub fn setup_phase(
                 let bar_height = 4.;
 
                 commands
-                    .spawn(SpriteBundle {
-                        sprite: Sprite {
+                    .spawn((
+                        Sprite {
                             custom_size: Some(Vec2::new(PLAYER_RADIUS * 2., PLAYER_RADIUS * 2.)),
+                            image: asset_server.load(icon_for_role(&role)),
                             ..default()
                         },
-                        texture: asset_server.load(icon_for_role(&role)),
-                        transform: Transform::from_xyz((x - 4.5) * 30., 200., LAYER_PLAYER),
-                        ..default()
-                    })
-                    .insert(Player::new(role.to_string()))
-                    .insert(AiPlayer { role })
+                        Transform::from_xyz((x - 4.5) * 30., 200., LAYER_PLAYER),
+                        Player::new(role.to_string()),
+                        AiPlayer { role },
+                    ))
                     .with_children(|parent| {
                         if !game.ai_bars_enabled {
                             return;
@@ -746,38 +735,36 @@ pub fn setup_phase(
                             player: parent.parent_entity(),
                         };
                         parent
-                            .spawn(Gauge {
-                                value: 1.,
-                                hide_when_full: true,
-                            })
-                            .insert(player_healthbar)
-                            .insert(SpatialBundle {
-                                transform: Transform::from_translation(Vec3::ZERO),
-                                ..default()
-                            })
+                            .spawn((
+                                Gauge {
+                                    value: 1.,
+                                    hide_when_full: true,
+                                },
+                                player_healthbar,
+                                Transform::from_translation(Vec3::ZERO),
+                                Visibility::Inherited,
+                            ))
                             .with_children(|parent| {
-                                parent
-                                    .spawn(SpriteBundle {
-                                        sprite: Sprite {
-                                            color: Color::srgb(0.2, 0.8, 0.2),
-                                            custom_size: Some(Vec2::new(
-                                                PLAYER_RADIUS * 2.,
-                                                bar_height,
-                                            )),
-                                            anchor: Anchor::CenterLeft,
-                                            ..default()
-                                        },
-                                        transform: Transform::from_xyz(
-                                            -PLAYER_RADIUS,
-                                            PLAYER_RADIUS + bar_height * 2.,
-                                            0.2,
-                                        ),
+                                parent.spawn((
+                                    Sprite {
+                                        color: Color::srgb(0.2, 0.8, 0.2),
+                                        custom_size: Some(Vec2::new(
+                                            PLAYER_RADIUS * 2.,
+                                            bar_height,
+                                        )),
+                                        anchor: Anchor::CenterLeft,
                                         ..default()
-                                    })
-                                    .insert(GaugeBar);
+                                    },
+                                    Transform::from_xyz(
+                                        -PLAYER_RADIUS,
+                                        PLAYER_RADIUS + bar_height * 2.,
+                                        0.2,
+                                    ),
+                                    GaugeBar,
+                                ));
 
-                                parent.spawn(SpriteBundle {
-                                    sprite: Sprite {
+                                parent.spawn((
+                                    Sprite {
                                         color: Color::srgb(0.3, 0.3, 0.3),
                                         custom_size: Some(Vec2::new(
                                             PLAYER_RADIUS * 2.,
@@ -786,13 +773,12 @@ pub fn setup_phase(
                                         anchor: Anchor::CenterLeft,
                                         ..default()
                                     },
-                                    transform: Transform::from_xyz(
+                                    Transform::from_xyz(
                                         -PLAYER_RADIUS,
                                         PLAYER_RADIUS + bar_height * 2.,
                                         0.1,
                                     ),
-                                    ..default()
-                                });
+                                ));
                             });
 
                         let mut cooldowns = vec![PlayerCooldown::Dodge, PlayerCooldown::Jump];
@@ -822,47 +808,43 @@ pub fn setup_phase(
                         for (i, bar) in cooldown_bars.into_iter().enumerate() {
                             let bar_color = bar.cooldown.color();
                             parent
-                                .spawn(Gauge {
-                                    value: 1.,
-                                    hide_when_full: false,
-                                })
-                                .insert(bar)
-                                .insert(SpatialBundle {
-                                    transform: Transform::from_translation(Vec3::ZERO),
-                                    ..default()
-                                })
+                                .spawn((
+                                    Gauge {
+                                        value: 1.,
+                                        hide_when_full: false,
+                                    },
+                                    bar,
+                                    Transform::from_translation(Vec3::ZERO),
+                                ))
                                 .with_children(|parent| {
-                                    parent
-                                        .spawn(SpriteBundle {
-                                            sprite: Sprite {
-                                                color: bar_color,
-                                                custom_size: Some(Vec2::new(bar_width, 4.)),
-                                                anchor: Anchor::CenterLeft,
-                                                ..default()
-                                            },
-                                            transform: Transform::from_xyz(
-                                                -PLAYER_RADIUS + bar_width * (i as f32),
-                                                PLAYER_RADIUS + bar_height,
-                                                0.2,
-                                            ),
+                                    parent.spawn((
+                                        Sprite {
+                                            color: bar_color,
+                                            custom_size: Some(Vec2::new(bar_width, 4.)),
+                                            anchor: Anchor::CenterLeft,
                                             ..default()
-                                        })
-                                        .insert(GaugeBar);
+                                        },
+                                        Transform::from_xyz(
+                                            -PLAYER_RADIUS + bar_width * (i as f32),
+                                            PLAYER_RADIUS + bar_height,
+                                            0.2,
+                                        ),
+                                        GaugeBar,
+                                    ));
 
-                                    parent.spawn(SpriteBundle {
-                                        sprite: Sprite {
+                                    parent.spawn((
+                                        Sprite {
                                             color: Color::srgb(0.3, 0.3, 0.3),
                                             custom_size: Some(Vec2::new(bar_width, 4.)),
                                             anchor: Anchor::CenterLeft,
                                             ..default()
                                         },
-                                        transform: Transform::from_xyz(
+                                        Transform::from_xyz(
                                             -PLAYER_RADIUS + bar_width * (i as f32),
                                             PLAYER_RADIUS + bar_height,
                                             0.1,
                                         ),
-                                        ..default()
-                                    });
+                                    ));
                                 });
                         }
                     });
@@ -871,17 +853,15 @@ pub fn setup_phase(
         }
 
         if let Some(player_role) = game.player_role {
-            commands
-                .spawn(SpriteBundle {
-                    sprite: Sprite {
-                        custom_size: Some(Vec2::new(PLAYER_RADIUS * 2., PLAYER_RADIUS * 2.)),
-                        ..default()
-                    },
-                    texture: asset_server.load(icon_for_player_role(&player_role)),
-                    transform: Transform::from_xyz(0., 200., LAYER_PLAYER),
+            commands.spawn((
+                Sprite {
+                    custom_size: Some(Vec2::new(PLAYER_RADIUS * 2., PLAYER_RADIUS * 2.)),
+                    image: asset_server.load(icon_for_player_role(&player_role)),
                     ..default()
-                })
-                .insert(Player::new(format!("human {}", player_role.to_string())));
+                },
+                Transform::from_xyz(0., 200., LAYER_PLAYER),
+                Player::new(format!("human {}", player_role.to_string())),
+            ));
         }
     }
 
@@ -894,24 +874,22 @@ pub fn setup_phase(
     }
 
     if game.echo_enabled {
-        commands
-            .spawn(SpriteBundle {
-                sprite: Sprite {
-                    // color: Color::srgb(0.0, 0.0, 0.0),
-                    custom_size: Some(Vec2::new(ECHO_RADIUS * 2., ECHO_RADIUS * 2.)),
-                    ..default()
-                },
-                texture: asset_server.load("echo.png"),
-                transform: Transform::from_xyz(-200., -200., LAYER_MOB),
+        commands.spawn((
+            Sprite {
+                // color: Color::srgb(0.0, 0.0, 0.0),
+                custom_size: Some(Vec2::new(ECHO_RADIUS * 2., ECHO_RADIUS * 2.)),
+                image: asset_server.load("echo.png"),
                 ..default()
-            })
-            .insert(MobEcho {
+            },
+            Transform::from_xyz(-200., -200., LAYER_MOB),
+            MobEcho {
                 gottem: false,
                 retarget: Timer::from_seconds(3., TimerMode::Once),
-            })
-            .insert(Velocity(Vec3::new(0., -ECHO_SPEED, 0.)))
-            .insert(CollisionRadius(ECHO_RADIUS))
-            .insert(PhaseEntity);
+            },
+            Velocity(Vec3::new(0., -ECHO_SPEED, 0.)),
+            CollisionRadius(ECHO_RADIUS),
+            PhaseEntity,
+        ));
     }
 
     commands
@@ -921,26 +899,25 @@ pub fn setup_phase(
         )))
         .insert(PhaseEntity);
 
-    commands
-        .spawn(SpriteBundle {
-            sprite: Sprite {
-                color: Color::srgb(0.9, 0., 0.),
-                custom_size: Some(Vec2::new(4., 4.)),
-                ..default()
-            },
-            transform: Transform::from_xyz(0., 0., LAYER_CURSOR),
+    commands.spawn((
+        Sprite {
+            color: Color::srgb(0.9, 0., 0.),
+            custom_size: Some(Vec2::new(4., 4.)),
             ..default()
-        })
-        .insert(CursorMark)
-        .insert(PhaseEntity);
+        },
+        Transform::from_xyz(0., 0., LAYER_CURSOR),
+        CursorMark,
+        PhaseEntity,
+    ));
 
-    commands
-        .spawn(SpriteBundle {
-            texture: asset_server.load("map.png"),
-            transform: Transform::from_xyz(0., 0., LAYER_MAP),
+    commands.spawn((
+        Sprite {
+            image: asset_server.load("map.png"),
             ..default()
-        })
-        .insert(PhaseEntity);
+        },
+        Transform::from_xyz(0., 0., LAYER_MAP),
+        PhaseEntity,
+    ));
 
     if game.player_role.is_some() {
         setup_player_ui(&mut commands, &asset_server, &mut meshes, &mut materials);
@@ -991,14 +968,12 @@ fn setup_player_ui(
         })
         .insert(PhaseEntity);
 
-    commands
-        .spawn(MaterialMesh2dBundle {
-            mesh: meshes.add(Circle::new(50.)).into(),
-            material: materials.add(ColorMaterial::from(Color::srgb(0.6, 0.1, 0.1))),
-            transform: Transform::from_xyz(0., -HEIGHT / 2. + 55., LAYER_UI),
-            ..default()
-        })
-        .insert(PhaseEntity);
+    commands.spawn((
+        Mesh2d(meshes.add(Circle::new(50.))),
+        MeshMaterial2d(materials.add(ColorMaterial::from(Color::srgb(0.6, 0.1, 0.1)))),
+        Transform::from_xyz(0., -HEIGHT / 2. + 55., LAYER_UI),
+        PhaseEntity,
+    ));
 
     commands
         .spawn(Text2dBundle {
@@ -1043,12 +1018,14 @@ fn setup_player_ui(
         .insert(PhaseEntity);
 
     let sprite_pull = commands
-        .spawn(SpriteBundle {
-            texture: asset_server.load("pull.png"),
-            transform: Transform::from_xyz(-128., -HEIGHT / 2. + 55., LAYER_UI),
-            ..default()
-        })
-        .insert(PhaseEntity)
+        .spawn((
+            Sprite {
+                image: asset_server.load("pull.png"),
+                ..default()
+            },
+            Transform::from_xyz(-128., -HEIGHT / 2. + 55., LAYER_UI),
+            PhaseEntity,
+        ))
         .id();
 
     commands
@@ -1075,12 +1052,14 @@ fn setup_player_ui(
         .insert(PhaseEntity);
 
     let sprite_blink = commands
-        .spawn(SpriteBundle {
-            texture: asset_server.load("blink.png"),
-            transform: Transform::from_xyz(128., -HEIGHT / 2. + 55., LAYER_UI),
-            ..default()
-        })
-        .insert(PhaseEntity)
+        .spawn((
+            Sprite {
+                image: asset_server.load("blink.png"),
+                ..default()
+            },
+            Transform::from_xyz(128., -HEIGHT / 2. + 55., LAYER_UI),
+            PhaseEntity,
+        ))
         .id();
 
     commands
@@ -1107,12 +1086,14 @@ fn setup_player_ui(
         .insert(PhaseEntity);
 
     let sprite_portal = commands
-        .spawn(SpriteBundle {
-            texture: asset_server.load("portal.png"),
-            transform: Transform::from_xyz(256., -HEIGHT / 2. + 55., LAYER_UI),
-            ..default()
-        })
-        .insert(PhaseEntity)
+        .spawn((
+            Sprite {
+                image: asset_server.load("portal.png"),
+                ..default()
+            },
+            Transform::from_xyz(256., -HEIGHT / 2. + 55., LAYER_UI),
+            PhaseEntity,
+        ))
         .id();
 
     commands

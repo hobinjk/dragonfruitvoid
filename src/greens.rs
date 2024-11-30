@@ -1,7 +1,4 @@
-use bevy::{
-    prelude::*,
-    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
-};
+use bevy::prelude::*;
 use std::ops::Add;
 
 use crate::game::*;
@@ -234,45 +231,40 @@ pub fn setup_greens(
     materials: &mut ResMut<Assets<ColorMaterial>>,
     green_spawns: Vec<GreenSpawn>,
 ) {
-    let green_mesh: Mesh2dHandle = meshes.add(Circle::new(GREEN_RADIUS)).into();
+    let green_mesh: Handle<Mesh> = meshes.add(Circle::new(GREEN_RADIUS));
     let green_bright_material = ColorMaterial::from(Color::srgb(0., 1.0, 0.));
     let green_dull_material = ColorMaterial::from(Color::srgba(0., 0.7, 0., 0.5));
 
     for green_spawn in &green_spawns {
         commands
-            .spawn(SpriteBundle {
-                transform: Transform::from_xyz(0., 0., LAYER_TARGET),
-                visibility: Visibility::Hidden,
-                ..default()
-            })
+            .spawn((
+                Transform::from_xyz(0., 0., LAYER_TARGET),
+                Visibility::Hidden,
+                StackGreen {
+                    visibility_start: Timer::from_seconds(green_spawn.start, TimerMode::Once),
+                    detonation: Timer::from_seconds(6., TimerMode::Once),
+                },
+                PhaseEntity,
+            ))
             .with_children(|parent| {
                 for (index, &position) in green_spawn.positions.iter().enumerate() {
                     // let mut position = position_absolute.sub(Vec3::new(WIDTH / 2., HEIGHT / 2., 0.));
                     // position.x *= -1.;
                     // position.y *= -1.;
-                    parent.spawn(MaterialMesh2dBundle {
-                        mesh: green_mesh.clone(),
-                        transform: Transform::from_translation(position),
-                        material: materials.add(green_dull_material.clone()),
-                        ..default()
-                    });
+                    parent.spawn((
+                        Mesh2d(green_mesh.clone()),
+                        Transform::from_translation(position),
+                        MeshMaterial2d(materials.add(green_dull_material.clone())),
+                    ));
 
                     let position_above = position.add(Vec3::new(0., 0., 0.1));
-                    parent
-                        .spawn(MaterialMesh2dBundle {
-                            mesh: green_mesh.clone(),
-                            transform: Transform::from_translation(position_above)
-                                .with_scale(Vec3::ZERO),
-                            material: materials.add(green_bright_material.clone()),
-                            ..default()
-                        })
-                        .insert(StackGreenIndicator(index));
+                    parent.spawn((
+                        Mesh2d(green_mesh.clone()),
+                        Transform::from_translation(position_above).with_scale(Vec3::ZERO),
+                        MeshMaterial2d(materials.add(green_bright_material.clone())),
+                        StackGreenIndicator(index),
+                    ));
                 }
-            })
-            .insert(StackGreen {
-                visibility_start: Timer::from_seconds(green_spawn.start, TimerMode::Once),
-                detonation: Timer::from_seconds(6., TimerMode::Once),
-            })
-            .insert(PhaseEntity);
+            });
     }
 }

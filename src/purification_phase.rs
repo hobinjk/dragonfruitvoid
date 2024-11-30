@@ -1,7 +1,4 @@
-use bevy::{
-    prelude::*,
-    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
-};
+use bevy::prelude::*;
 use std::ops::{Add, Mul, Sub};
 
 use crate::aoes::*;
@@ -30,7 +27,7 @@ fn move_crabs_system(
 fn game_orb_target_progression_system(
     game: ResMut<Game>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    orb_targets: Query<(&OrbTarget, &mut Handle<ColorMaterial>)>,
+    orb_targets: Query<(&OrbTarget, &mut MeshMaterial2d<ColorMaterial>)>,
 ) {
     for (orb_target, material) in &orb_targets {
         if orb_target.0 == game.orb_target {
@@ -89,16 +86,14 @@ pub fn setup_purification(
 ) {
     game.orb_target = 0;
 
-    commands
-        .spawn(MaterialMesh2dBundle {
-            mesh: meshes.add(Circle::new(ORB_RADIUS)).into(),
-            material: materials.add(ColorMaterial::from(Color::srgb(0.9, 1.0, 1.0))),
-            transform: Transform::from_xyz(0., 0., LAYER_MOB),
-            ..default()
-        })
-        .insert(MobOrb)
-        .insert(Velocity(Vec3::new(0., 0., 0.)))
-        .insert(PhaseEntity);
+    commands.spawn((
+        Mesh2d(meshes.add(Circle::new(ORB_RADIUS))),
+        MeshMaterial2d(materials.add(ColorMaterial::from(Color::srgb(0.9, 1.0, 1.0)))),
+        Transform::from_xyz(0., 0., LAYER_MOB),
+        MobOrb,
+        Velocity(Vec3::new(0., 0., 0.)),
+        PhaseEntity,
+    ));
 
     let void_zone_offset = 420.;
     let void_zone_positions = [
@@ -108,23 +103,21 @@ pub fn setup_purification(
         Vec3::new(0., void_zone_offset, LAYER_VOID),
     ];
 
-    let void_zone_mesh: Mesh2dHandle = meshes.add(Circle::new(VOID_ZONE_START_RADIUS)).into();
+    let void_zone_mesh: Handle<Mesh> = meshes.add(Circle::new(VOID_ZONE_START_RADIUS));
     let void_zone_material = ColorMaterial::from(Color::srgba(0.0, 0.0, 0.0, 0.9));
 
     for pos in void_zone_positions {
-        commands
-            .spawn(MaterialMesh2dBundle {
-                mesh: void_zone_mesh.clone(),
-                material: materials.add(void_zone_material.clone()),
-                transform: Transform::from_translation(pos),
-                ..default()
-            })
-            .insert(VoidZone)
-            .insert(CollisionRadius(VOID_ZONE_START_RADIUS))
-            .insert(Soup {
+        commands.spawn((
+            Mesh2d(void_zone_mesh.clone()),
+            MeshMaterial2d(materials.add(void_zone_material.clone())),
+            Transform::from_translation(pos),
+            VoidZone,
+            CollisionRadius(VOID_ZONE_START_RADIUS),
+            Soup {
                 damage: 25.,
                 duration: None,
-            })
-            .insert(PhaseEntity);
+            },
+            PhaseEntity,
+        ));
     }
 }
