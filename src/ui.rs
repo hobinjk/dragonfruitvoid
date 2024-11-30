@@ -64,6 +64,7 @@ pub struct GaugeBar;
 fn set_cooldown_text_display(
     timer: &Timer,
     text: &mut Text,
+    text_color: &mut TextColor,
     text_display: &TextDisplay,
     sprites: &mut Query<&mut Sprite>,
 ) {
@@ -72,15 +73,15 @@ fn set_cooldown_text_display(
     let left = dur - elapsed;
 
     if left < 5. {
-        text.sections[0].value = format!("{left:.1}");
+        text.0 = format!("{left:.1}");
     } else {
-        text.sections[0].value = format!("{left:.0}");
+        text.0 = format!("{left:.0}");
     }
 
     if left < 0.001 {
-        text.sections[0].style.color.set_alpha(0.0);
+        text_color.set_alpha(0.0);
     } else {
-        text.sections[0].style.color.set_alpha(1.0);
+        text_color.set_alpha(1.0);
     }
 
     if let Some(sprite_handle) = text_display.sprite {
@@ -95,20 +96,21 @@ fn set_cooldown_text_display(
 
 pub fn player_text_system(
     players: Query<&Player, Without<AiPlayer>>,
-    mut text_displays: Query<(&mut Text, &TextDisplay)>,
+    mut text_displays: Query<(&mut Text, &mut TextColor, &TextDisplay)>,
     mut sprites: Query<&mut Sprite>,
 ) {
     for player in &players {
-        for (mut text, text_display) in &mut text_displays {
+        for (mut text, mut text_color, text_display) in &mut text_displays {
             match text_display.value {
                 TextValue::Hp => {
                     let hp = player.get_hp().clamp(0., 100.);
-                    text.sections[0].value = format!("{hp:.0}");
+                    text.0 = format!("{hp:.0}");
                 }
                 TextValue::CooldownBlink => {
                     set_cooldown_text_display(
                         &player.blink_cooldown,
                         &mut text,
+                        &mut text_color,
                         &text_display,
                         &mut sprites,
                     );
@@ -117,17 +119,25 @@ pub fn player_text_system(
                     set_cooldown_text_display(
                         &player.dodge_cooldown,
                         &mut text,
+                        &mut text_color,
                         &text_display,
                         &mut sprites,
                     );
                 }
                 TextValue::StatusJump => {
-                    set_cooldown_text_display(&player.jump, &mut text, &text_display, &mut sprites);
+                    set_cooldown_text_display(
+                        &player.jump,
+                        &mut text,
+                        &mut text_color,
+                        &text_display,
+                        &mut sprites,
+                    );
                 }
                 TextValue::CooldownPortal => {
                     set_cooldown_text_display(
                         &player.portal_cooldown,
                         &mut text,
+                        &mut text_color,
                         &text_display,
                         &mut sprites,
                     );
@@ -136,6 +146,7 @@ pub fn player_text_system(
                     set_cooldown_text_display(
                         &player.pull_cooldown,
                         &mut text,
+                        &mut text_color,
                         &text_display,
                         &mut sprites,
                     );
@@ -161,7 +172,7 @@ pub fn boss_healthbar_system(
     }
     for mut text in &mut texts {
         let left = remaining * 100.;
-        text.sections[0].value = format!("{left:.0}");
+        text.0 = format!("{left:.0}");
     }
 }
 

@@ -63,11 +63,12 @@ pub fn setup_menu_system(
         ..default()
     };
 
-    let text_style = TextStyle {
+    let text_font = TextFont {
         font: asset_server.load("trebuchet_ms.ttf"),
         font_size: 40.0,
-        color: Color::srgb(0.9, 0.9, 0.9),
+        ..default()
     };
+    let text_color = TextColor(Color::srgb(0.9, 0.9, 0.9));
 
     commands
         .spawn((Node {
@@ -132,7 +133,7 @@ pub fn setup_menu_system(
                                 state,
                             ))
                             .with_children(|parent| {
-                                parent.spawn(TextBundle::from_section(label, text_style.clone()));
+                                parent.spawn((Text::new(label), text_font.clone(), text_color));
                             });
                     }
                 });
@@ -179,9 +180,10 @@ pub fn setup_menu_system(
                         ))
                         .with_children(|parent| {
                             let value = player_role_to_string(&game.player_role);
-                            parent.spawn(TextBundle::from_section(
-                                format!("Role: {}", value),
-                                text_style.clone(),
+                            parent.spawn((
+                                Text(format!("Role: {}", value)),
+                                text_font.clone(),
+                                text_color,
                             ));
                         });
 
@@ -195,9 +197,10 @@ pub fn setup_menu_system(
                             ))
                             .with_children(|parent| {
                                 let onoff = if onoff_enabled { "ON" } else { "OFF" };
-                                parent.spawn(TextBundle::from_section(
-                                    format!("{}: {}", label, onoff),
-                                    text_style.clone(),
+                                parent.spawn((
+                                    Text(format!("{}: {}", label, onoff)),
+                                    text_font.clone(),
+                                    text_color,
                                 ));
                             });
                     }
@@ -231,11 +234,12 @@ pub fn setup_pause_menu_system(mut commands: Commands, asset_server: Res<AssetSe
         ..default()
     };
 
-    let text_style = TextStyle {
+    let text_font = TextFont {
         font: asset_server.load("trebuchet_ms.ttf"),
         font_size: 40.0,
-        color: Color::srgb(0.9, 0.9, 0.9),
+        ..default()
     };
+    let text_color = TextColor(Color::srgb(0.9, 0.9, 0.9));
 
     commands
         .spawn((
@@ -266,7 +270,7 @@ pub fn setup_pause_menu_system(mut commands: Commands, asset_server: Res<AssetSe
                         state,
                     ))
                     .with_children(|parent| {
-                        parent.spawn(TextBundle::from_section(label, text_style.clone()));
+                        parent.spawn((Text::new(label), text_color, text_font.clone()));
                     });
             }
         });
@@ -387,7 +391,7 @@ pub fn update_menu_onoff_system(
 
                         for &child in children.iter() {
                             if let Ok(mut text) = texts.get_mut(child) {
-                                text.sections[0].value = format!("Hints: {}", onoff);
+                                text.0 = format!("Hints: {}", onoff);
                             }
                         }
                     }
@@ -397,7 +401,7 @@ pub fn update_menu_onoff_system(
 
                         for &child in children.iter() {
                             if let Ok(mut text) = texts.get_mut(child) {
-                                text.sections[0].value = format!("Require Greens: {}", onoff);
+                                text.0 = format!("Require Greens: {}", onoff);
                             }
                         }
                     }
@@ -407,7 +411,7 @@ pub fn update_menu_onoff_system(
 
                         for &child in children.iter() {
                             if let Ok(mut text) = texts.get_mut(child) {
-                                text.sections[0].value = format!("Spawn Reds: {}", onoff);
+                                text.0 = format!("Spawn Reds: {}", onoff);
                             }
                         }
                     }
@@ -421,7 +425,7 @@ pub fn update_menu_onoff_system(
 
                         for &child in children.iter() {
                             if let Ok(mut text) = texts.get_mut(child) {
-                                text.sections[0].value = format!("Unlimited Range: {}", onoff);
+                                text.0 = format!("Unlimited Range: {}", onoff);
                             }
                         }
                     }
@@ -431,7 +435,7 @@ pub fn update_menu_onoff_system(
 
                         for &child in children.iter() {
                             if let Ok(mut text) = texts.get_mut(child) {
-                                text.sections[0].value = format!("Friends: {}", onoff);
+                                text.0 = format!("Friends: {}", onoff);
                             }
                         }
                     }
@@ -441,7 +445,7 @@ pub fn update_menu_onoff_system(
 
                         for &child in children.iter() {
                             if let Ok(mut text) = texts.get_mut(child) {
-                                text.sections[0].value = format!("Friend Info: {}", onoff);
+                                text.0 = format!("Friend Info: {}", onoff);
                             }
                         }
                     }
@@ -478,7 +482,7 @@ pub fn update_menu_onoff_system(
 
                         for &child in children.iter() {
                             if let Ok(mut text) = texts.get_mut(child) {
-                                text.sections[0].value = format!("{}: {}", label, onoff);
+                                text.0 = format!("{}: {}", label, onoff);
                             }
                         }
                     }
@@ -498,8 +502,7 @@ pub fn update_menu_onoff_system(
 
                         for &child in children.iter() {
                             if let Ok(mut text) = texts.get_mut(child) {
-                                text.sections[0].value =
-                                    format!("Role: {}", player_role_to_string(&next_role));
+                                text.0 = format!("Role: {}", player_role_to_string(&next_role));
                             }
                         }
                     }
@@ -516,7 +519,7 @@ pub fn update_menu_onoff_system(
 
                         for &child in children.iter() {
                             if let Ok(mut text) = texts.get_mut(child) {
-                                text.sections[0].value = format!("Sound: {}", onoff);
+                                text.0 = format!("Sound: {}", onoff);
                             }
                         }
                     }
@@ -581,11 +584,12 @@ fn setup_result_screen(
         ..default()
     };
 
-    let text_style = TextStyle {
+    let text_font = TextFont {
         font: asset_server.load("trebuchet_ms.ttf"),
         font_size: 40.0,
-        color: Color::srgb(0.9, 0.9, 0.9),
+        ..default()
     };
+    let text_color = TextColor(Color::srgb(0.9, 0.9, 0.9));
 
     commands
         .spawn((
@@ -617,17 +621,14 @@ fn setup_result_screen(
                     BackgroundColor(Color::srgba(0., 0., 0., 0.6)),
                 ))
                 .with_children(|parent| {
-                    let text_style = TextStyle {
+                    let text_font = TextFont {
                         font: asset_server.load("trebuchet_ms.ttf"),
                         font_size: 80.,
-                        color: result_color,
+                        ..default()
                     };
+                    let text_color = TextColor(result_color);
 
-                    let text_style_small = TextStyle {
-                        font: text_style.font.clone(),
-                        font_size: 40.,
-                        color: result_color,
-                    };
+                    let text_font_small = text_font.clone().with_font_size(40.);
 
                     let minutes = (game.time_elapsed.elapsed_secs() / 60.).floor() as i32;
                     let seconds = (game.time_elapsed.elapsed_secs() % 60.).floor() as i32;
@@ -635,17 +636,17 @@ fn setup_result_screen(
                         ((game.time_elapsed.elapsed_secs() % 1.) * 1000.).floor() as i32;
 
                     let time_str = format!("{}:{:02}.{:03}", minutes, seconds, milliseconds);
-                    parent.spawn(TextBundle::from_sections([
-                        TextSection::new(result_message, text_style.clone()),
-                        TextSection::new(
-                            format!("\nTime: {}\n", time_str),
-                            text_style_small.clone(),
-                        ),
-                        TextSection::new(
-                            format!("Damage Taken: {}", game.player_damage_taken as i32),
-                            text_style_small.clone(),
-                        ),
-                    ]));
+                    parent.spawn((Text::new(result_message), text_font.clone(), text_color));
+                    parent.spawn((
+                        Text(format!("\nTime: {}\n", time_str)),
+                        text_font_small.clone(),
+                        text_color,
+                    ));
+                    parent.spawn((
+                        Text(format!("Damage Taken: {}", game.player_damage_taken as i32)),
+                        text_font_small.clone(),
+                        text_color,
+                    ));
                 });
 
             big_container
@@ -673,7 +674,7 @@ fn setup_result_screen(
                                 state,
                             ))
                             .with_children(|button| {
-                                button.spawn(TextBundle::from_section(label, text_style.clone()));
+                                button.spawn((Text::new(label), text_font.clone(), text_color));
                             });
                     }
                 });
@@ -717,11 +718,12 @@ pub fn setup_show_hint_system(
         ..default()
     };
 
-    let text_style = TextStyle {
+    let text_font = TextFont {
         font: asset_server.load("trebuchet_ms.ttf"),
         font_size: 28.0,
-        color: Color::srgb(0.9, 0.9, 0.9),
+        ..default()
     };
+    let text_color = TextColor(Color::srgb(0.9, 0.9, 0.9));
 
     commands
         .spawn((
@@ -753,10 +755,7 @@ pub fn setup_show_hint_system(
                     BackgroundColor(Color::srgba(0., 0., 0., 0.8)),
                 ))
                 .with_children(|parent| {
-                    parent.spawn(TextBundle::from_sections([TextSection::new(
-                        hint_text,
-                        text_style.clone(),
-                    )]));
+                    parent.spawn((Text::new(hint_text), text_font.clone(), text_color));
                 });
 
             big_container
@@ -781,7 +780,7 @@ pub fn setup_show_hint_system(
                                 state,
                             ))
                             .with_children(|button| {
-                                button.spawn(TextBundle::from_section(label, text_style.clone()));
+                                button.spawn((Text::new(label), text_font.clone(), text_color));
                             });
                     }
                 });

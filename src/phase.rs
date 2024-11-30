@@ -940,31 +940,32 @@ fn setup_player_ui(
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<ColorMaterial>>,
 ) {
-    let text_style = TextStyle {
+    let text_font = TextFont {
         font: asset_server.load("trebuchet_ms.ttf"),
         font_size: 64.,
-        color: Color::srgb(0.1, 0.7, 0.1),
+        ..default()
     };
+    let text_color = TextColor(Color::srgb(0.1, 0.7, 0.1));
 
-    let text_binding_style = TextStyle {
-        font: asset_server.load("trebuchet_ms.ttf"),
-        font_size: 28.,
-        color: Color::srgb(0.4, 0.2, 0.),
-    };
+    let text_font_large = text_font.clone().with_font_size(80.);
+
+    let text_font_binding = text_font.clone().with_font_size(28.);
+    let text_color_binding = TextColor(Color::srgb(0.4, 0.2, 0.));
     let binding_y = 18.;
 
-    commands
-        .spawn(Text2dBundle {
-            text: Text::from_section("hp", text_style.clone()).with_justify(JustifyText::Center),
-            text_anchor: Anchor::Center,
-            transform: Transform::from_xyz(0., -HEIGHT / 2. + 55., LAYER_TEXT),
-            ..default()
-        })
-        .insert(TextDisplay {
+    commands.spawn((
+        Text::new("hp"),
+        text_font.clone(),
+        text_color,
+        TextLayout::new_with_justify(JustifyText::Center),
+        Anchor::Center,
+        Transform::from_xyz(0., -HEIGHT / 2. + 55., LAYER_TEXT),
+        TextDisplay {
             value: TextValue::Hp,
             sprite: None,
-        })
-        .insert(PhaseEntity);
+        },
+        PhaseEntity,
+    ));
 
     commands.spawn((
         Mesh2d(meshes.add(Circle::new(50.))),
@@ -973,47 +974,33 @@ fn setup_player_ui(
         PhaseEntity,
     ));
 
-    commands
-        .spawn(Text2dBundle {
-            text: Text::from_section(
-                "0",
-                TextStyle {
-                    font: asset_server.load("trebuchet_ms.ttf"),
-                    font_size: 80.,
-                    color: Color::srgb(0.7, 0.7, 0.1),
-                },
-            )
-            .with_justify(JustifyText::Center),
-            text_anchor: Anchor::Center,
-            transform: Transform::from_xyz(0., -HEIGHT / 2. + 155., LAYER_TEXT),
-            ..default()
-        })
-        .insert(TextDisplay {
+    commands.spawn((
+        Text::new("0"),
+        text_font_large.clone(),
+        TextColor(Color::srgb(0.7, 0.7, 0.1)),
+        TextLayout::new_with_justify(JustifyText::Center),
+        Anchor::Center,
+        Transform::from_xyz(0., -HEIGHT / 2. + 155., LAYER_TEXT),
+        TextDisplay {
             value: TextValue::CooldownDodge,
             sprite: None,
-        })
-        .insert(PhaseEntity);
+        },
+        PhaseEntity,
+    ));
 
-    commands
-        .spawn(Text2dBundle {
-            text: Text::from_section(
-                "0",
-                TextStyle {
-                    font: asset_server.load("trebuchet_ms.ttf"),
-                    font_size: 80.,
-                    color: Color::srgb(0.1, 0.7, 0.7),
-                },
-            )
-            .with_justify(JustifyText::Right),
-            text_anchor: Anchor::CenterRight,
-            transform: Transform::from_xyz(-90., -HEIGHT / 2. + 155., LAYER_TEXT),
-            ..default()
-        })
-        .insert(TextDisplay {
+    commands.spawn((
+        Text::new("0"),
+        text_font_large.clone(),
+        TextColor(Color::srgb(0.1, 0.7, 0.7)),
+        TextLayout::new_with_justify(JustifyText::Right),
+        Anchor::CenterRight,
+        Transform::from_xyz(-90., -HEIGHT / 2. + 155., LAYER_TEXT),
+        TextDisplay {
             value: TextValue::StatusJump,
             sprite: None,
-        })
-        .insert(PhaseEntity);
+        },
+        PhaseEntity,
+    ));
 
     let sprite_pull = commands
         .spawn((
@@ -1026,28 +1013,29 @@ fn setup_player_ui(
         ))
         .id();
 
-    commands
-        .spawn(Text2dBundle {
-            text: Text::from_section("", text_style.clone()).with_justify(JustifyText::Center),
-            text_anchor: Anchor::Center,
-            transform: Transform::from_xyz(-128., -HEIGHT / 2. + 55., LAYER_TEXT),
-            ..default()
-        })
-        .insert(TextDisplay {
+    commands.spawn((
+        Text::new("0"),
+        text_font.clone(),
+        text_color,
+        TextLayout::new_with_justify(JustifyText::Center),
+        Anchor::Center,
+        Transform::from_xyz(-128., -HEIGHT / 2. + 55., LAYER_TEXT),
+        TextDisplay {
             value: TextValue::CooldownPull,
             sprite: Some(sprite_pull),
-        })
-        .insert(PhaseEntity);
+        },
+        PhaseEntity,
+    ));
 
-    commands
-        .spawn(Text2dBundle {
-            text: Text::from_section("4", text_binding_style.clone())
-                .with_justify(JustifyText::Center),
-            text_anchor: Anchor::Center,
-            transform: Transform::from_xyz(-128., -HEIGHT / 2. + binding_y, LAYER_TEXT),
-            ..default()
-        })
-        .insert(PhaseEntity);
+    commands.spawn((
+        Text::new("4"),
+        text_font_binding.clone(),
+        text_color_binding,
+        TextLayout::new_with_justify(JustifyText::Center),
+        Anchor::Center,
+        Transform::from_xyz(-128., -HEIGHT / 2. + binding_y, LAYER_TEXT),
+        PhaseEntity,
+    ));
 
     let sprite_blink = commands
         .spawn((
@@ -1060,28 +1048,29 @@ fn setup_player_ui(
         ))
         .id();
 
-    commands
-        .spawn(Text2dBundle {
-            text: Text::from_section("", text_style.clone()).with_justify(JustifyText::Center),
-            text_anchor: Anchor::Center,
-            transform: Transform::from_xyz(128., -HEIGHT / 2. + 55., LAYER_TEXT),
-            ..default()
-        })
-        .insert(TextDisplay {
+    commands.spawn((
+        Text::new(""),
+        text_font.clone(),
+        text_color,
+        TextLayout::new_with_justify(JustifyText::Center),
+        Anchor::Center,
+        Transform::from_xyz(128., -HEIGHT / 2. + 55., LAYER_TEXT),
+        TextDisplay {
             value: TextValue::CooldownBlink,
             sprite: Some(sprite_blink),
-        })
-        .insert(PhaseEntity);
+        },
+        PhaseEntity,
+    ));
 
-    commands
-        .spawn(Text2dBundle {
-            text: Text::from_section("E", text_binding_style.clone())
-                .with_justify(JustifyText::Center),
-            text_anchor: Anchor::Center,
-            transform: Transform::from_xyz(128., -HEIGHT / 2. + binding_y, LAYER_TEXT),
-            ..default()
-        })
-        .insert(PhaseEntity);
+    commands.spawn((
+        Text::new("E"),
+        text_font_binding.clone(),
+        text_color_binding,
+        TextLayout::new_with_justify(JustifyText::Center),
+        Anchor::Center,
+        Transform::from_xyz(128., -HEIGHT / 2. + binding_y, LAYER_TEXT),
+        PhaseEntity,
+    ));
 
     let sprite_portal = commands
         .spawn((
@@ -1094,28 +1083,29 @@ fn setup_player_ui(
         ))
         .id();
 
-    commands
-        .spawn(Text2dBundle {
-            text: Text::from_section("", text_style.clone()).with_justify(JustifyText::Center),
-            text_anchor: Anchor::Center,
-            transform: Transform::from_xyz(256., -HEIGHT / 2. + 55., LAYER_TEXT),
-            ..default()
-        })
-        .insert(TextDisplay {
+    commands.spawn((
+        Text::new(""),
+        text_font.clone(),
+        text_color,
+        TextLayout::new_with_justify(JustifyText::Center),
+        Anchor::Center,
+        Transform::from_xyz(256., -HEIGHT / 2. + 55., LAYER_TEXT),
+        TextDisplay {
             value: TextValue::CooldownPortal,
             sprite: Some(sprite_portal),
-        })
-        .insert(PhaseEntity);
+        },
+        PhaseEntity,
+    ));
 
-    commands
-        .spawn(Text2dBundle {
-            text: Text::from_section("R", text_binding_style.clone())
-                .with_justify(JustifyText::Center),
-            text_anchor: Anchor::Center,
-            transform: Transform::from_xyz(256., -HEIGHT / 2. + binding_y, LAYER_TEXT),
-            ..default()
-        })
-        .insert(PhaseEntity);
+    commands.spawn((
+        Text::new("R"),
+        text_font_binding.clone(),
+        text_color_binding,
+        TextLayout::new_with_justify(JustifyText::Center),
+        Anchor::Center,
+        Transform::from_xyz(256., -HEIGHT / 2. + binding_y, LAYER_TEXT),
+        PhaseEntity,
+    ));
 }
 
 pub fn cleanup_phase(

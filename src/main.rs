@@ -340,49 +340,45 @@ fn setup_purification_four(
         PhaseEntity,
     ));
 
-    commands
-        .spawn(Text2dBundle {
-            text: Text::from_section(
-                "100",
-                TextStyle {
-                    font: asset_server.load("trebuchet_ms.ttf"),
-                    font_size: 16.,
-                    color: Color::srgb(1.0, 1.0, 1.0),
-                },
-            )
-            .with_justify(JustifyText::Center),
-            text_anchor: Anchor::Center,
-
-            transform: Transform::from_xyz(
-                -WIDTH / 2. + 20. + 128.,
-                -HEIGHT / 2. + 128. + 24.,
-                LAYER_TEXT,
-            ),
+    commands.spawn((
+        Text::new("100"),
+        TextFont {
+            font: asset_server.load("trebuchet_ms.ttf"),
+            font_size: 16.,
             ..default()
-        })
-        .insert(BossHealthbarText)
-        .insert(PhaseEntity);
-
-    commands
-        .spawn(Text2dBundle {
-            text: Text::from_section(
-                "Dark Orb",
-                TextStyle {
-                    font: asset_server.load("trebuchet_ms.ttf"),
-                    font_size: 32.,
-                    color: Color::srgb(0.0, 0.8, 0.8),
-                },
-            )
-            .with_justify(JustifyText::Left),
-            text_anchor: Anchor::BottomLeft,
-            transform: Transform::from_xyz(
-                -WIDTH / 2. + 20.,
-                -HEIGHT / 2. + 128. + 8. + 32. + 8.,
-                LAYER_TEXT,
-            ),
+        },
+        TextColor(Color::srgb(1.0, 1.0, 1.0)),
+        TextLayout {
+            justify: JustifyText::Center,
             ..default()
-        })
-        .insert(PhaseEntity);
+        },
+        Anchor::Center,
+        Transform::from_xyz(
+            -WIDTH / 2. + 20. + 128.,
+            -HEIGHT / 2. + 128. + 24.,
+            LAYER_TEXT,
+        ),
+        BossHealthbarText,
+        PhaseEntity,
+    ));
+
+    commands.spawn((
+        Text::new("Dark Orb"),
+        TextFont {
+            font: asset_server.load("trebuchet_ms.ttf"),
+            font_size: 32.,
+            ..default()
+        },
+        TextColor(Color::srgb(0.0, 0.8, 0.8)),
+        TextLayout::new_with_justify(JustifyText::Left),
+        Anchor::BottomLeft,
+        Transform::from_xyz(
+            -WIDTH / 2. + 20.,
+            -HEIGHT / 2. + 128. + 8. + 32. + 8.,
+            LAYER_TEXT,
+        ),
+        PhaseEntity,
+    ));
 }
 
 fn setup_claw_swipes(
@@ -492,48 +488,42 @@ fn setup_boss_phase(
         PhaseEntity,
     ));
 
-    commands
-        .spawn(Text2dBundle {
-            text: Text::from_section(
-                "100",
-                TextStyle {
-                    font: asset_server.load("trebuchet_ms.ttf"),
-                    font_size: 16.,
-                    color: Color::srgb(1.0, 1.0, 1.0),
-                },
-            )
-            .with_justify(JustifyText::Center),
-            text_anchor: Anchor::Center,
-            transform: Transform::from_xyz(
-                -WIDTH / 2. + 20. + 128.,
-                -HEIGHT / 2. + 128. + 24.,
-                LAYER_TEXT,
-            ),
+    commands.spawn((
+        Text::new("100"),
+        TextFont {
+            font: asset_server.load("trebuchet_ms.ttf"),
+            font_size: 16.,
             ..default()
-        })
-        .insert(BossHealthbarText)
-        .insert(PhaseEntity);
+        },
+        TextColor(Color::srgb(1.0, 1.0, 1.0)),
+        TextLayout::new_with_justify(JustifyText::Center),
+        Anchor::Center,
+        Transform::from_xyz(
+            -WIDTH / 2. + 20. + 128.,
+            -HEIGHT / 2. + 128. + 24.,
+            LAYER_TEXT,
+        ),
+        BossHealthbarText,
+        PhaseEntity,
+    ));
 
-    commands
-        .spawn(Text2dBundle {
-            text: Text::from_section(
-                boss_name,
-                TextStyle {
-                    font: asset_server.load("trebuchet_ms.ttf"),
-                    font_size: 32.,
-                    color: Color::srgb(0.0, 0.8, 0.8),
-                },
-            )
-            .with_justify(JustifyText::Left),
-            text_anchor: Anchor::BottomLeft,
-            transform: Transform::from_xyz(
-                -WIDTH / 2. + 20.,
-                -HEIGHT / 2. + 128. + 8. + 32. + 8.,
-                LAYER_TEXT,
-            ),
+    commands.spawn((
+        Text(boss_name),
+        TextFont {
+            font: asset_server.load("trebuchet_ms.ttf"),
+            font_size: 32.,
             ..default()
-        })
-        .insert(PhaseEntity);
+        },
+        TextColor(Color::srgb(0.0, 0.8, 0.8)),
+        TextLayout::new_with_justify(JustifyText::Left),
+        Anchor::BottomLeft,
+        Transform::from_xyz(
+            -WIDTH / 2. + 20.,
+            -HEIGHT / 2. + 128. + 8. + 32. + 8.,
+            LAYER_TEXT,
+        ),
+        PhaseEntity,
+    ));
 
     let void_zone_positions = [Vec3::new(0., 0., LAYER_VOID)];
 

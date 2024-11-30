@@ -92,18 +92,16 @@ pub fn setup_loading_system(
             MenuContainer,
         ))
         .with_children(|big_container| {
-            let text_style = TextStyle {
-                font: asset_server.load("trebuchet_ms.ttf"),
-                font_size: 80.,
-                color: Color::srgb(0.9, 0.9, 0.9),
-            };
-
-            big_container
-                .spawn(TextBundle::from_section(
-                    "Loading...".to_string(),
-                    text_style.clone(),
-                ))
-                .insert(LoadingText);
+            big_container.spawn((
+                Text::new("Loading..."),
+                TextFont {
+                    font: asset_server.load("trebuchet_ms.ttf"),
+                    font_size: 80.,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                LoadingText,
+            ));
         });
 }
 
@@ -136,6 +134,6 @@ pub fn update_loading_system(
         return;
     }
     for mut text in &mut texts {
-        text.sections[0].value = format!("Loading: {}/{}", loaded_count, loading_len);
+        text.0 = format!("Loading: {}/{}", loaded_count, loading_len);
     }
 }
