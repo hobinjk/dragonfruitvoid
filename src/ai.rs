@@ -154,7 +154,7 @@ fn is_safe_for_orb(
         .truncate();
 
     let angle_orb = (ORB_RADIUS * 1.4 / orb_dist).asin().clamp(0., PI / 2.);
-    let mut angle_shoot = orb_dir_after.angle_between(shoot_dir);
+    let mut angle_shoot = orb_dir_after.angle_to(shoot_dir);
 
     if angle_shoot < 0. {
         angle_shoot += 2. * PI;
