@@ -68,9 +68,7 @@ fn velocities_system(
     mut tra_vels: Query<(Entity, &mut Transform, &Velocity)>,
 ) {
     for (entity, mut transform, velocity) in &mut tra_vels {
-        transform.translation = transform
-            .translation
-            .add(velocity.0.mul(time.delta_seconds()));
+        transform.translation = transform.translation.add(velocity.0.mul(time.delta_secs()));
 
         let pos = transform.translation;
 
@@ -89,7 +87,7 @@ fn effect_forced_march_system(
         let target = effect.target;
         let mut diff = target.sub(transform.translation);
         diff.z = 0.;
-        let speed = effect.speed * time.delta_seconds();
+        let speed = effect.speed * time.delta_secs();
         let vel = diff.clamp_length(speed, speed);
         if diff.length_squared() < speed * speed {
             transform.translation = target;
@@ -116,7 +114,7 @@ fn game_player_time_system(
         player.jump_cooldown.tick(time.delta());
         player.invuln.tick(time.delta());
         player.jump.tick(time.delta());
-        player.heal(time.delta_seconds() * PLAYER_REGEN);
+        player.heal(time.delta_secs() * PLAYER_REGEN);
     }
 }
 
@@ -434,7 +432,7 @@ fn move_rotating_soup_system(
     mut soups: Query<(&mut Transform, &mut RotatingSoup)>,
 ) {
     for (mut transform, mut soup) in &mut soups {
-        soup.theta += soup.dtheta * time.delta_seconds();
+        soup.theta += soup.dtheta * time.delta_secs();
         transform.translation.x = soup.theta.cos() * soup.radius;
         transform.translation.y = soup.theta.sin() * soup.radius;
     }
@@ -449,7 +447,7 @@ fn move_player_system(
     >,
 ) {
     // Much slower than actual movement
-    let speed = 250.0 * GAME_TO_PX * time.delta_seconds();
+    let speed = 250.0 * GAME_TO_PX * time.delta_secs();
     for (mut transform, _player) in &mut transforms {
         let mut movement = Vec3::ZERO;
         if keyboard_input.pressed(KeyCode::ArrowUp) || keyboard_input.pressed(KeyCode::KeyW) {
@@ -503,7 +501,7 @@ fn bullet_age_system(
     mut bullets: Query<(Entity, &mut Bullet)>,
 ) {
     for (entity, mut bullet) in &mut bullets {
-        bullet.age += time.delta_seconds();
+        bullet.age += time.delta_secs();
         if !game.unlimited_range_enabled {
             if bullet.age * BULLET_SPEED > BULLET_RANGE {
                 commands.entity(entity).despawn_recursive();

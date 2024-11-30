@@ -381,7 +381,7 @@ pub fn timecaster_system(
             );
 
             for step in 0..3 {
-                let theta = time.elapsed_seconds() / 2. + (step as f32) * PI * 2. / 3.;
+                let theta = time.elapsed_secs() / 2. + (step as f32) * PI * 2. / 3.;
                 let vel = Vec3::new(
                     theta.cos() * TIMECASTER_BULLET_SPEED,
                     theta.sin() * TIMECASTER_BULLET_SPEED,

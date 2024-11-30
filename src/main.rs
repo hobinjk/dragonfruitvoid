@@ -1285,7 +1285,7 @@ fn setup_soowontwo(
 
 fn jormag_soup_beam_system(time: Res<Time>, mut soups: Query<&mut RotatingSoup>) {
     for mut soup in &mut soups {
-        let radius = (WIDTH / 2. - 70.) * ((time.elapsed_seconds() / 8.).cos() + 1.) / 2. + 35.;
+        let radius = (WIDTH / 2. - 70.) * ((time.elapsed_secs() / 8.).cos() + 1.) / 2. + 35.;
         soup.radius = radius;
     }
 }

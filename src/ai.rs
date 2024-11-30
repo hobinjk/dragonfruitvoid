@@ -712,7 +712,7 @@ fn act_on_thought(
     player_transform: &mut Transform,
     center_void_zone_radius: Option<f32>,
 ) {
-    let speed = 250.0 * GAME_TO_PX * time.delta_seconds();
+    let speed = 250.0 * GAME_TO_PX * time.delta_secs();
     let safe_margin = match role {
         AiRole::Ham1 | AiRole::Ham2 => 0.3,
         _ => 1.5,

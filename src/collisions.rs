@@ -234,8 +234,8 @@ pub fn collisions_players_echo_system(
 
             echo.gottem = true;
 
-            player.damage(ECHO_DAMAGE * time.delta_seconds(), "echo hug");
-            player.damage_taken += ECHO_DAMAGE * time.delta_seconds();
+            player.damage(ECHO_DAMAGE * time.delta_secs(), "echo hug");
+            player.damage_taken += ECHO_DAMAGE * time.delta_secs();
         }
     }
 }
@@ -252,7 +252,7 @@ pub fn collisions_players_soups_system(
             if !collide(player_pos, 0., transform_soup.translation, radius.0) {
                 continue;
             }
-            let damage = soup.damage * time.delta_seconds();
+            let damage = soup.damage * time.delta_secs();
             player.damage(damage, "soup");
             player.damage_taken += damage;
             if soup.damage > 0.1 {

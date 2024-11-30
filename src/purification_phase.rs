@@ -20,7 +20,7 @@ fn move_crabs_system(
         let vel = orb_transform.translation.sub(transform.translation);
         transform.translation = transform
             .translation
-            .add(vel.mul(CRAB_SPEED / vel.length()).mul(time.delta_seconds()));
+            .add(vel.mul(CRAB_SPEED / vel.length()).mul(time.delta_secs()));
     }
 }
 
