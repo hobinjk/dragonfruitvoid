@@ -1,4 +1,5 @@
 use ai::{player_ai_purification_phase_system, AiRole};
+use bevy::render::camera::CameraProjection;
 use bevy::{prelude::*, sprite::Anchor, time::Stopwatch, window::WindowResolution};
 use core::f32::consts::PI;
 use loading::{setup_loading_system, update_loading_system, AssetsLoading};
@@ -70,7 +71,14 @@ const SWIPE_DETONATION: f32 = 2.;
 const SWIPE_DAMAGE: f32 = 40.;
 
 fn setup(mut commands: Commands, mut players: Query<&mut Player>) {
-    commands.spawn(Camera2dBundle::new_with_far(LAYER_MAX));
+    let projection = OrthographicProjection {
+        far: LAYER_MAX,
+        ..OrthographicProjection::default_2d()
+    };
+    let transform = Transform::from_xyz(0., 0., LAYER_MAX - 0.1);
+    let frustum = projection.compute_frustum(&GlobalTransform::from(transform));
+
+    commands.spawn((Camera2d, projection, transform, frustum));
 
     for mut player in &mut players {
         player.dodge_cooldown.tick(Duration::from_secs_f32(1000.));
