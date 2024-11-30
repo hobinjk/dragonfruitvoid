@@ -745,12 +745,13 @@ pub fn setup_show_hint_system(
             big_container
                 .spawn((
                     Node {
-                        width: Val::Px(WIDTH / 2. - 20.),
+                        width: Val::Px(WIDTH / 2.),
                         height: Val::Px(240.0),
                         // horizontally center child text
                         justify_content: JustifyContent::Center,
                         // vertically center child text
                         align_items: AlignItems::Center,
+                        padding: UiRect::all(Val::Px(10.)),
                         ..default()
                     },
                     BackgroundColor(Color::srgba(0., 0., 0., 0.8)),
