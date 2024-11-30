@@ -201,6 +201,7 @@ pub fn setup_menu_system(
                                     Text(format!("{}: {}", label, onoff)),
                                     text_font.clone(),
                                     text_color,
+                                    TextLayout::default().with_no_wrap(),
                                 ));
                             });
                     }
