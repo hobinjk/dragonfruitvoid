@@ -63,7 +63,7 @@ pub struct GaugeBar;
 
 fn set_cooldown_text_display(
     timer: &Timer,
-    text: &mut Text,
+    text: &mut Text2d,
     text_color: &mut TextColor,
     text_display: &TextDisplay,
     sprites: &mut Query<&mut Sprite>,
@@ -96,7 +96,7 @@ fn set_cooldown_text_display(
 
 pub fn player_text_system(
     players: Query<&Player, Without<AiPlayer>>,
-    mut text_displays: Query<(&mut Text, &mut TextColor, &TextDisplay)>,
+    mut text_displays: Query<(&mut Text2d, &mut TextColor, &TextDisplay)>,
     mut sprites: Query<&mut Sprite>,
 ) {
     for player in &players {
@@ -159,7 +159,7 @@ pub fn player_text_system(
 pub fn boss_healthbar_system(
     bosses: Query<(&Boss, &Hp)>,
     mut boss_healthbars: Query<&mut Transform, With<BossHealthbar>>,
-    mut texts: Query<&mut Text, With<BossHealthbarText>>,
+    mut texts: Query<&mut Text2d, With<BossHealthbarText>>,
 ) {
     if let Err(_) = bosses.get_single() {
         return;

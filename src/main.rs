@@ -349,7 +349,7 @@ fn setup_purification_four(
     ));
 
     commands.spawn((
-        Text::new("100"),
+        Text2d::new("100"),
         TextFont {
             font: asset_server.load("trebuchet_ms.ttf"),
             font_size: 16.,
@@ -371,7 +371,7 @@ fn setup_purification_four(
     ));
 
     commands.spawn((
-        Text::new("Dark Orb"),
+        Text2d::new("Dark Orb"),
         TextFont {
             font: asset_server.load("trebuchet_ms.ttf"),
             font_size: 32.,
@@ -497,7 +497,7 @@ fn setup_boss_phase(
     ));
 
     commands.spawn((
-        Text::new("100"),
+        Text2d::new("100"),
         TextFont {
             font: asset_server.load("trebuchet_ms.ttf"),
             font_size: 16.,
@@ -516,7 +516,7 @@ fn setup_boss_phase(
     ));
 
     commands.spawn((
-        Text(boss_name),
+        Text2d(boss_name),
         TextFont {
             font: asset_server.load("trebuchet_ms.ttf"),
             font_size: 32.,

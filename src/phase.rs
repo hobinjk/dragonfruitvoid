@@ -955,7 +955,7 @@ fn setup_player_ui(
     let binding_y = 18.;
 
     commands.spawn((
-        Text::new("hp"),
+        Text2d::new("hp"),
         text_font.clone(),
         text_color,
         TextLayout::new_with_justify(JustifyText::Center),
@@ -976,7 +976,7 @@ fn setup_player_ui(
     ));
 
     commands.spawn((
-        Text::new("0"),
+        Text2d::new("0"),
         text_font_large.clone(),
         TextColor(Color::srgb(0.7, 0.7, 0.1)),
         TextLayout::new_with_justify(JustifyText::Center),
@@ -990,7 +990,7 @@ fn setup_player_ui(
     ));
 
     commands.spawn((
-        Text::new("0"),
+        Text2d::new("0"),
         text_font_large.clone(),
         TextColor(Color::srgb(0.1, 0.7, 0.7)),
         TextLayout::new_with_justify(JustifyText::Right),
@@ -1015,7 +1015,7 @@ fn setup_player_ui(
         .id();
 
     commands.spawn((
-        Text::new("0"),
+        Text2d::new("0"),
         text_font.clone(),
         text_color,
         TextLayout::new_with_justify(JustifyText::Center),
@@ -1029,7 +1029,7 @@ fn setup_player_ui(
     ));
 
     commands.spawn((
-        Text::new("4"),
+        Text2d::new("4"),
         text_font_binding.clone(),
         text_color_binding,
         TextLayout::new_with_justify(JustifyText::Center),
@@ -1050,7 +1050,7 @@ fn setup_player_ui(
         .id();
 
     commands.spawn((
-        Text::new(""),
+        Text2d::new(""),
         text_font.clone(),
         text_color,
         TextLayout::new_with_justify(JustifyText::Center),
@@ -1064,7 +1064,7 @@ fn setup_player_ui(
     ));
 
     commands.spawn((
-        Text::new("E"),
+        Text2d::new("E"),
         text_font_binding.clone(),
         text_color_binding,
         TextLayout::new_with_justify(JustifyText::Center),
@@ -1085,7 +1085,7 @@ fn setup_player_ui(
         .id();
 
     commands.spawn((
-        Text::new(""),
+        Text2d::new(""),
         text_font.clone(),
         text_color,
         TextLayout::new_with_justify(JustifyText::Center),
@@ -1099,7 +1099,7 @@ fn setup_player_ui(
     ));
 
     commands.spawn((
-        Text::new("R"),
+        Text2d::new("R"),
         text_font_binding.clone(),
         text_color_binding,
         TextLayout::new_with_justify(JustifyText::Center),
