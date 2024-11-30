@@ -37,17 +37,16 @@ pub enum SfxSource {
 pub struct PhaseAudio;
 
 pub fn setup_audio(commands: &mut Commands, asset_server: &Res<AssetServer>) {
-    commands
-        .spawn(AudioBundle {
-            source: asset_server.load("sounds/phase_theme.ogg"),
-            settings: PlaybackSettings {
-                mode: PlaybackMode::Loop,
-                volume: Volume::new(0.5),
-                ..default()
-            },
-        })
-        .insert(AudioPhaseTheme)
-        .insert(PhaseAudio);
+    commands.spawn((
+        AudioPlayer(asset_server.load::<AudioSource>("sounds/phase_theme.ogg")),
+        PlaybackSettings {
+            mode: PlaybackMode::Loop,
+            volume: Volume::new(0.5),
+            ..default()
+        },
+        AudioPhaseTheme,
+        PhaseAudio,
+    ));
 }
 
 pub fn play_sfx(
@@ -98,10 +97,9 @@ pub fn play_sfx(
         return;
     }
 
-    commands
-        .spawn(AudioBundle {
-            source: asset_server.load(path),
-            settings: PlaybackSettings::REMOVE.with_volume(Volume::new(volume)),
-        })
-        .insert(PhaseAudio);
+    commands.spawn((
+        AudioPlayer(asset_server.load::<AudioSource>(path)),
+        PlaybackSettings::REMOVE.with_volume(Volume::new(volume)),
+        PhaseAudio,
+    ));
 }
