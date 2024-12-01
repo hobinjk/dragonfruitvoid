@@ -1038,11 +1038,6 @@ fn setup_soowonone(
 
     commands.spawn((
         wave_sprite.clone(),
-        Sprite {
-            custom_size: Some(Vec2::new(WAVE_MAX_RADIUS * 2., WAVE_MAX_RADIUS * 2.)),
-            image: wave_texture.clone(),
-            ..default()
-        },
         Transform::from_xyz(-140., 300., LAYER_WAVE).with_scale(Vec3::ZERO),
         Wave {
             visibility_start: Timer::from_seconds(7., TimerMode::Once),
