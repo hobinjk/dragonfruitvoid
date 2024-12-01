@@ -617,6 +617,7 @@ fn setup_result_screen(
                         justify_content: JustifyContent::Center,
                         // vertically center child text
                         align_items: AlignItems::Center,
+                        flex_direction: FlexDirection::Column,
                         ..default()
                     },
                     BackgroundColor(Color::srgba(0., 0., 0., 0.6)),
